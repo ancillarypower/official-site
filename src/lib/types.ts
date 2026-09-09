@@ -34,6 +34,25 @@ export type WpPost = z.infer<typeof wpPostSchema>;
 
 export const wpPostArraySchema = z.array(wpPostSchema);
 
+/**
+ * Safely extract the string value from a WordPress REST API "rendered" field.
+ * Handles both plain strings and `{ rendered: string }` objects that arrive
+ * when the Zod transform is bypassed (e.g. safeParse fallback).
+ */
+export function resolveRendered(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (
+    val !== null &&
+    val !== undefined &&
+    typeof val === "object" &&
+    "rendered" in val &&
+    typeof (val as Record<string, unknown>).rendered === "string"
+  ) {
+    return (val as Record<string, unknown>).rendered as string;
+  }
+  return "";
+}
+
 /* ── WooCommerce REST API schemas ── */
 
 export const wooProductSchema = z.object({

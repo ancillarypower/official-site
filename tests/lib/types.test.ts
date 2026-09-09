@@ -5,7 +5,38 @@ import {
   wooProductSchema,
   wooProductArraySchema,
   wooOrderSchema,
+  resolveRendered,
 } from "@/lib/types";
+
+describe("resolveRendered", () => {
+  it("returns the string as-is when given a plain string", () => {
+    expect(resolveRendered("Hello World")).toBe("Hello World");
+  });
+
+  it("extracts .rendered from a rendered object", () => {
+    expect(resolveRendered({ rendered: "Hello World" })).toBe("Hello World");
+  });
+
+  it("returns empty string for null", () => {
+    expect(resolveRendered(null)).toBe("");
+  });
+
+  it("returns empty string for undefined", () => {
+    expect(resolveRendered(undefined)).toBe("");
+  });
+
+  it("returns empty string for a number", () => {
+    expect(resolveRendered(42)).toBe("");
+  });
+
+  it("returns empty string for an object without rendered key", () => {
+    expect(resolveRendered({ title: "oops" })).toBe("");
+  });
+
+  it("returns empty string when rendered value is not a string", () => {
+    expect(resolveRendered({ rendered: 123 })).toBe("");
+  });
+});
 
 describe("wpPostSchema", () => {
   it("parses a post with rendered fields", () => {

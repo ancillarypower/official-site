@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchWithProxy, wpApiUrl } from "@/lib/api";
-import { wpPostArraySchema, type WpPost } from "@/lib/types";
+import { wpPostArraySchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 interface WpQueryResult {
@@ -35,7 +35,16 @@ export function useWordPress(page: number = 1) {
 
       if (!parsed.success) {
         console.warn("[WP] Zod parse warning:", parsed.error);
-        return { posts: raw as WpPost[], totalPages, totalPosts };
+        // Normalize rendered fields that Zod would normally transform
+        const posts = (raw as Record<string, unknown>[]).map((p) => ({
+          ...p,
+          title: resolveRendered(p.title),
+          content: p.content !== undefined ? resolveRendered(p.content) : undefined,
+          excerpt: p.excerpt !== undefined ? resolveRendered(p.excerpt) : undefined,
+          description: p.description !== undefined ? resolveRendered(p.description) : undefined,
+          caption: p.caption !== undefined ? resolveRendered(p.caption) : undefined,
+        })) as WpPost[];
+        return { posts, totalPages, totalPosts };
       }
 
       return { posts: parsed.data, totalPages, totalPosts: totalPosts || parsed.data.length };
