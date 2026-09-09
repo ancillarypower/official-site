@@ -1,16 +1,12 @@
+import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
 
 interface ArticleViewProps { post: WpPost; onBack: () => void; }
 
-function getPostImage(post: WpPost): string | null {
-  if (post.source_url && post.media_type === "image") return post.source_url;
-  return post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
-}
-
 export function ArticleView({ post, onBack }: ArticleViewProps) {
   const { lang, t } = useI18n();
-  const title = post.title || post.name || `#${post.id}`;
+  const title = getPostTitle(post);
   const content = post.content || post.description || post.caption || post.excerpt || "";
   const date = post.date ? new Date(post.date).toLocaleDateString(lang === "zh" ? "zh-TW" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : null;
   const author = post._embedded?.author?.[0]?.name;

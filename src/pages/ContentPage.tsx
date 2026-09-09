@@ -8,7 +8,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { ContentToolbar } from "@/components/ui/ContentToolbar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { WpPost } from "@/lib/types";
+import { getPostTitle } from "@/lib/types";
 
 const SORT_OPTIONS = [
   { value: "date_desc", labelKey: "sort_date_desc" },
@@ -16,10 +16,6 @@ const SORT_OPTIONS = [
   { value: "title_asc", labelKey: "sort_title_asc" },
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
-
-function getPostTitle(post: WpPost): string {
-  return post.title || post.name || `#${post.id}`;
-}
 
 export default function ContentPage() {
   const { t } = useI18n();

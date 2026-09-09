@@ -34,6 +34,40 @@ export type WpPost = z.infer<typeof wpPostSchema>;
 
 export const wpPostArraySchema = z.array(wpPostSchema);
 
+/** Type guard for WP REST API `{ rendered: string }` objects. */
+function isRenderedObject(val: unknown): val is { rendered: string } {
+  return (
+    typeof val === "object" &&
+    val !== null &&
+    "rendered" in val &&
+    typeof (val as { rendered: unknown }).rendered === "string"
+  );
+}
+
+/**
+ * Safely extract the string value from a WordPress REST API "rendered" field.
+ * Handles both plain strings and `{ rendered: string }` objects that arrive
+ * when the Zod transform is bypassed (e.g. safeParse fallback).
+ */
+export function resolveRendered(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (isRenderedObject(val)) return val.rendered;
+  return "";
+}
+
+/* ── WordPress post helpers ── */
+
+/** Extract a display-safe title from a WpPost. */
+export function getPostTitle(post: WpPost): string {
+  return post.title || post.name || `#${post.id}`;
+}
+
+/** Extract the best available image URL from a WpPost. */
+export function getPostImage(post: WpPost): string | null {
+  if (post.source_url && post.media_type === "image") return post.source_url;
+  return post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
+}
+
 /* ── WooCommerce REST API schemas ── */
 
 export const wooProductSchema = z.object({
