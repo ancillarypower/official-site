@@ -15,14 +15,17 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const el = containerRef.current;
+    if (!el) return;
     let disposed = false;
     let animId: number;
     let renderer: WebGLRenderer | null = null;
     let ro: ResizeObserver | null = null;
 
     async function init() {
+      // Re-check inside async closure for TS strictNullChecks
+      if (!el || disposed) return;
+
       try {
         const THREE = await import("three");
         const { OrbitControls } = await import(
@@ -45,8 +48,8 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
         );
         if (disposed) return;
 
-        const w = container.clientWidth || 400;
-        const h = container.clientHeight || 250;
+        const w = el.clientWidth || 400;
+        const h = el.clientHeight || 250;
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e);
         const camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 1000);
@@ -57,7 +60,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
         renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1;
-        container.appendChild(renderer.domElement);
+        el.appendChild(renderer.domElement);
 
         try {
           const pmrem = new THREE.PMREMGenerator(renderer);
@@ -106,7 +109,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
             }
           }
         });
-        ro.observe(container);
+        ro.observe(el);
 
         function fitToView(object: Object3D) {
           scene.add(object);
@@ -202,7 +205,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
       )}
       {status === "error" && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-[oklch(14%_0.008_250)] p-4 text-center text-sm text-[oklch(65%_0.08_25)]">
-          <span>⚠️</span>
+          <span>\u26a0\ufe0f</span>
           <span>
             {t("models_error")}: {errorMsg}
           </span>
