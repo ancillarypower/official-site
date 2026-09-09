@@ -1,14 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useStorageQuota } from "@/hooks/useStorageQuota";
 
-describe("useStorageQuota", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
+// Do NOT use fake timers here. The hook calls estimate() on mount
+// (synchronous useEffect -> async check()). Fake timers prevent
+// the mocked Promise from resolving, causing 5s test timeouts.
 
+describe("useStorageQuota", () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -53,6 +52,7 @@ describe("useStorageQuota", () => {
     });
 
     const { result } = renderHook(() => useStorageQuota());
+    // Should remain null, not throw
     expect(result.current).toBeNull();
   });
 
