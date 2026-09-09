@@ -24,11 +24,11 @@
 /* ── Font scale (user-adjustable) ── */
 :root {
   --font-scale: 1;
+  font-size: calc(16px * var(--font-scale));
 }
 
 body {
   font-family: "Noto Sans TC", "Inter", system-ui, sans-serif;
-  font-size: calc(16px * var(--font-scale));
   font-optical-sizing: auto;
   line-height: 1.6;
 }
