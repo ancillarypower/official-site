@@ -18,14 +18,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          # Note: pnpm cache requires a lockfile for cache key computation.
-          # After first local `pnpm install`, commit pnpm-lock.yaml and
-          # re-enable: cache: pnpm + --frozen-lockfile below.
+          node-version: 22
 
       - name: Install dependencies
-        # TODO: switch to `pnpm install --frozen-lockfile` once pnpm-lock.yaml is committed
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint
         run: pnpm lint
