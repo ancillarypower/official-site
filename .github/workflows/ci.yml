@@ -22,52 +22,16 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        id: install
         run: pnpm install
 
       - name: Lint
-        id: lint
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
-        run: pnpm lint 2>&1 | head -100
+        run: pnpm lint
 
       - name: Type check
-        id: typecheck
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
-        run: pnpm type-check 2>&1 | head -100
+        run: pnpm type-check
 
       - name: Test
-        id: test
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
-        run: pnpm test -- --reporter=verbose 2>&1 | head -200
+        run: pnpm test -- --reporter=verbose
 
       - name: Build
-        id: build
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
-        run: pnpm build 2>&1 | head -100
-
-      - name: Results summary
-        if: always()
-        run: |
-          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Step | Result |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Install | ${{ steps.install.outcome }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ steps.lint.outcome }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Type check | ${{ steps.typecheck.outcome }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ steps.test.outcome }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ steps.build.outcome }} |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Fail if any step failed
-        if: always()
-        run: |
-          if [[ "${{ steps.lint.outcome }}" == "failure" ]] || \
-             [[ "${{ steps.typecheck.outcome }}" == "failure" ]] || \
-             [[ "${{ steps.test.outcome }}" == "failure" ]] || \
-             [[ "${{ steps.build.outcome }}" == "failure" ]]; then
-            echo "One or more steps failed. See Results summary above."
-            exit 1
-          fi
+        run: pnpm build
