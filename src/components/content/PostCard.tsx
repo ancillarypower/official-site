@@ -1,12 +1,8 @@
+import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
 
 interface PostCardProps { post: WpPost; onClick: () => void; }
-
-function getPostImage(post: WpPost): string | null {
-  if (post.source_url && post.media_type === "image") return post.source_url;
-  return post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
-}
 
 function decodeHtml(html: string): string {
   const el = document.createElement("textarea");
@@ -16,7 +12,7 @@ function decodeHtml(html: string): string {
 
 export function PostCard({ post, onClick }: PostCardProps) {
   const { lang } = useI18n();
-  const title = post.title || post.name || `#${post.id}`;
+  const title = getPostTitle(post);
   const img = getPostImage(post);
   const author = post._embedded?.author?.[0]?.name;
   const date = post.date ? new Date(post.date).toLocaleDateString(lang === "zh" ? "zh-TW" : "en-US", { month: "short", day: "numeric", year: "numeric" }) : null;

@@ -6,11 +6,18 @@ import {
   wooProductArraySchema,
   wooOrderSchema,
   resolveRendered,
+  getPostTitle,
+  getPostImage,
 } from "@/lib/types";
+import type { WpPost } from "@/lib/types";
 
 describe("resolveRendered", () => {
   it("returns the string as-is when given a plain string", () => {
     expect(resolveRendered("Hello World")).toBe("Hello World");
+  });
+
+  it("returns empty string as-is", () => {
+    expect(resolveRendered("")).toBe("");
   });
 
   it("extracts .rendered from a rendered object", () => {
@@ -35,6 +42,63 @@ describe("resolveRendered", () => {
 
   it("returns empty string when rendered value is not a string", () => {
     expect(resolveRendered({ rendered: 123 })).toBe("");
+  });
+
+  it("handles HTML entity strings from WP API", () => {
+    expect(resolveRendered({ rendered: "Hello &#8217;World&#8217;" })).toBe("Hello &#8217;World&#8217;");
+  });
+});
+
+describe("resolveRendered fallback normalization (integration)", () => {
+  it("normalizes raw WP API response with { rendered } title to plain string", () => {
+    const rawApiResponse = [
+      { id: 1, title: { rendered: "My Article" }, content: { rendered: "<p>Body</p>" } },
+      { id: 2, title: { rendered: "Second Post" }, excerpt: { rendered: "<p>Summary</p>" } },
+    ];
+
+    const normalized = rawApiResponse.map((p) => ({
+      id: p.id,
+      title: resolveRendered(p.title),
+      content: "content" in p ? resolveRendered(p.content) : undefined,
+      excerpt: "excerpt" in p ? resolveRendered(p.excerpt) : undefined,
+    }));
+
+    expect(normalized[0]?.title).toBe("My Article");
+    expect(normalized[0]?.content).toBe("<p>Body</p>");
+    expect(normalized[1]?.title).toBe("Second Post");
+    expect(normalized[1]?.excerpt).toBe("<p>Summary</p>");
+    // Verify no [object Object] leaks
+    expect(String(normalized[0]?.title)).not.toContain("[object Object]");
+    expect(String(normalized[1]?.title)).not.toContain("[object Object]");
+  });
+});
+
+describe("getPostTitle", () => {
+  it("returns title when present", () => {
+    expect(getPostTitle({ id: 1, title: "Hello" } as WpPost)).toBe("Hello");
+  });
+
+  it("falls back to name when title is empty", () => {
+    expect(getPostTitle({ id: 1, title: "", name: "my-slug" } as WpPost)).toBe("my-slug");
+  });
+
+  it("falls back to #id when both are empty", () => {
+    expect(getPostTitle({ id: 42, title: "" } as WpPost)).toBe("#42");
+  });
+});
+
+describe("getPostImage", () => {
+  it("returns source_url for image media type", () => {
+    expect(getPostImage({ id: 1, title: "t", source_url: "https://img.com/a.jpg", media_type: "image" } as WpPost)).toBe("https://img.com/a.jpg");
+  });
+
+  it("returns featured media from _embedded", () => {
+    const post = { id: 1, title: "t", _embedded: { "wp:featuredmedia": [{ source_url: "https://img.com/b.jpg" }] } } as WpPost;
+    expect(getPostImage(post)).toBe("https://img.com/b.jpg");
+  });
+
+  it("returns null when no image available", () => {
+    expect(getPostImage({ id: 1, title: "t" } as WpPost)).toBeNull();
   });
 });
 

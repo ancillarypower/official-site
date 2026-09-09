@@ -9,6 +9,26 @@ interface WpQueryResult {
   totalPosts: number;
 }
 
+/**
+ * Normalize a raw API response item into a shape that matches WpPost
+ * when Zod safeParse fails and the transform step is skipped.
+ */
+function normalizeRawPost(p: Record<string, unknown>): WpPost {
+  return {
+    id: typeof p.id === "number" ? p.id : 0,
+    date: typeof p.date === "string" ? p.date : undefined,
+    title: resolveRendered(p.title),
+    content: p.content !== undefined ? resolveRendered(p.content) : undefined,
+    excerpt: p.excerpt !== undefined ? resolveRendered(p.excerpt) : undefined,
+    description: p.description !== undefined ? resolveRendered(p.description) : undefined,
+    caption: p.caption !== undefined ? resolveRendered(p.caption) : undefined,
+    name: typeof p.name === "string" ? p.name : undefined,
+    source_url: typeof p.source_url === "string" ? p.source_url : undefined,
+    media_type: typeof p.media_type === "string" ? p.media_type : undefined,
+    _embedded: p._embedded as WpPost["_embedded"],
+  };
+}
+
 export function useWordPress(page: number = 1) {
   const { wpUrl, contentType, perPage, useProxy } = useSettingsStore();
 
@@ -24,10 +44,12 @@ export function useWordPress(page: number = 1) {
       const totalPages = parseInt(
         response.headers.get("X-WP-TotalPages") ??
           response.headers.get("x-wp-totalpages") ?? "1",
+        10,
       );
       const totalPosts = parseInt(
         response.headers.get("X-WP-Total") ??
           response.headers.get("x-wp-total") ?? "0",
+        10,
       );
 
       const raw = await response.json();
@@ -35,15 +57,7 @@ export function useWordPress(page: number = 1) {
 
       if (!parsed.success) {
         console.warn("[WP] Zod parse warning:", parsed.error);
-        // Normalize rendered fields that Zod would normally transform
-        const posts = (raw as Record<string, unknown>[]).map((p) => ({
-          ...p,
-          title: resolveRendered(p.title),
-          content: p.content !== undefined ? resolveRendered(p.content) : undefined,
-          excerpt: p.excerpt !== undefined ? resolveRendered(p.excerpt) : undefined,
-          description: p.description !== undefined ? resolveRendered(p.description) : undefined,
-          caption: p.caption !== undefined ? resolveRendered(p.caption) : undefined,
-        })) as WpPost[];
+        const posts = (raw as Record<string, unknown>[]).map(normalizeRawPost);
         return { posts, totalPages, totalPosts };
       }
 
