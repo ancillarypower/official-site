@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -25,13 +29,69 @@ jobs:
         run: pnpm install
 
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: pnpm lint
 
       - name: Type check
-        run: pnpm type-check
+        id: typecheck
+        continue-on-error: true
+        run: pnpm type-check 2>&1 | tee /tmp/tc.log; exit ${PIPESTATUS[0]}
 
       - name: Test
-        run: pnpm test -- --reporter=verbose
+        id: test
+        continue-on-error: true
+        run: pnpm test -- --reporter=verbose 2>&1 | tee /tmp/test.log; exit ${PIPESTATUS[0]}
 
       - name: Build
-        run: pnpm build
+        id: build
+        continue-on-error: true
+        run: pnpm build 2>&1 | tee /tmp/build.log; exit ${PIPESTATUS[0]}
+
+      - name: Post results
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "## CI Diagnostic ($(date -u +%H:%M:%S))"
+            echo ""
+            echo "| Step | Outcome |"
+            echo "|------|---------|"
+            echo "| Lint | ${{ steps.lint.outcome }} |"
+            echo "| Type check | ${{ steps.typecheck.outcome }} |"
+            echo "| Test | ${{ steps.test.outcome }} |"
+            echo "| Build | ${{ steps.build.outcome }} |"
+            echo ""
+            if [[ "${{ steps.typecheck.outcome }}" == "failure" ]]; then
+              echo '### Type check errors'
+              echo '```'
+              tail -30 /tmp/tc.log 2>/dev/null || echo 'no log'
+              echo '```'
+              echo ''
+            fi
+            if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
+              echo '### Test errors'
+              echo '```'
+              tail -50 /tmp/test.log 2>/dev/null || echo 'no log'
+              echo '```'
+              echo ''
+            fi
+            if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+              echo '### Build errors'
+              echo '```'
+              tail -30 /tmp/build.log 2>/dev/null || echo 'no log'
+              echo '```'
+              echo ''
+            fi
+          } > /tmp/comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment.md
+
+      - name: Fail check
+        if: always()
+        run: |
+          [[ "${{ steps.lint.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.typecheck.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.test.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.build.outcome }}" == "failure" ]] && exit 1
+          echo ok
