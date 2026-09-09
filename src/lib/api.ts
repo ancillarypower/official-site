@@ -17,6 +17,7 @@ export async function fetchWithProxy(
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     const idx = (proxyIndex + i) % CORS_PROXIES.length;
     const proxy = CORS_PROXIES[idx];
+    if (!proxy) continue;
     try {
       const response = await fetch(proxy + encodeURIComponent(url));
       if (response.ok || response.status === 404) {
