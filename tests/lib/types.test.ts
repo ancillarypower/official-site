@@ -9,6 +9,7 @@ import {
   getPostTitle,
   getPostImage,
 } from "@/lib/types";
+import { normalizeRawPost } from "@/hooks/useWordPress";
 import type { WpPost } from "@/lib/types";
 
 describe("resolveRendered", () => {
@@ -49,27 +50,57 @@ describe("resolveRendered", () => {
   });
 });
 
-describe("resolveRendered fallback normalization (integration)", () => {
-  it("normalizes raw WP API response with { rendered } title to plain string", () => {
-    const rawApiResponse = [
-      { id: 1, title: { rendered: "My Article" }, content: { rendered: "<p>Body</p>" } },
-      { id: 2, title: { rendered: "Second Post" }, excerpt: { rendered: "<p>Summary</p>" } },
-    ];
+describe("normalizeRawPost", () => {
+  it("normalizes rendered fields from raw API response", () => {
+    const raw = {
+      id: 1,
+      date: "2026-01-01T00:00:00",
+      title: { rendered: "My Article" },
+      content: { rendered: "<p>Body</p>" },
+      excerpt: { rendered: "<p>Summary</p>" },
+      name: "my-article",
+      source_url: "https://img.com/a.jpg",
+      media_type: "image",
+    };
+    const post = normalizeRawPost(raw);
 
-    const normalized = rawApiResponse.map((p) => ({
-      id: p.id,
-      title: resolveRendered(p.title),
-      content: "content" in p ? resolveRendered(p.content) : undefined,
-      excerpt: "excerpt" in p ? resolveRendered(p.excerpt) : undefined,
-    }));
+    expect(post.id).toBe(1);
+    expect(post.date).toBe("2026-01-01T00:00:00");
+    expect(post.title).toBe("My Article");
+    expect(post.content).toBe("<p>Body</p>");
+    expect(post.excerpt).toBe("<p>Summary</p>");
+    expect(post.name).toBe("my-article");
+    expect(post.source_url).toBe("https://img.com/a.jpg");
+    expect(post.media_type).toBe("image");
+  });
 
-    expect(normalized[0]?.title).toBe("My Article");
-    expect(normalized[0]?.content).toBe("<p>Body</p>");
-    expect(normalized[1]?.title).toBe("Second Post");
-    expect(normalized[1]?.excerpt).toBe("<p>Summary</p>");
-    // Verify no [object Object] leaks
-    expect(String(normalized[0]?.title)).not.toContain("[object Object]");
-    expect(String(normalized[1]?.title)).not.toContain("[object Object]");
+  it("defaults id to 0 when missing or non-numeric", () => {
+    expect(normalizeRawPost({ title: "test" }).id).toBe(0);
+    expect(normalizeRawPost({ id: "abc", title: "test" }).id).toBe(0);
+  });
+
+  it("leaves optional fields as undefined when absent", () => {
+    const post = normalizeRawPost({ id: 1, title: "test" });
+    expect(post.date).toBeUndefined();
+    expect(post.content).toBeUndefined();
+    expect(post.excerpt).toBeUndefined();
+    expect(post.description).toBeUndefined();
+    expect(post.caption).toBeUndefined();
+    expect(post.name).toBeUndefined();
+    expect(post.source_url).toBeUndefined();
+    expect(post.media_type).toBeUndefined();
+  });
+
+  it("resolves title from { rendered } to string, preventing [object Object]", () => {
+    const post = normalizeRawPost({ id: 1, title: { rendered: "Real Title" } });
+    expect(post.title).toBe("Real Title");
+    expect(String(post.title)).not.toContain("[object Object]");
+  });
+
+  it("preserves _embedded structure", () => {
+    const embedded = { author: [{ name: "Alice" }] };
+    const post = normalizeRawPost({ id: 1, title: "test", _embedded: embedded });
+    expect(post._embedded).toEqual(embedded);
   });
 });
 

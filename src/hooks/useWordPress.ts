@@ -13,7 +13,7 @@ interface WpQueryResult {
  * Normalize a raw API response item into a shape that matches WpPost
  * when Zod safeParse fails and the transform step is skipped.
  */
-function normalizeRawPost(p: Record<string, unknown>): WpPost {
+export function normalizeRawPost(p: Record<string, unknown>): WpPost {
   return {
     id: typeof p.id === "number" ? p.id : 0,
     date: typeof p.date === "string" ? p.date : undefined,
@@ -57,6 +57,9 @@ export function useWordPress(page: number = 1) {
 
       if (!parsed.success) {
         console.warn("[WP] Zod parse warning:", parsed.error);
+        if (!Array.isArray(raw)) {
+          throw new Error("Unexpected API response: expected an array");
+        }
         const posts = (raw as Record<string, unknown>[]).map(normalizeRawPost);
         return { posts, totalPages, totalPosts };
       }
