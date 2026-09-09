@@ -25,13 +25,53 @@ jobs:
         run: pnpm install
 
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: pnpm lint
 
       - name: Type check
+        id: typecheck
+        continue-on-error: true
         run: pnpm type-check
 
       - name: Test
+        id: test
+        continue-on-error: true
         run: pnpm test -- --reporter=verbose
 
       - name: Build
+        id: build
+        continue-on-error: true
         run: pnpm build
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## CI Step Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type check | ${{ steps.typecheck.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ steps.test.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ steps.build.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo ""
+          echo "Lint: ${{ steps.lint.outcome }}"
+          echo "Type check: ${{ steps.typecheck.outcome }}"
+          echo "Test: ${{ steps.test.outcome }}"
+          echo "Build: ${{ steps.build.outcome }}"
+
+      - name: Fail if any step failed
+        if: always()
+        run: |
+          if [[ "${{ steps.lint.outcome }}" == "failure" ]] || \
+             [[ "${{ steps.typecheck.outcome }}" == "failure" ]] || \
+             [[ "${{ steps.test.outcome }}" == "failure" ]] || \
+             [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "FAILED STEPS:"
+            [[ "${{ steps.lint.outcome }}" == "failure" ]] && echo "  - Lint"
+            [[ "${{ steps.typecheck.outcome }}" == "failure" ]] && echo "  - Type check"
+            [[ "${{ steps.test.outcome }}" == "failure" ]] && echo "  - Test"
+            [[ "${{ steps.build.outcome }}" == "failure" ]] && echo "  - Build"
+            exit 1
+          fi
+          echo "All steps passed!"
