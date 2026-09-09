@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -25,13 +29,47 @@ jobs:
         run: pnpm install
 
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: pnpm lint
 
       - name: Type check
+        id: typecheck
+        continue-on-error: true
         run: pnpm type-check
 
       - name: Test
+        id: test
+        continue-on-error: true
         run: pnpm test -- --reporter=verbose
 
       - name: Build
+        id: build
+        continue-on-error: true
         run: pnpm build
+
+      - name: Post results
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "## CI Results (run $(date -u +%H:%M:%S))"
+            echo ""
+            echo "| Step | Outcome |"
+            echo "|------|---------|"
+            echo "| Lint | ${{ steps.lint.outcome }} |"
+            echo "| Type check | ${{ steps.typecheck.outcome }} |"
+            echo "| Test | ${{ steps.test.outcome }} |"
+            echo "| Build | ${{ steps.build.outcome }} |"
+          } > /tmp/comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment.md
+
+      - name: Fail check
+        if: always()
+        run: |
+          [[ "${{ steps.lint.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.typecheck.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.test.outcome }}" == "failure" ]] && exit 1
+          [[ "${{ steps.build.outcome }}" == "failure" ]] && exit 1
+          echo "All passed!"
