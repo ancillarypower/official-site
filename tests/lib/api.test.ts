@@ -19,6 +19,12 @@ describe("wpApiUrl", () => {
       "https://example.com/wp-json/wp/v2",
     );
   });
+
+  it("handles URL with path", () => {
+    expect(wpApiUrl("https://example.com/blog")).toBe(
+      "https://example.com/blog/wp-json/wp/v2",
+    );
+  });
 });
 
 describe("wooApiUrl", () => {
@@ -36,6 +42,20 @@ describe("wooApiUrl", () => {
   it("strips trailing slashes from base URL", () => {
     const url = wooApiUrl("https://shop.com//", "orders", "k", "s");
     expect(new URL(url).pathname).toBe("/wp-json/wc/v3/orders");
+  });
+
+  it("works with no extra params", () => {
+    const url = wooApiUrl("https://shop.com", "products", "k", "s");
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get("consumer_key")).toBe("k");
+    expect(parsed.searchParams.get("consumer_secret")).toBe("s");
+  });
+
+  it("handles special characters in credentials", () => {
+    const url = wooApiUrl("https://shop.com", "products", "ck_a&b=c", "cs_d+e");
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get("consumer_key")).toBe("ck_a&b=c");
+    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_d+e");
   });
 });
 
@@ -69,5 +89,14 @@ describe("fetchWithProxy", () => {
     await expect(
       fetchWithProxy("https://api.test.com/data", true),
     ).rejects.toThrow("All CORS proxies failed");
+  });
+
+  it("returns 404 responses without trying next proxy", async () => {
+    const notFound = new Response("Not Found", { status: 404 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(notFound));
+
+    const result = await fetchWithProxy("https://api.test.com/missing", true);
+    expect(result.status).toBe(404);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
