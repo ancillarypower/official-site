@@ -16,7 +16,7 @@ describe("AboutPage", () => {
   it("renders the page title", () => {
     render(withProviders(<AboutPage />));
     expect(
-      screen.getByText("關於 Ancillary Power"),
+      screen.getByText("關於安瑟樂威"),
     ).toBeInTheDocument();
   });
 
@@ -27,9 +27,9 @@ describe("AboutPage", () => {
 
   it("renders all three service cards", () => {
     render(withProviders(<AboutPage />));
-    expect(screen.getByText("內容管理")).toBeInTheDocument();
-    expect(screen.getByText("3D 模型展示")).toBeInTheDocument();
-    expect(screen.getByText("電子商務")).toBeInTheDocument();
+    expect(screen.getByText("VPP 虛擬電廠")).toBeInTheDocument();
+    expect(screen.getByText("綠電交易與採購")).toBeInTheDocument();
+    expect(screen.getByText("儲能與能源管理")).toBeInTheDocument();
   });
 
   it("renders the contact section with email link", () => {
@@ -43,5 +43,20 @@ describe("AboutPage", () => {
       "href",
       "mailto:contact@ancillarypower.com",
     );
+  });
+
+  it("renders phone and address contact info", () => {
+    render(withProviders(<AboutPage />));
+    const phoneLink = screen.getByText("02-2727-2988");
+    expect(phoneLink).toBeInTheDocument();
+    expect(phoneLink).toHaveAttribute(
+      "href",
+      "tel:02-2727-2988",
+    );
+    expect(
+      screen.getByText(
+        /台北市中正區新生南路一段/,
+      ),
+    ).toBeInTheDocument();
   });
 });
