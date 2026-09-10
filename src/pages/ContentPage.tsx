@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -21,7 +22,13 @@ export default function ContentPage() {
   const { t } = useI18n();
   const contentType = useSettingsStore((s) => s.contentType);
   const [page, setPage] = useState(1);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const articleParam = searchParams.get("article");
+  const selectedIndex =
+    articleParam !== null && /^\d+$/.test(articleParam)
+      ? Number(articleParam)
+      : null;
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("date_desc");
 
@@ -58,7 +65,7 @@ export default function ContentPage() {
     return (
       <ArticleView
         post={selectedPost}
-        onBack={() => setSelectedIndex(null)}
+        onBack={() => navigate(-1)}
       />
     );
   }
@@ -88,7 +95,10 @@ export default function ContentPage() {
         posts={filteredPosts}
         onSelectPost={(i) => {
           const post = filteredPosts[i];
-          if (post) setSelectedIndex(data.posts.indexOf(post));
+          if (post) {
+            const idx = data.posts.indexOf(post);
+            if (idx >= 0) setSearchParams({ article: String(idx) });
+          }
         }}
       />
       <Pagination
