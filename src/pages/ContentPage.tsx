@@ -65,7 +65,7 @@ export default function ContentPage() {
     return (
       <ArticleView
         post={selectedPost}
-        onBack={() => navigate(-1)}
+        onBack={() => navigate("/", { replace: true })}
       />
     );
   }
