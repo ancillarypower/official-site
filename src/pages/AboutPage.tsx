@@ -2,17 +2,17 @@ import { useI18n } from "@/context/I18nContext";
 
 const SERVICES = [
   {
-    icon: "\ud83d\udcdd",
+    icon: "\u26a1",
     titleKey: "about_service_content",
     descKey: "about_service_content_desc",
   },
   {
-    icon: "\ud83e\uddca",
+    icon: "\ud83c\udf3f",
     titleKey: "about_service_3d",
     descKey: "about_service_3d_desc",
   },
   {
-    icon: "\ud83d\uded2",
+    icon: "\ud83d\udd0b",
     titleKey: "about_service_store",
     descKey: "about_service_store_desc",
   },
@@ -78,17 +78,38 @@ export default function AboutPage() {
         <p className="text-sm text-secondary">
           {t("about_contact_text")}
         </p>
-        <p className="text-sm">
-          <span className="font-medium">
-            {t("about_email_label")}:
-          </span>{" "}
-          <a
-            href={`mailto:${t("about_email_value")}`}
-            className="text-accent hover:underline"
-          >
-            {t("about_email_value")}
-          </a>
-        </p>
+        <div className="space-y-1 text-sm">
+          <p>
+            <span className="font-medium">
+              {t("about_email_label")}:
+            </span>{" "}
+            <a
+              href={`mailto:${t("about_email_value")}`}
+              className="text-accent hover:underline"
+            >
+              {t("about_email_value")}
+            </a>
+          </p>
+          <p>
+            <span className="font-medium">
+              {t("about_phone_label")}:
+            </span>{" "}
+            <a
+              href={`tel:${t("about_phone_value")}`}
+              className="text-accent hover:underline"
+            >
+              {t("about_phone_value")}
+            </a>
+          </p>
+          <p>
+            <span className="font-medium">
+              {t("about_address_label")}:
+            </span>{" "}
+            <span className="text-secondary">
+              {t("about_address_value")}
+            </span>
+          </p>
+        </div>
       </section>
     </div>
   );
