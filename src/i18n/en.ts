@@ -97,25 +97,30 @@ export const en: Record<TranslationKey, string> = {
   // About
   about_title: "About Ancillary Power",
   about_subtitle:
-    "Integrated solutions powering digital transformation",
+    "Taiwan's first qualified private electricity trader, powering energy transition with AI-driven Virtual Power Plants",
   about_mission_title: "Our Mission",
   about_mission_text:
-    "Ancillary Power is dedicated to integrating content management, 3D visualization, and e-commerce technologies to deliver all-in-one digital solutions. We believe in the power of technology to simplify complex workflows, so businesses can focus on what they do best.",
+    "Ancillary Power is dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. We have successfully aggregated over 300 MW of virtual power plant capacity, actively helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity.",
   about_services_title: "Core Services",
-  about_service_content: "Content Management",
+  about_service_content: "Virtual Power Plant",
   about_service_content_desc:
-    "Flexible content publishing and management powered by WordPress API integration.",
-  about_service_3d: "3D Model Showcase",
+    "Through our proprietary AIoT platform and electricity trading mechanisms, we integrate enterprise energy storage, demand response, and smart charging into dispatchable grid resources.",
+  about_service_3d: "Green Electricity Trading",
   about_service_3d_desc:
-    "Support for multiple 3D formats with immersive interactive experiences.",
-  about_service_store: "E-Commerce",
+    "Licensed green electricity retailer with an AI-powered real-time procurement dashboard that precisely matches enterprise demand with green energy supply, minimizing surplus waste.",
+  about_service_store: "Energy Storage & Management",
   about_service_store_desc:
-    "Complete online shopping experience powered by WooCommerce integration.",
+    "We help enterprises deploy advanced behind-the-meter storage systems, integrating solar PV, EV charging, and EMS for intelligent dispatch and power asset monetization.",
   about_contact_title: "Contact Us",
   about_contact_text:
-    "Have questions or partnership inquiries? We'd love to hear from you.",
+    "For energy management, virtual power plant, or green electricity procurement inquiries, get in touch.",
   about_email_label: "Email",
   about_email_value: "contact@ancillarypower.com",
+  about_phone_label: "Phone",
+  about_phone_value: "02-2727-2988",
+  about_address_label: "Address",
+  about_address_value:
+    "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei City",
 
   product_1: "Wireless Headphones",
   product_1_desc: "30hr, adaptive ANC.",
