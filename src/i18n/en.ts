@@ -97,10 +97,14 @@ export const en: Record<TranslationKey, string> = {
   // About
   about_title: "About Ancillary Power",
   about_subtitle:
-    "Taiwan's first qualified private electricity trader, powering energy transition with AI-driven Virtual Power Plants",
+    "Taiwan's first qualified private electricity trader and renewable energy retailer, powering energy transition with AI-driven Virtual Power Plants",
   about_mission_title: "Our Mission",
   about_mission_text:
-    "Ancillary Power is dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. We have successfully aggregated over 300 MW of virtual power plant capacity, actively helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity.",
+    "Ancillary Power is a 100% Taiwan-based team dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. We have successfully aggregated over 300 MW of virtual power plant capacity with a 100%+ average dispatch execution rate, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity. Through our ESCO financial model, we form long-term partnerships with clients, helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets.",
+  about_highlights_title: "Key Achievements",
+  about_highlight_vpp: "300+ MW VPP aggregation, leading the platform in trading volume",
+  about_highlight_dispatch: "100%+ average dispatch execution rate with over 30,000 cumulative operating hours",
+  about_highlight_nvidia: "NVIDIA Inception Program member, deepening AI-powered intelligent dispatch",
   about_services_title: "Core Services",
   about_service_content: "Virtual Power Plant",
   about_service_content_desc:
@@ -117,10 +121,12 @@ export const en: Record<TranslationKey, string> = {
   about_email_label: "Email",
   about_email_value: "contact@ancillarypower.com",
   about_phone_label: "Phone",
-  about_phone_value: "02-2727-2988",
+  about_phone_value: "02-2727-2988 / 02-7755-5030",
   about_address_label: "Address",
   about_address_value:
-    "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei City",
+    "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei 100510",
+  about_website_label: "Website",
+  about_website_value: "https://www.ancillarypower.com",
 
   product_1: "Wireless Headphones",
   product_1_desc: "30hr, adaptive ANC.",
