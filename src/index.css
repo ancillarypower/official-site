@@ -27,12 +27,11 @@
 }
 
 /*
- * Apply the scale only to the main content area so that chrome
- * (Navbar, Footer, Sidebar, FontSizeControl) keeps a fixed layout.
- * Article-body text uses em-based sizes and therefore scales correctly.
+ * Apply the scale to the root element so that every rem-based size
+ * (Tailwind utilities included) scales proportionally.
  */
-#main-content {
-  font-size: calc(16px * var(--font-scale));
+html {
+  font-size: calc(100% * var(--font-scale));
 }
 
 body {

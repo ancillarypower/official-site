@@ -3,6 +3,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 
 describe("settingsStore", () => {
   beforeEach(() => {
+    document.documentElement.style.removeProperty("--font-scale");
     useSettingsStore.setState({ wpUrl: "https://www.ancillarypower.com", wooKey: "", wooSecret: "", wooUrl: "", wooUseSameUrl: true, useProxy: false, contentType: "posts", perPage: 20, wooPerPage: 20, fontScale: 1, activePanel: null });
   });
 
@@ -42,6 +43,13 @@ describe("settingsStore", () => {
     expect(useSettingsStore.getState().fontScale).toBe(1.5);
     useSettingsStore.getState().setFontScale(1.2);
     expect(useSettingsStore.getState().fontScale).toBe(1.2);
+  });
+
+  it("sets --font-scale CSS custom property on documentElement", () => {
+    useSettingsStore.getState().setFontScale(1.2);
+    expect(
+      document.documentElement.style.getPropertyValue("--font-scale")
+    ).toBe("1.2");
   });
 
   it("opens and closes panels", () => {
