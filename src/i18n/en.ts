@@ -6,6 +6,7 @@ export const en: Record<TranslationKey, string> = {
   nav_content: "Content",
   nav_models: "3D Models",
   nav_store: "Store",
+  nav_about: "About",
   nav_cart: "Cart",
   nav_settings: "Settings",
   loading: "Loading...",
@@ -14,7 +15,8 @@ export const en: Record<TranslationKey, string> = {
 
   models_title: "3D Models",
   models_drop: "Drop 3D models here or click to browse",
-  models_formats: "Supports .glb, .gltf, .obj, .stl (stored locally in IndexedDB)",
+  models_formats:
+    "Supports .glb, .gltf, .obj, .stl (stored locally in IndexedDB)",
   models_loaded: "{n} loaded",
   models_persisted: "Saved locally",
   models_loading_db: "Loading saved models from local storage...",
@@ -26,7 +28,8 @@ export const en: Record<TranslationKey, string> = {
 
   fetch_title: "Settings",
   site_url_label: "Site URL",
-  site_url_hint: "Used for both WP content and WooCommerce (can be separate)",
+  site_url_hint:
+    "Used for both WP content and WooCommerce (can be separate)",
   fetch_wp_section: "WordPress Content",
   fetch_type: "Content Type",
   fetch_per_page: "Per Page",
@@ -51,21 +54,21 @@ export const en: Record<TranslationKey, string> = {
   cart_checkout: "Checkout",
   cart_checkout_processing: "Creating order...",
   add_to_cart: "Add to Cart",
-  added: "✓ Added",
+  added: "\u2713 Added",
   in_cart: "in cart",
 
   total_items: "{n} total",
-  prev: "← Prev",
-  next: "Next →",
+  prev: "\u2190 Prev",
+  next: "Next \u2192",
   no_results: "No results",
   filter_placeholder: "Search...",
   sort_label: "Sort",
   sort_date_desc: "Date (Newest)",
   sort_date_asc: "Date (Oldest)",
-  sort_title_asc: "Title A→Z",
-  sort_title_desc: "Title Z→A",
-  sort_price_asc: "Price (Low→High)",
-  sort_price_desc: "Price (High→Low)",
+  sort_title_asc: "Title A\u2192Z",
+  sort_title_desc: "Title Z\u2192A",
+  sort_price_asc: "Price (Low\u2192High)",
+  sort_price_desc: "Price (High\u2192Low)",
   store_filter_placeholder: "Search products...",
 
   type_posts: "Posts",
@@ -85,11 +88,34 @@ export const en: Record<TranslationKey, string> = {
   checkout_country: "Country Code",
   checkout_note: "Creates an order and redirects to payment.",
   checkout_no_woo: "Connect WooCommerce first.",
-  order_success_title: "✓ Order Created!",
+  order_success_title: "\u2713 Order Created!",
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",
 
   footer_text: "WP Content + 3D Viewer + WooCommerce Store",
+
+  // About
+  about_title: "About Ancillary Power",
+  about_subtitle:
+    "Integrated solutions powering digital transformation",
+  about_mission_title: "Our Mission",
+  about_mission_text:
+    "Ancillary Power is dedicated to integrating content management, 3D visualization, and e-commerce technologies to deliver all-in-one digital solutions. We believe in the power of technology to simplify complex workflows, so businesses can focus on what they do best.",
+  about_services_title: "Core Services",
+  about_service_content: "Content Management",
+  about_service_content_desc:
+    "Flexible content publishing and management powered by WordPress API integration.",
+  about_service_3d: "3D Model Showcase",
+  about_service_3d_desc:
+    "Support for multiple 3D formats with immersive interactive experiences.",
+  about_service_store: "E-Commerce",
+  about_service_store_desc:
+    "Complete online shopping experience powered by WooCommerce integration.",
+  about_contact_title: "Contact Us",
+  about_contact_text:
+    "Have questions or partnership inquiries? We'd love to hear from you.",
+  about_email_label: "Email",
+  about_email_value: "contact@ancillarypower.com",
 
   product_1: "Wireless Headphones",
   product_1_desc: "30hr, adaptive ANC.",
