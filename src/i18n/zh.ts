@@ -4,6 +4,7 @@ export const zh = {
   nav_content: "內容",
   nav_models: "3D 模型",
   nav_store: "商店",
+  nav_about: "關於我們",
   nav_cart: "購物車",
   nav_settings: "設定",
   loading: "載入中...",
@@ -97,6 +98,28 @@ export const zh = {
 
   // Footer
   footer_text: "WP 內容 + 3D 檢視器 + WooCommerce 商店",
+
+  // About
+  about_title: "關於 Ancillary Power",
+  about_subtitle: "提供多元整合解決方案，驅動企業數位轉型",
+  about_mission_title: "我們的使命",
+  about_mission_text:
+    "Ancillary Power 致力於整合內容管理、3D 視覺化與電子商務技術，為客戶提供一站式數位解決方案。我們相信技術的力量能夠簡化複雜流程，讓企業專注於核心業務。",
+  about_services_title: "核心服務",
+  about_service_content: "內容管理",
+  about_service_content_desc:
+    "透過 WordPress API 整合，提供靈活的內容發布與管理功能。",
+  about_service_3d: "3D 模型展示",
+  about_service_3d_desc:
+    "支援多種 3D 格式，提供沉浸式互動體驗。",
+  about_service_store: "電子商務",
+  about_service_store_desc:
+    "整合 WooCommerce，打造完整的線上購物體驗。",
+  about_contact_title: "聯絡我們",
+  about_contact_text:
+    "如有任何問題或合作需求，歡迎與我們聯繫。",
+  about_email_label: "Email",
+  about_email_value: "contact@ancillarypower.com",
 
   // Sample products
   product_1: "無線降噪耳機",
