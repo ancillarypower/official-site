@@ -1,5 +1,11 @@
 import { useI18n } from "@/context/I18nContext";
 
+const HIGHLIGHTS = [
+  { icon: "\ud83c\udf1f", key: "about_highlight_vpp" },
+  { icon: "\u2705", key: "about_highlight_dispatch" },
+  { icon: "\ud83e\udd16", key: "about_highlight_nvidia" },
+] as const;
+
 const SERVICES = [
   {
     icon: "\u26a1",
@@ -39,6 +45,21 @@ export default function AboutPage() {
         <p className="text-sm leading-relaxed text-secondary">
           {t("about_mission_text")}
         </p>
+      </section>
+
+      {/* Highlights */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">
+          {t("about_highlights_title")}
+        </h2>
+        <ul className="space-y-2">
+          {HIGHLIGHTS.map(({ icon, key }) => (
+            <li key={key} className="flex items-start gap-2 text-sm">
+              <span aria-hidden="true">{icon}</span>
+              <span className="text-secondary">{t(key)}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* Services */}
@@ -81,6 +102,19 @@ export default function AboutPage() {
         <div className="space-y-1 text-sm">
           <p>
             <span className="font-medium">
+              {t("about_website_label")}:
+            </span>{" "}
+            <a
+              href={t("about_website_value")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              ancillarypower.com
+            </a>
+          </p>
+          <p>
+            <span className="font-medium">
               {t("about_email_label")}:
             </span>{" "}
             <a
@@ -94,12 +128,9 @@ export default function AboutPage() {
             <span className="font-medium">
               {t("about_phone_label")}:
             </span>{" "}
-            <a
-              href={`tel:${t("about_phone_value")}`}
-              className="text-accent hover:underline"
-            >
+            <span className="text-accent">
               {t("about_phone_value")}
-            </a>
+            </span>
           </p>
           <p>
             <span className="font-medium">
