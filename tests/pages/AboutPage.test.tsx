@@ -27,11 +27,11 @@ describe("AboutPage", () => {
       screen.getByText(/100% 台灣本土團隊/),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/台電電力交易平台/),
+      screen.getByText(/台電電力交易平台首批/),
     ).toBeInTheDocument();
   });
 
-  it("renders the highlights section with Taipower earthquake rescue and awards", () => {
+  it("renders the highlights section with earthquake rescue and awards", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("重要成就")).toBeInTheDocument();
     expect(screen.getByText(/300\+ MW/)).toBeInTheDocument();
@@ -41,10 +41,10 @@ describe("AboutPage", () => {
     expect(screen.getByText(/龍騰微笑獎/)).toBeInTheDocument();
   });
 
-  it("renders all three service cards with Taipower context", () => {
+  it("renders all three service cards", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("VPP 虛擬電廠")).toBeInTheDocument();
-    expect(screen.getByText(/台電電力交易/)).toBeInTheDocument();
+    expect(screen.getByText(/台電電力交易機制/)).toBeInTheDocument();
     expect(screen.getByText("綠電交易與採購")).toBeInTheDocument();
     expect(screen.getByText("儲能與能源管理")).toBeInTheDocument();
   });
