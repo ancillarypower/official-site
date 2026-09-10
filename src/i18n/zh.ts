@@ -11,7 +11,6 @@ export const zh = {
   empty_no_content: "尚未載入內容",
   back_to_list: "返回列表",
 
-  // Content
   models_title: "3D 模型",
   models_drop: "拖放 3D 模型至此處或點擊瀏覽",
   models_formats: "支援 .glb、.gltf、.obj、.stl（儲存於本機 IndexedDB）",
@@ -21,11 +20,9 @@ export const zh = {
   models_parsing: "解析模型中...",
   models_error: "模型載入失敗",
 
-  // Store
   store_title: "商店",
   store_products: "{n} 項商品",
 
-  // Settings panel
   fetch_title: "設定",
   site_url_label: "網站網址",
   site_url_hint: "同時用於 WordPress 內容和 WooCommerce（可分開設定）",
@@ -37,7 +34,6 @@ export const zh = {
   fetch_fetching: "擷取中...",
   fetch_footer: "WP: /wp-json/wp/v2/ ；WooCommerce: /wp-json/wc/v3/",
 
-  // WooCommerce
   woo_section: "WooCommerce 商店",
   woo_use_same_url: "使用上方相同網址",
   woo_url: "商店網址",
@@ -48,7 +44,6 @@ export const zh = {
   woo_fetching: "載入中...",
   woo_success: "成功載入 {n} 項商品",
 
-  // Cart
   cart_title: "購物車",
   cart_empty: "購物車是空的。",
   cart_total: "合計",
@@ -58,7 +53,6 @@ export const zh = {
   added: "✓ 已加入",
   in_cart: "在購物車",
 
-  // Pagination & filtering
   total_items: "共 {n} 項",
   prev: "← 上一頁",
   next: "下一頁 →",
@@ -73,14 +67,12 @@ export const zh = {
   sort_price_desc: "價格（高→低）",
   store_filter_placeholder: "搜尋商品...",
 
-  // Content types
   type_posts: "文章",
   type_pages: "頁面",
   type_categories: "分類",
   type_tags: "標籤",
   type_media: "媒體",
 
-  // Checkout
   checkout_billing: "帳單資訊",
   checkout_first_name: "名字",
   checkout_last_name: "姓氏",
@@ -96,7 +88,6 @@ export const zh = {
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
 
-  // Footer
   footer_text: "WP 內容 + 3D 檢視器 + WooCommerce 商店",
 
   // About
@@ -110,6 +101,8 @@ export const zh = {
   about_highlight_vpp: "300+ MW 虛擬電廠聚合量，居平台聚合交易量首位",
   about_highlight_dispatch: "平均執行率達 100% 以上，累計超過 30,000 小時運行實績",
   about_highlight_nvidia: "NVIDIA Inception Program 成員，深化 AI 智慧調度核心",
+  about_highlight_bloom: "國發會「創業綻放」競賽綻放獎，從近 3,000 組新創中脫穎而出",
+  about_highlight_acer: "宏碁龍騰微笑獎國際組參獎，獎勵立足台灣、放眼全球的新創企業",
   about_services_title: "核心服務",
   about_service_content: "VPP 虛擬電廠",
   about_service_content_desc:
@@ -133,7 +126,6 @@ export const zh = {
   about_website_label: "官網",
   about_website_value: "https://www.ancillarypower.com",
 
-  // Sample products
   product_1: "無線降噪耳機",
   product_1_desc: "30 小時續航，自適應降噪。",
   product_2: "機械式鍵盤",
