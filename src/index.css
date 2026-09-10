@@ -24,6 +24,14 @@
 /* ── Font scale (user-adjustable) ── */
 :root {
   --font-scale: 1;
+}
+
+/*
+ * Apply the scale only to the main content area so that chrome
+ * (Navbar, Footer, Sidebar, FontSizeControl) keeps a fixed layout.
+ * Article-body text uses em-based sizes and therefore scales correctly.
+ */
+#main-content {
   font-size: calc(16px * var(--font-scale));
 }
 
