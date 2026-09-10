@@ -20,9 +20,23 @@ describe("AboutPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the mission section", () => {
+  it("renders the mission section with 100% local team", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("我們的使命")).toBeInTheDocument();
+    expect(
+      screen.getByText(/100% 台灣本土團隊/),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the highlights section", () => {
+    render(withProviders(<AboutPage />));
+    expect(screen.getByText("重要成就")).toBeInTheDocument();
+    expect(
+      screen.getByText(/300\+ MW/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/NVIDIA Inception/),
+    ).toBeInTheDocument();
   });
 
   it("renders all three service cards", () => {
@@ -32,31 +46,33 @@ describe("AboutPage", () => {
     expect(screen.getByText("儲能與能源管理")).toBeInTheDocument();
   });
 
-  it("renders the contact section with email link", () => {
+  it("renders the contact section with email and website", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("聯絡我們")).toBeInTheDocument();
     const emailLink = screen.getByText(
       "contact@ancillarypower.com",
     );
-    expect(emailLink).toBeInTheDocument();
     expect(emailLink).toHaveAttribute(
       "href",
       "mailto:contact@ancillarypower.com",
     );
+    const websiteLink = screen.getByText("ancillarypower.com");
+    expect(websiteLink).toHaveAttribute(
+      "href",
+      "https://www.ancillarypower.com",
+    );
   });
 
-  it("renders phone and address contact info", () => {
+  it("renders dual phone and address", () => {
     render(withProviders(<AboutPage />));
-    const phoneLink = screen.getByText("02-2727-2988");
-    expect(phoneLink).toBeInTheDocument();
-    expect(phoneLink).toHaveAttribute(
-      "href",
-      "tel:02-2727-2988",
-    );
     expect(
-      screen.getByText(
-        /台北市中正區新生南路一段/,
-      ),
+      screen.getByText(/02-2727-2988/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/02-7755-5030/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/台北市中正區新生南路一段/),
     ).toBeInTheDocument();
   });
 });
