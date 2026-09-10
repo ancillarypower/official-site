@@ -3,6 +3,7 @@ import { useI18n } from "@/context/I18nContext";
 const HIGHLIGHTS = [
   { icon: "\ud83c\udf1f", key: "about_highlight_vpp" },
   { icon: "\u2705", key: "about_highlight_dispatch" },
+  { icon: "\ud83c\udf0d", key: "about_highlight_earthquake" },
   { icon: "\ud83e\udd16", key: "about_highlight_nvidia" },
   { icon: "\ud83c\udfc6", key: "about_highlight_bloom" },
   { icon: "\ud83c\udf96\ufe0f", key: "about_highlight_acer" },
