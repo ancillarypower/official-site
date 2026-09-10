@@ -40,9 +40,7 @@ export function Navbar() {
                     : "text-secondary hover:bg-surface-sunken hover:text-primary"
                 }`
               }
-              aria-current={
-                location.pathname === to ? "page" : undefined
-              }
+              aria-current={location.pathname === to ? "page" : undefined}
             >
               {t(labelKey)}
             </NavLink>
@@ -50,10 +48,7 @@ export function Navbar() {
         ))}
       </ul>
 
-      <div
-        className="hidden h-6 w-px bg-border-default md:block"
-        aria-hidden="true"
-      />
+      <div className="hidden h-6 w-px bg-border-default md:block" aria-hidden="true" />
 
       <div className="hidden md:block">
         <FontSizeControl />
@@ -65,7 +60,7 @@ export function Navbar() {
           className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
           aria-label="Toggle language"
         >
-          {lang === "zh" ? "EN" : "\u4e2d\u6587"}
+          {lang === "zh" ? "EN" : "中文"}
         </button>
 
         <button
@@ -73,7 +68,7 @@ export function Navbar() {
           className="rounded-md bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-secondary transition-colors hover:bg-border-default hover:text-primary"
           aria-label={t("nav_cart")}
         >
-          \ud83d\uded2 {t("nav_cart")}{" "}
+          🛒 {t("nav_cart")}{" "}
           <span className="ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[0.6rem] font-bold text-white">
             {totalItems}
           </span>
@@ -84,7 +79,7 @@ export function Navbar() {
           className="rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover"
           aria-label={t("nav_settings")}
         >
-          \u2699 {t("nav_settings")}
+          ⚙ {t("nav_settings")}
         </button>
       </div>
     </nav>
