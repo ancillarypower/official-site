@@ -105,6 +105,8 @@ export const en: Record<TranslationKey, string> = {
   about_highlight_vpp: "300+ MW VPP aggregation, leading the platform in trading volume",
   about_highlight_dispatch: "100%+ average dispatch execution rate with over 30,000 cumulative operating hours",
   about_highlight_nvidia: "NVIDIA Inception Program member, deepening AI-powered intelligent dispatch",
+  about_highlight_bloom: "NDC Startup Bloom Competition award winner, standing out from nearly 3,000 startups nationwide",
+  about_highlight_acer: "Acer Foundation Longterm Award, International Group 3rd Place, recognizing Taiwan-rooted global startups",
   about_services_title: "Core Services",
   about_service_content: "Virtual Power Plant",
   about_service_content_desc:
