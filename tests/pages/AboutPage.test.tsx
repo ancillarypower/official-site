@@ -20,26 +20,31 @@ describe("AboutPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the mission section with 100% local team", () => {
+  it("renders the mission with Taipower first-mover and 100% local team", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("我們的使命")).toBeInTheDocument();
     expect(
       screen.getByText(/100% 台灣本土團隊/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/台電電力交易平台/),
+    ).toBeInTheDocument();
   });
 
-  it("renders the highlights section with awards", () => {
+  it("renders the highlights section with Taipower earthquake rescue and awards", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("重要成就")).toBeInTheDocument();
     expect(screen.getByText(/300\+ MW/)).toBeInTheDocument();
+    expect(screen.getByText(/花蓮大地震/)).toBeInTheDocument();
     expect(screen.getByText(/NVIDIA Inception/)).toBeInTheDocument();
     expect(screen.getByText(/創業綻放/)).toBeInTheDocument();
     expect(screen.getByText(/龍騰微笑獎/)).toBeInTheDocument();
   });
 
-  it("renders all three service cards", () => {
+  it("renders all three service cards with Taipower context", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("VPP 虛擬電廠")).toBeInTheDocument();
+    expect(screen.getByText(/台電電力交易/)).toBeInTheDocument();
     expect(screen.getByText("綠電交易與採購")).toBeInTheDocument();
     expect(screen.getByText("儲能與能源管理")).toBeInTheDocument();
   });
