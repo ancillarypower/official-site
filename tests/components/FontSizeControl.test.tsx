@@ -5,6 +5,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 
 describe("FontSizeControl", () => {
   beforeEach(() => {
+    document.documentElement.style.removeProperty("--font-scale");
     useSettingsStore.setState({ fontScale: 1 });
   });
 
@@ -34,5 +35,13 @@ describe("FontSizeControl", () => {
       target: { value: "1.3" },
     });
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.3, 1);
+  });
+
+  it("sets --font-scale CSS custom property when A+ is clicked", () => {
+    render(<FontSizeControl />);
+    fireEvent.click(screen.getByLabelText("Increase font size"));
+    expect(
+      document.documentElement.style.getPropertyValue("--font-scale")
+    ).toBe("1.1");
   });
 });
