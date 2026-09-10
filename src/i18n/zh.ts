@@ -102,10 +102,14 @@ export const zh = {
   // About
   about_title: "關於安瑟樂威",
   about_subtitle:
-    "臺灣首家民間合格電力交易商，以 AI 驅動虛擬電廠，引領能源轉型",
+    "臺灣首家民間合格電力交易商暨可再生能源售電服務業者，以 AI 驅動虛擬電廠，引領能源轉型",
   about_mission_title: "我們的使命",
   about_mission_text:
-    "安瑟樂威（Ancillary Power）專注於提供各項再生新能源科技解決方案興服務，致力於打造多元分散式能源參與電力市場的入口技術、財務和服務平台。目前已成功聚合建置超過 300 MW 的虛擬電廠，積極協助企業將儲能、綠能等分散資源轉化為可預測、可調度的電力資產，每年協助轉供與銷售近 3 億度綠電。",
+    "安瑟樂威（Ancillary Power）是 100% 台灣本土團隊，專注於提供各項再生新能源科技解決方案暨服務，致力於打造多元分散式能源參與電力市場的入口技術、財務和服務平台。目前已成功聚合建置超過 300 MW 的虛擬電廠，平均執行率達 100% 以上，每年協助轉供與銷售近 3 億度綠電。透過 ESCO 金融模式與客戶形成長期夥伴關係，協助企業將儲能、綠能等分散資源轉化為可預測、可調度的電力資產。",
+  about_highlights_title: "重要成就",
+  about_highlight_vpp: "300+ MW 虛擬電廠聚合量，居平台聚合交易量首位",
+  about_highlight_dispatch: "平均執行率達 100% 以上，累計超過 30,000 小時運行實績",
+  about_highlight_nvidia: "NVIDIA Inception Program 成員，深化 AI 智慧調度核心",
   about_services_title: "核心服務",
   about_service_content: "VPP 虛擬電廠",
   about_service_content_desc:
@@ -122,10 +126,12 @@ export const zh = {
   about_email_label: "Email",
   about_email_value: "contact@ancillarypower.com",
   about_phone_label: "電話",
-  about_phone_value: "02-2727-2988",
+  about_phone_value: "02-2727-2988 / 02-7755-5030",
   about_address_label: "地址",
   about_address_value:
-    "台北市中正區新生南路一段 50 號 4 樓之 5",
+    "100510 台北市中正區新生南路一段 50 號 4 樓之 5",
+  about_website_label: "官網",
+  about_website_value: "https://www.ancillarypower.com",
 
   // Sample products
   product_1: "無線降噪耳機",
