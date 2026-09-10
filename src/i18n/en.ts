@@ -100,17 +100,18 @@ export const en: Record<TranslationKey, string> = {
     "Taiwan's first qualified private electricity trader and renewable energy retailer, powering energy transition with AI-driven Virtual Power Plants",
   about_mission_title: "Our Mission",
   about_mission_text:
-    "Ancillary Power is a 100% Taiwan-based team dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. We have successfully aggregated over 300 MW of virtual power plant capacity with a 100%+ average dispatch execution rate, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity. Through our ESCO financial model, we form long-term partnerships with clients, helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets.",
+    "Ancillary Power is a 100% Taiwan-based team dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. As one of the first private companies to obtain trading qualifications on Taipower's Energy Trading Platform, we have successfully aggregated over 300 MW of virtual power plant capacity with a 100%+ average dispatch execution rate, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity. Through our ESCO financial model, we form long-term partnerships with clients, helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets.",
   about_highlights_title: "Key Achievements",
   about_highlight_vpp: "300+ MW VPP aggregation, leading the platform in trading volume",
   about_highlight_dispatch: "100%+ average dispatch execution rate with over 30,000 cumulative operating hours",
+  about_highlight_earthquake: "Assisted Taipower in emergency dispatch during the 2024 Hualien earthquake, helping prevent large-scale blackouts",
   about_highlight_nvidia: "NVIDIA Inception Program member, deepening AI-powered intelligent dispatch",
   about_highlight_bloom: "NDC Startup Bloom Competition award winner, standing out from nearly 3,000 startups nationwide",
   about_highlight_acer: "Acer Foundation Longterm Award, International Group 3rd Place, recognizing Taiwan-rooted global startups",
   about_services_title: "Core Services",
   about_service_content: "Virtual Power Plant",
   about_service_content_desc:
-    "Through our proprietary AIoT platform and electricity trading mechanisms, we integrate enterprise energy storage, demand response, and smart charging into dispatchable grid resources.",
+    "Through our proprietary AIoT platform seamlessly integrated with Taipower's Energy Trading Platform, we use a light-capital aggregation model to combine enterprise energy storage, demand response, and smart charging into dispatchable grid resources, specializing in spinning and supplemental reserve markets.",
   about_service_3d: "Green Electricity Trading",
   about_service_3d_desc:
     "Licensed green electricity retailer with an AI-powered real-time procurement dashboard that precisely matches enterprise demand with green energy supply, minimizing surplus waste.",
