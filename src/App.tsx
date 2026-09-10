@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 const ContentPage = lazy(() => import("@/pages/ContentPage"));
 const ModelsPage = lazy(() => import("@/pages/ModelsPage"));
 const StorePage = lazy(() => import("@/pages/StorePage"));
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/" element={<ContentPage />} />
               <Route path="/models" element={<ModelsPage />} />
               <Route path="/store" element={<StorePage />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
