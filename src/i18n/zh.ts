@@ -119,7 +119,7 @@ export const zh = {
     "擁有綠電售電執照，提供 AI 即時綠電採購儀表板，精準匹配企業用電與綠電供應，最小化餘電浪費。",
   about_service_store: "儲能與能源管理",
   about_service_store_desc:
-    "協助企業建置先進表後儲能系統，整合太陽光電、EV 充電樓與 EMS，實現智慧調度與電力資產變現。",
+    "協助企業建置先進表後儲能系統，整合太陽光電、EV 充電樁與 EMS，實現智慧調度與電力資產變現。",
   about_contact_title: "聯絡我們",
   about_contact_text:
     "如有能源管理、虛擬電廠或綠電採購相關需求，歡迎與我們聯繫。",
