@@ -28,15 +28,13 @@ describe("AboutPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the highlights section", () => {
+  it("renders the highlights section with awards", () => {
     render(withProviders(<AboutPage />));
     expect(screen.getByText("重要成就")).toBeInTheDocument();
-    expect(
-      screen.getByText(/300\+ MW/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/NVIDIA Inception/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/300\+ MW/)).toBeInTheDocument();
+    expect(screen.getByText(/NVIDIA Inception/)).toBeInTheDocument();
+    expect(screen.getByText(/創業綻放/)).toBeInTheDocument();
+    expect(screen.getByText(/龍騰微笑獎/)).toBeInTheDocument();
   });
 
   it("renders all three service cards", () => {
