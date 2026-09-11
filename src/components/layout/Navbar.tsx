@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCartStore } from "@/stores/cartStore";
@@ -23,7 +23,20 @@ export function Navbar() {
       role="navigation"
       aria-label="Main navigation"
     >
-      <span className="text-sm font-bold whitespace-nowrap">⚡ App</span>
+      <Link
+        to="/"
+        className="flex items-center gap-2 text-inherit no-underline"
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}logo.svg`}
+          alt=""
+          className="h-7 w-auto"
+          aria-hidden="true"
+        />
+        <span className="text-sm font-bold whitespace-nowrap">
+          {t("nav_brand_name")}
+        </span>
+      </Link>
 
       <div className="h-6 w-px bg-border-default" aria-hidden="true" />
 

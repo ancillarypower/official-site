@@ -21,6 +21,17 @@ describe("SkipToContent", () => {
 });
 
 describe("Navbar", () => {
+  it("renders company logo and brand name linking to home", () => {
+    render(withProviders(<Navbar />));
+    const brandText = screen.getByText("安瑟樂威");
+    expect(brandText).toBeInTheDocument();
+    const brandLink = brandText.closest("a");
+    expect(brandLink).toHaveAttribute("href", "/");
+    const logo = brandLink!.querySelector("img");
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute("src", expect.stringContaining("logo.svg"));
+  });
+
   it("renders navigation with links", () => {
     render(withProviders(<Navbar />));
     expect(screen.getByRole("navigation")).toBeInTheDocument();

@@ -1,6 +1,7 @@
 export const zh = {
   banner_title: "Ancillary Power",
   banner_sub: "整合內容、3D 模型與商店的多功能平台",
+  nav_brand_name: "安瑟樂威",
   nav_content: "內容",
   nav_models: "3D 模型",
   nav_store: "商店",
