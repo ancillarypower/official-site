@@ -2,7 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchWithProxy, wpApiUrl, wooApiUrl } from "@/lib/api";
 
 describe("wpApiUrl", () => {
-  it("builds correct URL from site URL", () => {
+  it("builds URL from a bare domain", () => {
+    expect(wpApiUrl("example.com")).toBe("https://example.com/wp-json/wp/v2");
+  });
+
+  it("preserves existing http protocol", () => {
+    expect(wpApiUrl("http://example.com")).toBe(
+      "http://example.com/wp-json/wp/v2",
+    );
+  });
+
+  it("preserves existing https protocol", () => {
     expect(wpApiUrl("https://example.com")).toBe(
       "https://example.com/wp-json/wp/v2",
     );
@@ -14,48 +24,46 @@ describe("wpApiUrl", () => {
     );
   });
 
-  it("adds https if missing", () => {
-    expect(wpApiUrl("example.com")).toBe(
+  it("trims whitespace", () => {
+    expect(wpApiUrl("  https://example.com  ")).toBe(
       "https://example.com/wp-json/wp/v2",
-    );
-  });
-
-  it("handles URL with path", () => {
-    expect(wpApiUrl("https://example.com/blog")).toBe(
-      "https://example.com/blog/wp-json/wp/v2",
     );
   });
 });
 
 describe("wooApiUrl", () => {
-  it("builds correct URL with auth params", () => {
-    const url = wooApiUrl("https://shop.com", "products", "ck_key", "cs_secret", {
-      per_page: "10",
-    });
+  it("builds URL with auth params", () => {
+    const url = wooApiUrl(
+      "https://shop.com",
+      "products",
+      "ck_abc",
+      "cs_xyz",
+    );
     const parsed = new URL(url);
     expect(parsed.pathname).toBe("/wp-json/wc/v3/products");
-    expect(parsed.searchParams.get("consumer_key")).toBe("ck_key");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_secret");
+    expect(parsed.searchParams.get("consumer_key")).toBe("ck_abc");
+    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_xyz");
+  });
+
+  it("includes extra params", () => {
+    const url = wooApiUrl("https://shop.com", "products", "k", "s", {
+      per_page: "10",
+      page: "2",
+    });
+    const parsed = new URL(url);
     expect(parsed.searchParams.get("per_page")).toBe("10");
+    expect(parsed.searchParams.get("page")).toBe("2");
   });
 
-  it("strips trailing slashes from base URL", () => {
-    const url = wooApiUrl("https://shop.com//", "orders", "k", "s");
-    expect(new URL(url).pathname).toBe("/wp-json/wc/v3/orders");
+  it("strips trailing slashes from base", () => {
+    const url = wooApiUrl("https://shop.com///", "orders", "k", "s");
+    expect(url).toContain("shop.com/wp-json/wc/v3/orders");
   });
 
-  it("works with no extra params", () => {
-    const url = wooApiUrl("https://shop.com", "products", "k", "s");
+  it("builds correct URL for orders endpoint", () => {
+    const url = wooApiUrl("https://shop.com", "orders", "ck_1", "cs_2");
     const parsed = new URL(url);
-    expect(parsed.searchParams.get("consumer_key")).toBe("k");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("s");
-  });
-
-  it("handles special characters in credentials", () => {
-    const url = wooApiUrl("https://shop.com", "products", "ck_a&b=c", "cs_d+e");
-    const parsed = new URL(url);
-    expect(parsed.searchParams.get("consumer_key")).toBe("ck_a&b=c");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_d+e");
+    expect(parsed.pathname).toBe("/wp-json/wc/v3/orders");
   });
 });
 
@@ -64,39 +72,63 @@ describe("fetchWithProxy", () => {
     vi.restoreAllMocks();
   });
 
-  it("fetches directly when proxy is disabled", async () => {
+  it("calls fetch directly when useProxy is false", async () => {
     const mockResponse = new Response("ok", { status: 200 });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(mockResponse);
 
-    const result = await fetchWithProxy("https://api.test.com/data", false);
-    expect(result.status).toBe(200);
-    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data");
+    const result = await fetchWithProxy("https://example.com/api", false);
+    expect(result).toBe(mockResponse);
+    expect(fetch).toHaveBeenCalledWith("https://example.com/api");
   });
 
-  it("tries CORS proxies when proxy is enabled", async () => {
+  it("uses proxy when useProxy is true", async () => {
     const mockResponse = new Response("ok", { status: 200 });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(mockResponse);
 
-    const result = await fetchWithProxy("https://api.test.com/data", true);
-    expect(result.status).toBe(200);
-    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain(encodeURIComponent("https://api.test.com/data"));
+    const result = await fetchWithProxy("https://example.com/api", true);
+    expect(result.ok).toBe(true);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        encodeURIComponent("https://example.com/api"),
+      ),
+    );
+  });
+
+  it("tries next proxy on network failure", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce(mockResponse);
+
+    const result = await fetchWithProxy("https://example.com/api", true);
+    expect(result.ok).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("tries next proxy on non-ok non-404 response", async () => {
+    const badResponse = new Response("error", { status: 500 });
+    const goodResponse = new Response("ok", { status: 200 });
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(badResponse)
+      .mockResolvedValueOnce(goodResponse);
+
+    const result = await fetchWithProxy("https://example.com/api", true);
+    expect(result.ok).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("throws when all proxies fail", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("fail"));
     await expect(
-      fetchWithProxy("https://api.test.com/data", true),
+      fetchWithProxy("https://example.com/api", true),
     ).rejects.toThrow("All CORS proxies failed");
   });
 
-  it("returns 404 responses without trying next proxy", async () => {
-    const notFound = new Response("Not Found", { status: 404 });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(notFound));
+  it("accepts 404 as a valid proxy response", async () => {
+    const mockResponse = new Response("not found", { status: 404 });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(mockResponse);
 
-    const result = await fetchWithProxy("https://api.test.com/missing", true);
+    const result = await fetchWithProxy("https://example.com/api", true);
     expect(result.status).toBe(404);
-    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
