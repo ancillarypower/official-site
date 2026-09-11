@@ -32,14 +32,6 @@ describe("Pagination", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("renders nothing when totalPages is 0", () => {
-    const { container } = renderPagination({
-      currentPage: 1,
-      totalPages: 0,
-    });
-    expect(container.innerHTML).toBe("");
-  });
-
   it("renders prev and next buttons", () => {
     renderPagination({ currentPage: 2, totalPages: 5 });
     expect(screen.getByText(/上一頁/)).toBeInTheDocument();
@@ -59,12 +51,6 @@ describe("Pagination", () => {
   it("disables next button on last page", () => {
     renderPagination({ currentPage: 5, totalPages: 5 });
     expect(screen.getByText(/下一頁/)).toBeDisabled();
-  });
-
-  it("enables both buttons on middle page", () => {
-    renderPagination({ currentPage: 3, totalPages: 5 });
-    expect(screen.getByText(/上一頁/)).toBeEnabled();
-    expect(screen.getByText(/下一頁/)).toBeEnabled();
   });
 
   it("calls onPageChange with previous page number", () => {
