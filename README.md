@@ -1,5 +1,8 @@
 # ⚡ Ancillary Power Official Site
 
+[![CI](https://github.com/ancillarypower/official-site/actions/workflows/ci.yml/badge.svg)](https://github.com/ancillarypower/official-site/actions/workflows/ci.yml)
+![Coverage](https://raw.githubusercontent.com/ancillarypower/official-site/badges/coverage.svg)
+
 Multi-tool platform: WordPress content viewer, 3D model inspector, and WooCommerce store.
 
 Built with **React 18** + **TypeScript** + **Vite** + **Tailwind CSS v4** + **React Three Fiber**.
@@ -64,6 +67,8 @@ src/
 | `pnpm lint` | ESLint with jsx-a11y |
 | `pnpm format` | Prettier |
 | `pnpm type-check` | TypeScript strict check |
+| `pnpm test` | Run tests |
+| `pnpm test:coverage` | Run tests with coverage report |
 
 ## Environment Variables
 
