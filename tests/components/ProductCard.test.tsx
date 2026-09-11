@@ -61,7 +61,7 @@ describe("ProductCard", () => {
 
   it("renders product image when available", () => {
     render(withProviders(<ProductCard product={saleProduct} />));
-    const img = screen.getByAltName ? screen.getByAltText("Sale Item") : screen.getByRole("img", { name: "Sale Item" });
+    const img = screen.getByAltText("Sale Item");
     expect(img).toHaveAttribute("src", "https://example.com/prod.jpg");
   });
 
