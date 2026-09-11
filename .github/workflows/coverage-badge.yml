@@ -31,7 +31,7 @@ jobs:
 
       - name: Generate badge SVG
         run: |
-          PCT=$(node -e "
+          PCT=$(node --input-type=commonjs -e "
             const fs = require('fs');
             const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
             console.log(Math.round(summary.total.lines.pct));
@@ -45,6 +45,11 @@ jobs:
           mkdir -p .badges
           curl -sfL "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}?style=flat-square" \
             -o .badges/coverage.svg
+
+          if [ ! -s .badges/coverage.svg ]; then
+            echo "::error::Failed to generate coverage badge SVG"
+            exit 1
+          fi
 
       - name: Push badge to badges branch
         run: |
