@@ -37,11 +37,24 @@ describe("FontSizeControl", () => {
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.3, 1);
   });
 
-  it("sets --font-scale CSS custom property when A+ is clicked", () => {
+  it("sets --font-scale on :root (consumed by #main-content zoom, not html font-size)", () => {
     render(<FontSizeControl />);
     fireEvent.click(screen.getByLabelText("Increase font size"));
+    // --font-scale is set on documentElement (:root); CSS applies it as
+    // zoom on #main-content only, so the Navbar (including this control)
+    // stays at its original size and position.
     expect(
       document.documentElement.style.getPropertyValue("--font-scale")
     ).toBe("1.1");
+  });
+
+  it("does not apply inline font-size or zoom to the control container", () => {
+    render(<FontSizeControl />);
+    fireEvent.click(screen.getByLabelText("Increase font size"));
+    // The control lives in the Navbar (outside #main-content),
+    // so its own container must not carry any scaling styles.
+    const container = screen.getByLabelText("Decrease font size").closest("div");
+    expect(container?.style.fontSize).toBeFalsy();
+    expect(container?.style.zoom).toBeFalsy();
   });
 });
