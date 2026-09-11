@@ -27,11 +27,15 @@
 }
 
 /*
- * Apply the scale to the root element so that every rem-based size
- * (Tailwind utilities included) scales proportionally.
+ * Scope font scaling to the main content area only via CSS zoom.
+ * Previous approach (html { font-size: calc(100% * var(--font-scale)) })
+ * affected the entire page including the Navbar and FontSizeControl,
+ * causing UI controls to shift when users adjusted font size (see #21).
+ * Using zoom on #main-content keeps navigation chrome stable while
+ * scaling page content proportionally.
  */
-html {
-  font-size: calc(100% * var(--font-scale));
+#main-content {
+  zoom: var(--font-scale);
 }
 
 body {
