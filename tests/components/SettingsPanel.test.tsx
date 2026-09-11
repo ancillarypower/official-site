@@ -36,15 +36,26 @@ describe("SettingsPanel", () => {
     expect(input).toBeInTheDocument();
   });
 
-  it("renders CORS proxy checkbox", () => {
+  it("updates site URL on change", () => {
     render(withProviders(<SettingsPanel />));
-    expect(screen.getByText("\u4F7F\u7528 CORS \u4EE3\u7406")).toBeInTheDocument();
+    const input = screen.getByDisplayValue("https://test.example.com");
+    fireEvent.change(input, { target: { value: "https://new.example.com" } });
+    expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
   });
 
-  it("renders content type selector", () => {
+  it("renders and toggles CORS proxy checkbox", () => {
     render(withProviders(<SettingsPanel />));
-    expect(screen.getByText("\u5167\u5BB9\u985E\u578B")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("\u6587\u7AE0")).toBeInTheDocument();
+    const checkbox = screen.getByRole("checkbox", { name: /CORS/ });
+    expect(checkbox).not.toBeChecked();
+    fireEvent.click(checkbox);
+    expect(useSettingsStore.getState().useProxy).toBe(true);
+  });
+
+  it("renders content type selector and changes it", () => {
+    render(withProviders(<SettingsPanel />));
+    const select = screen.getByDisplayValue("\u6587\u7AE0");
+    fireEvent.change(select, { target: { value: "pages" } });
+    expect(useSettingsStore.getState().contentType).toBe("pages");
   });
 
   it("renders WooCommerce section", () => {
@@ -55,8 +66,8 @@ describe("SettingsPanel", () => {
 
   it("toggles wooUseSameUrl checkbox", () => {
     render(withProviders(<SettingsPanel />));
-    const checkbox = screen.getByText("\u4F7F\u7528\u4E0A\u65B9\u76F8\u540C\u7DB2\u5740").previousElementSibling as HTMLInputElement;
-    expect(checkbox.checked).toBe(true);
+    const checkbox = screen.getByRole("checkbox", { name: /\u4F7F\u7528\u4E0A\u65B9\u76F8\u540C\u7DB2\u5740/ });
+    expect(checkbox).toBeChecked();
     fireEvent.click(checkbox);
     expect(useSettingsStore.getState().wooUseSameUrl).toBe(false);
   });
@@ -67,16 +78,28 @@ describe("SettingsPanel", () => {
     expect(screen.getByText("\u5546\u5E97\u7DB2\u5740")).toBeInTheDocument();
   });
 
-  it("updates content type", () => {
+  it("hides separate WooCommerce URL when using same URL", () => {
     render(withProviders(<SettingsPanel />));
-    const select = screen.getByDisplayValue("\u6587\u7AE0");
-    fireEvent.change(select, { target: { value: "pages" } });
-    expect(useSettingsStore.getState().contentType).toBe("pages");
+    expect(screen.queryByText("\u5546\u5E97\u7DB2\u5740")).toBeNull();
+  });
+
+  it("updates per-page setting", () => {
+    render(withProviders(<SettingsPanel />));
+    const selects = screen.getAllByDisplayValue("20");
+    // First 20 select is WP per-page, second is Woo per-page
+    fireEvent.change(selects[0]!, { target: { value: "50" } });
+    expect(useSettingsStore.getState().perPage).toBe(50);
   });
 
   it("renders close button", () => {
     render(withProviders(<SettingsPanel />));
     expect(screen.getByLabelText("Close")).toBeInTheDocument();
+  });
+
+  it("closes panel when close button clicked", () => {
+    render(withProviders(<SettingsPanel />));
+    fireEvent.click(screen.getByLabelText("Close"));
+    expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
   it("renders footer text", () => {

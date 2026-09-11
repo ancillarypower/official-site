@@ -27,8 +27,9 @@ describe("PostCard", () => {
   });
 
   it("renders featured image when available", () => {
-    render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
-    const img = screen.getByRole("img", { hidden: true });
+    const { container } = render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
   });
 
@@ -61,7 +62,6 @@ describe("PostCard", () => {
 
   it("renders formatted date", () => {
     render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
-    // zh-TW locale date format
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
@@ -69,5 +69,11 @@ describe("PostCard", () => {
     const namePost: WpPost = { id: 3, title: "", name: "fallback-name" };
     render(withProviders(<PostCard post={namePost} onClick={vi.fn()} />));
     expect(screen.getByText("fallback-name")).toBeInTheDocument();
+  });
+
+  it("does not render date when post.date is undefined", () => {
+    const noDatePost: WpPost = { id: 4, title: "No Date" };
+    render(withProviders(<PostCard post={noDatePost} onClick={vi.fn()} />));
+    expect(screen.getByText("No Date")).toBeInTheDocument();
   });
 });

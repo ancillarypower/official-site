@@ -22,18 +22,25 @@ describe("Sidebar", () => {
     expect(dialogs).toHaveLength(2);
   });
 
-  it("shows settings panel when activePanel is settings", () => {
+  it("shows settings panel as visible when activePanel is settings", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     render(withProviders(<Sidebar />));
     const settingsPanel = screen.getByRole("dialog", { name: "Settings" });
     expect(settingsPanel).toHaveAttribute("aria-hidden", "false");
   });
 
-  it("shows cart panel when activePanel is cart", () => {
+  it("shows cart panel as visible when activePanel is cart", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     render(withProviders(<Sidebar />));
     const cartPanel = screen.getByRole("dialog", { name: "Shopping cart" });
     expect(cartPanel).toHaveAttribute("aria-hidden", "false");
+  });
+
+  it("marks settings panel hidden when cart is active", () => {
+    useSettingsStore.setState({ activePanel: "cart" });
+    render(withProviders(<Sidebar />));
+    const settingsPanel = screen.getByRole("dialog", { name: "Settings", hidden: true });
+    expect(settingsPanel).toHaveAttribute("aria-hidden", "true");
   });
 
   it("hides both panels when activePanel is null", () => {
@@ -47,8 +54,10 @@ describe("Sidebar", () => {
   it("closes panel when clicking overlay", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
-    const overlay = container.querySelector("[aria-hidden=true]") as HTMLElement;
-    if (overlay) fireEvent.click(overlay);
+    // The overlay is the first child div with fixed inset-0 class
+    const overlay = container.querySelector(".fixed.inset-0") as HTMLElement;
+    expect(overlay).toBeInTheDocument();
+    fireEvent.click(overlay);
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 });
