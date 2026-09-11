@@ -27,14 +27,14 @@
 }
 
 /*
- * Scope font scaling to the main content area only via CSS zoom.
- * Previous approach (html { font-size: calc(100% * var(--font-scale)) })
- * affected the entire page including the Navbar and FontSizeControl,
- * causing UI controls to shift when users adjusted font size (see #21).
- * Using zoom on #main-content keeps navigation chrome stable while
- * scaling page content proportionally.
+ * Scope font scaling to the scalable content wrapper via CSS zoom.
+ * The wrapper contains HeroBanner, main content, and Footer.
+ * Previous approach applied zoom only to #main-content, leaving
+ * HeroBanner and Footer text unscaled (see #39).
+ * Navbar, Sidebar, and FontSizeControl remain outside the wrapper
+ * so UI chrome stays stable when users adjust font size.
  */
-#main-content {
+#scalable-content {
   zoom: var(--font-scale);
 }
 
