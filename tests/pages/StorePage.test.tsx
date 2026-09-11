@@ -5,10 +5,11 @@ import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCartStore } from "@/stores/cartStore";
 
-// Mock useWooProducts
+const mockUseWooProducts = vi.fn();
+
 vi.mock("@/hooks/useWooCommerce", () => ({
-  useWooProducts: () => ({ data: undefined }),
-  useCheckout: vi.fn(),
+  useWooProducts: (...args: unknown[]) => mockUseWooProducts(...args),
+  useCheckout: () => ({ mutateAsync: vi.fn() }),
 }));
 
 import StorePage from "@/pages/StorePage";
@@ -29,6 +30,7 @@ function renderPage() {
 describe("StorePage", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
+    mockUseWooProducts.mockReturnValue({ data: undefined });
   });
 
   it("renders store title", () => {

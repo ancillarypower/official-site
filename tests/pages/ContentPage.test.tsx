@@ -1,26 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
 
-// Mock useWordPress hook
 const mockPosts = [
   { id: 1, title: "Post Alpha", date: "2026-06-01T00:00:00", name: "post-alpha" },
   { id: 2, title: "Post Beta", date: "2026-01-01T00:00:00", name: "post-beta" },
   { id: 3, title: "Gamma Article", date: "2026-03-15T00:00:00", name: "gamma" },
 ];
 
-let mockReturn: { data: unknown; isLoading: boolean; error: unknown } = {
-  data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
-  isLoading: false,
-  error: null,
-};
+const mockUseWordPress = vi.fn();
 
 vi.mock("@/hooks/useWordPress", () => ({
-  useWordPress: () => mockReturn,
-  normalizeRawPost: vi.fn(),
+  useWordPress: (...args: unknown[]) => mockUseWordPress(...args),
+  normalizeRawPost: vi.fn((p: Record<string, unknown>) => p),
 }));
 
 import ContentPage from "@/pages/ContentPage";
@@ -41,11 +36,11 @@ function renderPage(route = "/") {
 describe("ContentPage", () => {
   beforeEach(() => {
     useSettingsStore.setState({ contentType: "posts" });
-    mockReturn = {
+    mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
       isLoading: false,
       error: null,
-    };
+    });
   });
 
   it("renders posts list", () => {
@@ -55,26 +50,30 @@ describe("ContentPage", () => {
     expect(screen.getByText("Gamma Article")).toBeInTheDocument();
   });
 
-  it("displays content type and total count", () => {
+  it("displays content type label and total count", () => {
     renderPage();
     expect(screen.getByText("\u6587\u7AE0")).toBeInTheDocument();
     expect(screen.getByText("\u5171 3 \u9805")).toBeInTheDocument();
   });
 
   it("shows loading spinner when loading", () => {
-    mockReturn = { data: null, isLoading: true, error: null };
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: true, error: null });
     renderPage();
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("shows error state", () => {
-    mockReturn = { data: null, isLoading: false, error: new Error("API Error") };
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: false, error: new Error("API Error") });
     renderPage();
     expect(screen.getByText("API Error")).toBeInTheDocument();
   });
 
   it("shows empty state when no posts", () => {
-    mockReturn = { data: { posts: [], totalPages: 0, totalPosts: 0 }, isLoading: false, error: null };
+    mockUseWordPress.mockReturnValue({
+      data: { posts: [], totalPages: 0, totalPosts: 0 },
+      isLoading: false,
+      error: null,
+    });
     renderPage();
     expect(screen.getByText("\u6C92\u6709\u7D50\u679C")).toBeInTheDocument();
   });
