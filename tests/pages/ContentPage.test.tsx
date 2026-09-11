@@ -11,7 +11,9 @@ const mockPosts = [
   { id: 3, title: "Gamma Article", date: "2026-03-15T00:00:00", name: "gamma" },
 ];
 
-const mockUseWordPress = vi.fn();
+const { mockUseWordPress } = vi.hoisted(() => ({
+  mockUseWordPress: vi.fn(),
+}));
 
 vi.mock("@/hooks/useWordPress", () => ({
   useWordPress: (...args: unknown[]) => mockUseWordPress(...args),

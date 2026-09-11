@@ -5,7 +5,9 @@ import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCartStore } from "@/stores/cartStore";
 
-const mockUseWooProducts = vi.fn();
+const { mockUseWooProducts } = vi.hoisted(() => ({
+  mockUseWooProducts: vi.fn(),
+}));
 
 vi.mock("@/hooks/useWooCommerce", () => ({
   useWooProducts: (...args: unknown[]) => mockUseWooProducts(...args),
