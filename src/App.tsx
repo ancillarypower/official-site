@@ -19,19 +19,21 @@ export default function App() {
       <div className="flex min-h-screen flex-col bg-surface-base text-primary">
         <SkipToContent />
         <Navbar />
-        <HeroBanner />
-        <main id="main-content" className="flex-1 px-6 py-10 md:px-12">
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/" element={<ContentPage />} />
-              <Route path="/models" element={<ModelsPage />} />
-              <Route path="/store" element={<StorePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </main>
-        <Footer />
+        <div id="scalable-content" className="flex flex-1 flex-col">
+          <HeroBanner />
+          <main id="main-content" className="flex-1 px-6 py-10 md:px-12">
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/" element={<ContentPage />} />
+                <Route path="/models" element={<ModelsPage />} />
+                <Route path="/store" element={<StorePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </main>
+          <Footer />
+        </div>
         <Sidebar />
       </div>
     </ErrorBoundary>
