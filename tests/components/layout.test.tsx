@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import App from "@/App";
 
 function withProviders(ui: React.ReactElement) {
   return <MemoryRouter><I18nProvider>{ui}</I18nProvider></MemoryRouter>;
@@ -80,5 +82,37 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Boom!")).toBeInTheDocument();
     expect(screen.getByText("Reload Page")).toBeInTheDocument();
     spy.mockRestore();
+  });
+});
+
+describe("App scalable-content structure", () => {
+  it("wraps HeroBanner and Footer inside #scalable-content but not Navbar", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    const scalable = container.querySelector("#scalable-content");
+    expect(scalable).toBeInTheDocument();
+
+    // main-content is inside #scalable-content
+    expect(scalable!.querySelector("#main-content")).toBeInTheDocument();
+
+    // Footer (<footer>) is inside #scalable-content
+    expect(scalable!.querySelector("footer")).toBeInTheDocument();
+
+    // HeroBanner canvas is inside #scalable-content
+    expect(scalable!.querySelector("canvas")).toBeInTheDocument();
+
+    // Navbar (<nav>) exists but is NOT inside #scalable-content
+    const nav = container.querySelector("nav");
+    expect(nav).toBeInTheDocument();
+    expect(scalable!.contains(nav!)).toBe(false);
   });
 });
