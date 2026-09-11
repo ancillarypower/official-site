@@ -3,6 +3,7 @@ import type { TranslationKey } from "./zh";
 export const en: Record<TranslationKey, string> = {
   banner_title: "Ancillary Power",
   banner_sub: "Multi-tool platform: Content, 3D Models & Store",
+  nav_brand_name: "Ancillary Power",
   nav_content: "Content",
   nav_models: "3D Models",
   nav_store: "Store",
