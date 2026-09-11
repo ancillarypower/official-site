@@ -4,13 +4,13 @@ export const zh = {
   nav_content: "內容",
   nav_models: "3D 模型",
   nav_store: "商店",
+  nav_about: "關於我們",
   nav_cart: "購物車",
   nav_settings: "設定",
   loading: "載入中...",
   empty_no_content: "尚未載入內容",
   back_to_list: "返回列表",
 
-  // Content
   models_title: "3D 模型",
   models_drop: "拖放 3D 模型至此處或點擊瀏覽",
   models_formats: "支援 .glb、.gltf、.obj、.stl（儲存於本機 IndexedDB）",
@@ -20,11 +20,9 @@ export const zh = {
   models_parsing: "解析模型中...",
   models_error: "模型載入失敗",
 
-  // Store
   store_title: "商店",
   store_products: "{n} 項商品",
 
-  // Settings panel
   fetch_title: "設定",
   site_url_label: "網站網址",
   site_url_hint: "同時用於 WordPress 內容和 WooCommerce（可分開設定）",
@@ -36,7 +34,6 @@ export const zh = {
   fetch_fetching: "擷取中...",
   fetch_footer: "WP: /wp-json/wp/v2/ ；WooCommerce: /wp-json/wc/v3/",
 
-  // WooCommerce
   woo_section: "WooCommerce 商店",
   woo_use_same_url: "使用上方相同網址",
   woo_url: "商店網址",
@@ -47,7 +44,6 @@ export const zh = {
   woo_fetching: "載入中...",
   woo_success: "成功載入 {n} 項商品",
 
-  // Cart
   cart_title: "購物車",
   cart_empty: "購物車是空的。",
   cart_total: "合計",
@@ -57,7 +53,6 @@ export const zh = {
   added: "✓ 已加入",
   in_cart: "在購物車",
 
-  // Pagination & filtering
   total_items: "共 {n} 項",
   prev: "← 上一頁",
   next: "下一頁 →",
@@ -72,14 +67,12 @@ export const zh = {
   sort_price_desc: "價格（高→低）",
   store_filter_placeholder: "搜尋商品...",
 
-  // Content types
   type_posts: "文章",
   type_pages: "頁面",
   type_categories: "分類",
   type_tags: "標籤",
   type_media: "媒體",
 
-  // Checkout
   checkout_billing: "帳單資訊",
   checkout_first_name: "名字",
   checkout_last_name: "姓氏",
@@ -95,10 +88,45 @@ export const zh = {
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
 
-  // Footer
   footer_text: "WP 內容 + 3D 檢視器 + WooCommerce 商店",
 
-  // Sample products
+  // About
+  about_title: "關於安瑟樂威",
+  about_subtitle:
+    "臺灣首家民間合格電力交易商暨可再生能源售電服務業者，以 AI 驅動虛擬電廠，引領能源轉型",
+  about_mission_title: "我們的使命",
+  about_mission_text:
+    "安瑟樂威（Ancillary Power）是 100% 台灣本土團隊，專注於提供各項再生新能源科技解決方案暨服務，致力於打造多元分散式能源參與電力市場的入口技術、財務和服務平台。作為台電電力交易平台首批取得交易資格的民間業者，目前已成功聚合建置超過 300 MW 的虛擬電廠，平均執行率達 100% 以上，每年協助轉供與銷售近 3 億度綠電。透過 ESCO 金融模式與客戶形成長期夥伴關係，協助企業將儲能、綠能等分散資源轉化為可預測、可調度的電力資產。",
+  about_highlights_title: "重要成就",
+  about_highlight_vpp: "300+ MW 虛擬電廠聚合量，居平台聚合交易量首位",
+  about_highlight_dispatch: "平均執行率達 100% 以上，累計超過 30,000 小時運行實績",
+  about_highlight_earthquake: "2024 年花蓮大地震期間協助台電緊急調度，成功避免大規模停電",
+  about_highlight_nvidia: "NVIDIA Inception Program 成員，深化 AI 智慧調度核心",
+  about_highlight_bloom: "國發會「創業綻放」競賽綻放獎，從近 3,000 組新創中脫穎而出",
+  about_highlight_acer: "宏碁龍騰微笑獎國際組參獎，獎勵立足台灣、放眼全球的新創企業",
+  about_services_title: "核心服務",
+  about_service_content: "VPP 虛擬電廠",
+  about_service_content_desc:
+    "透過自主研發的 AIoT 平台與台電電力交易機制無縫接軌，以輕資產聚合模式將企業儲能、需量反應與智慧充電等分散式資源整合為可調度的電網資源，專攻即時備轉與補充備轉市場。",
+  about_service_3d: "綠電交易與採購",
+  about_service_3d_desc:
+    "擁有綠電售電執照，提供 AI 即時綠電採購儀表板，精準匹配企業用電與綠電供應，最小化餘電浪費。",
+  about_service_store: "儲能與能源管理",
+  about_service_store_desc:
+    "協助企業建置先進表後儲能系統，整合太陽光電、EV 充電樁與 EMS，實現智慧調度與電力資產變現。",
+  about_contact_title: "聯絡我們",
+  about_contact_text:
+    "如有能源管理、虛擬電廠或綠電採購相關需求，歡迎與我們聯繫。",
+  about_email_label: "Email",
+  about_email_value: "contact@ancillarypower.com",
+  about_phone_label: "電話",
+  about_phone_value: "02-2727-2988 / 02-7755-5030",
+  about_address_label: "地址",
+  about_address_value:
+    "100510 台北市中正區新生南路一段 50 號 4 樓之 5",
+  about_website_label: "官網",
+  about_website_value: "https://www.ancillarypower.com",
+
   product_1: "無線降噪耳機",
   product_1_desc: "30 小時續航，自適應降噪。",
   product_2: "機械式鍵盤",

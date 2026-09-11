@@ -27,6 +27,7 @@ describe("Navbar", () => {
     expect(screen.getByText("內容")).toBeInTheDocument();
     expect(screen.getByText("3D 模型")).toBeInTheDocument();
     expect(screen.getByText("商店")).toBeInTheDocument();
+    expect(screen.getByText("關於我們")).toBeInTheDocument();
   });
 
   it("renders settings and cart buttons", () => {

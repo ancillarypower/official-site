@@ -6,6 +6,7 @@ export const en: Record<TranslationKey, string> = {
   nav_content: "Content",
   nav_models: "3D Models",
   nav_store: "Store",
+  nav_about: "About",
   nav_cart: "Cart",
   nav_settings: "Settings",
   loading: "Loading...",
@@ -14,7 +15,8 @@ export const en: Record<TranslationKey, string> = {
 
   models_title: "3D Models",
   models_drop: "Drop 3D models here or click to browse",
-  models_formats: "Supports .glb, .gltf, .obj, .stl (stored locally in IndexedDB)",
+  models_formats:
+    "Supports .glb, .gltf, .obj, .stl (stored locally in IndexedDB)",
   models_loaded: "{n} loaded",
   models_persisted: "Saved locally",
   models_loading_db: "Loading saved models from local storage...",
@@ -26,7 +28,8 @@ export const en: Record<TranslationKey, string> = {
 
   fetch_title: "Settings",
   site_url_label: "Site URL",
-  site_url_hint: "Used for both WP content and WooCommerce (can be separate)",
+  site_url_hint:
+    "Used for both WP content and WooCommerce (can be separate)",
   fetch_wp_section: "WordPress Content",
   fetch_type: "Content Type",
   fetch_per_page: "Per Page",
@@ -51,21 +54,21 @@ export const en: Record<TranslationKey, string> = {
   cart_checkout: "Checkout",
   cart_checkout_processing: "Creating order...",
   add_to_cart: "Add to Cart",
-  added: "✓ Added",
+  added: "\u2713 Added",
   in_cart: "in cart",
 
   total_items: "{n} total",
-  prev: "← Prev",
-  next: "Next →",
+  prev: "\u2190 Prev",
+  next: "Next \u2192",
   no_results: "No results",
   filter_placeholder: "Search...",
   sort_label: "Sort",
   sort_date_desc: "Date (Newest)",
   sort_date_asc: "Date (Oldest)",
-  sort_title_asc: "Title A→Z",
-  sort_title_desc: "Title Z→A",
-  sort_price_asc: "Price (Low→High)",
-  sort_price_desc: "Price (High→Low)",
+  sort_title_asc: "Title A\u2192Z",
+  sort_title_desc: "Title Z\u2192A",
+  sort_price_asc: "Price (Low\u2192High)",
+  sort_price_desc: "Price (High\u2192Low)",
   store_filter_placeholder: "Search products...",
 
   type_posts: "Posts",
@@ -85,11 +88,48 @@ export const en: Record<TranslationKey, string> = {
   checkout_country: "Country Code",
   checkout_note: "Creates an order and redirects to payment.",
   checkout_no_woo: "Connect WooCommerce first.",
-  order_success_title: "✓ Order Created!",
+  order_success_title: "\u2713 Order Created!",
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",
 
   footer_text: "WP Content + 3D Viewer + WooCommerce Store",
+
+  // About
+  about_title: "About Ancillary Power",
+  about_subtitle:
+    "Taiwan's first qualified private electricity trader and renewable energy retailer, powering energy transition with AI-driven Virtual Power Plants",
+  about_mission_title: "Our Mission",
+  about_mission_text:
+    "Ancillary Power is a 100% Taiwan-based team dedicated to renewable energy technology solutions and services, building a gateway platform of technology, finance, and services for diverse distributed energy resources to participate in the electricity market. As one of the first private companies to obtain trading qualifications on Taipower's Energy Trading Platform, we have successfully aggregated over 300 MW of virtual power plant capacity with a 100%+ average dispatch execution rate, facilitating the annual transfer and sale of nearly 300 million kWh of green electricity. Through our ESCO financial model, we form long-term partnerships with clients, helping enterprises transform energy storage, renewables, and other distributed resources into predictable, dispatchable power assets.",
+  about_highlights_title: "Key Achievements",
+  about_highlight_vpp: "300+ MW VPP aggregation, leading the platform in trading volume",
+  about_highlight_dispatch: "100%+ average dispatch execution rate with over 30,000 cumulative operating hours",
+  about_highlight_earthquake: "Assisted Taipower in emergency dispatch during the 2024 Hualien earthquake, helping prevent large-scale blackouts",
+  about_highlight_nvidia: "NVIDIA Inception Program member, deepening AI-powered intelligent dispatch",
+  about_highlight_bloom: "NDC Startup Bloom Competition award winner, standing out from nearly 3,000 startups nationwide",
+  about_highlight_acer: "Acer Foundation Longterm Award, International Group 3rd Place, recognizing Taiwan-rooted global startups",
+  about_services_title: "Core Services",
+  about_service_content: "Virtual Power Plant",
+  about_service_content_desc:
+    "Through our proprietary AIoT platform seamlessly integrated with Taipower's Energy Trading Platform, we use a light-capital aggregation model to combine enterprise energy storage, demand response, and smart charging into dispatchable grid resources, specializing in spinning and supplemental reserve markets.",
+  about_service_3d: "Green Electricity Trading",
+  about_service_3d_desc:
+    "Licensed green electricity retailer with an AI-powered real-time procurement dashboard that precisely matches enterprise demand with green energy supply, minimizing surplus waste.",
+  about_service_store: "Energy Storage & Management",
+  about_service_store_desc:
+    "We help enterprises deploy advanced behind-the-meter storage systems, integrating solar PV, EV charging, and EMS for intelligent dispatch and power asset monetization.",
+  about_contact_title: "Contact Us",
+  about_contact_text:
+    "For energy management, virtual power plant, or green electricity procurement inquiries, get in touch.",
+  about_email_label: "Email",
+  about_email_value: "contact@ancillarypower.com",
+  about_phone_label: "Phone",
+  about_phone_value: "02-2727-2988 / 02-7755-5030",
+  about_address_label: "Address",
+  about_address_value:
+    "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei 100510",
+  about_website_label: "Website",
+  about_website_value: "https://www.ancillarypower.com",
 
   product_1: "Wireless Headphones",
   product_1_desc: "30hr, adaptive ANC.",

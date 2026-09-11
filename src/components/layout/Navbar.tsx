@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/", labelKey: "nav_content" as const },
   { to: "/models", labelKey: "nav_models" as const },
   { to: "/store", labelKey: "nav_store" as const },
+  { to: "/about", labelKey: "nav_about" as const },
 ];
 
 export function Navbar() {
