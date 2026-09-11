@@ -27,6 +27,9 @@ describe("Navbar", () => {
     expect(brandText).toBeInTheDocument();
     const brandLink = brandText.closest("a");
     expect(brandLink).toHaveAttribute("href", "/");
+    const logo = brandLink!.querySelector("img");
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute("src", expect.stringContaining("logo.svg"));
   });
 
   it("renders navigation with links", () => {
