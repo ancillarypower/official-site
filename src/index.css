@@ -95,6 +95,11 @@ body {
   --color-danger: oklch(65% 0.2 25);
 }
 
+[data-theme="dark"] .article-body pre {
+  background: oklch(22% 0.012 250);
+  color: oklch(90% 0.005 250);
+}
+
 [data-theme="dark"] .article-body code {
   background: oklch(22% 0.012 250);
 }
