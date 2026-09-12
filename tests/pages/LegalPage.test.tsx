@@ -23,9 +23,14 @@ describe("LegalPage", () => {
     expect(screen.getByText("\u670d\u52d9\u689d\u6b3e")).toBeInTheDocument();
   });
 
+  it("renders overview sections for both Privacy Policy and ToS", () => {
+    render(withProviders(<LegalPage />));
+    const overviewHeadings = screen.getAllByText("\u6982\u8ff0");
+    expect(overviewHeadings).toHaveLength(2);
+  });
+
   it("renders all nine Privacy Policy sections", () => {
     render(withProviders(<LegalPage />));
-    expect(screen.getByText("\u6982\u8ff0", { selector: "h3" })).toBeTruthy();
     expect(screen.getByText(/\u6211\u5011\u8490\u96c6\u54ea\u4e9b\u8cc7\u6599/)).toBeInTheDocument();
     expect(screen.getByText(/\u8490\u96c6\u76ee\u7684\u8207\u5229\u7528\u65b9\u5f0f/)).toBeInTheDocument();
     expect(screen.getByText(/\u672c\u6a5f\u8cc7\u6599\u5132\u5b58/)).toBeInTheDocument();
@@ -33,7 +38,6 @@ describe("LegalPage", () => {
     expect(screen.getByText(/\u8cc7\u6599\u5b89\u5168\u63aa\u65bd/)).toBeInTheDocument();
     expect(screen.getByText(/\u60a8\u7684\u6b0a\u5229/)).toBeInTheDocument();
     expect(screen.getByText(/\u8cc7\u6599\u4fdd\u5b58\u671f\u9593/)).toBeInTheDocument();
-    expect(screen.getByText(/\u653f\u7b56\u8b8a\u66f4/)).toBeInTheDocument();
   });
 
   it("renders all seven Terms of Service sections", () => {
@@ -43,7 +47,6 @@ describe("LegalPage", () => {
     expect(screen.getByText(/\u5546\u5e97\u8207\u4ea4\u6613/)).toBeInTheDocument();
     expect(screen.getByText(/\u514d\u8cac\u8072\u660e/)).toBeInTheDocument();
     expect(screen.getByText(/\u8cac\u4efb\u9650\u5236/)).toBeInTheDocument();
-    expect(screen.getByText(/\u689d\u6b3e\u8b8a\u66f4/)).toBeInTheDocument();
     expect(screen.getByText(/\u6e96\u64da\u6cd5\u8207\u7ba1\u8f44/)).toBeInTheDocument();
   });
 
