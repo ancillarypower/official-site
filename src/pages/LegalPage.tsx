@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useI18n } from "@/context/I18nContext";
 
 function Section({
@@ -5,7 +6,7 @@ function Section({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="mb-8">
