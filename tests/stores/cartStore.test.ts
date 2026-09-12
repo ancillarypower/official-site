@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useCartStore } from "@/stores/cartStore";
+import { useCartStore, CART_VERSION, migrateCart } from "@/stores/cartStore";
 
 const sampleItem = { id: 1, name: "Test Item", price: 10.0, icon: "🎧", img: null };
 
@@ -78,5 +78,39 @@ describe("cartStore", () => {
     useCartStore.getState().clearCart();
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(useCartStore.getState().totalItems()).toBe(0);
+  });
+});
+
+describe("cartStore migration", () => {
+  it("exports CART_VERSION as 1", () => {
+    expect(CART_VERSION).toBe(1);
+  });
+
+  it("migrateCart v0 → v1 resets items to empty array", () => {
+    const staleData = {
+      items: [
+        { id: 1, name: "Old Item", price: 5, icon: null, img: null, qty: 3 },
+      ],
+    };
+    const migrated = migrateCart(staleData, 0);
+    expect(migrated).toHaveProperty("items");
+    expect((migrated as { items: unknown[] }).items).toEqual([]);
+  });
+
+  it("migrateCart v0 → v1 preserves non-items properties", () => {
+    const staleData = { items: [{ id: 1 }], extraField: "keep-me" };
+    const migrated = migrateCart(staleData, 0) as Record<string, unknown>;
+    expect(migrated.extraField).toBe("keep-me");
+    expect((migrated.items as unknown[]).length).toBe(0);
+  });
+
+  it("migrateCart v1 passes through data unchanged", () => {
+    const currentData = {
+      items: [
+        { id: 1, name: "Widget", price: 20, icon: null, img: null, qty: 2 },
+      ],
+    };
+    const result = migrateCart(currentData, 1);
+    expect(result).toBe(currentData); // same reference, no transformation
   });
 });
