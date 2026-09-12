@@ -20,6 +20,12 @@ export const zh = {
   models_loading_db: "正在從本機載入已儲存的模型...",
   models_parsing: "解析模型中...",
   models_error: "模型載入失敗",
+  models_select_all: "全選",
+  models_deselect_all: "取消全選",
+  models_delete_selected: "刪除選取（{n}）",
+  models_delete_selected_confirm: "確定要刪除選取的 {n} 個模型嗎？此操作無法復原。",
+  models_delete_all: "全部刪除",
+  models_delete_all_confirm: "確定要刪除全部 {n} 個模型嗎？此操作無法復原。",
 
   store_title: "商店",
   store_products: "{n} 項商品",
