@@ -22,6 +22,7 @@ describe("SettingsPanel", () => {
       wooUrl: "",
       wooPerPage: 20,
       activePanel: "settings",
+      fontScale: 1,
     });
   });
 
@@ -59,5 +60,21 @@ describe("SettingsPanel", () => {
     render(withProviders(<SettingsPanel />));
     fireEvent.click(screen.getByLabelText("Close"));
     expect(useSettingsStore.getState().activePanel).toBeNull();
+  });
+
+  it("renders FontSizeControl with increase and decrease buttons", () => {
+    render(withProviders(<SettingsPanel />));
+    expect(screen.getByText("\u5B57\u9AD4\u5927\u5C0F")).toBeInTheDocument();
+    expect(screen.getByLabelText("Decrease font size")).toBeInTheDocument();
+    expect(screen.getByLabelText("Increase font size")).toBeInTheDocument();
+    expect(screen.getByLabelText("Font size")).toBeInTheDocument();
+  });
+
+  it("adjusts font scale via FontSizeControl buttons", () => {
+    render(withProviders(<SettingsPanel />));
+    fireEvent.click(screen.getByLabelText("Increase font size"));
+    expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.1, 1);
+    fireEvent.click(screen.getByLabelText("Decrease font size"));
+    expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.0, 1);
   });
 });

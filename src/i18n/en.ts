@@ -28,6 +28,7 @@ export const en: Record<TranslationKey, string> = {
   store_products: "{n} products",
 
   fetch_title: "Settings",
+  font_size_section: "Font Size",
   site_url_label: "Site URL",
   site_url_hint:
     "Used for both WP content and WooCommerce (can be separate)",
