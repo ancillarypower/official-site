@@ -54,8 +54,8 @@ describe("LegalPage", () => {
   });
 
   it("references the Taiwan PDPA in privacy policy content", () => {
-    render(withProviders(<LegalPage />));
-    expect(screen.getByText(/\u500b\u4eba\u8cc7\u6599\u4fdd\u8b77\u6cd5/)).toBeInTheDocument();
+    const { container } = render(withProviders(<LegalPage />));
+    expect(container.textContent).toContain("\u500b\u4eba\u8cc7\u6599\u4fdd\u8b77\u6cd5");
   });
 
   it("mentions specific data storage technologies", () => {
@@ -82,7 +82,7 @@ describe("LegalPage", () => {
   });
 
   it("specifies Taipei District Court as jurisdiction", () => {
-    render(withProviders(<LegalPage />));
-    expect(screen.getByText(/\u53f0\u5317\u5730\u65b9\u6cd5\u9662/)).toBeInTheDocument();
+    const { container } = render(withProviders(<LegalPage />));
+    expect(container.textContent).toContain("\u53f0\u5317\u5730\u65b9\u6cd5\u9662");
   });
 });
