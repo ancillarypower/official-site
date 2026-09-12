@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
@@ -54,5 +54,40 @@ describe("CartPanel", () => {
     });
     render(withProviders(<CartPanel />));
     expect(screen.getByText("\u7D50\u5E33")).toBeDisabled();
+  });
+
+  it("does not show clear all button when cart is empty", () => {
+    render(withProviders(<CartPanel />));
+    expect(screen.queryByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/)).not.toBeInTheDocument();
+  });
+
+  it("shows clear all button when cart has items", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    render(withProviders(<CartPanel />));
+    expect(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/)).toBeInTheDocument();
+  });
+
+  it("clears cart when clear all is confirmed", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/));
+    expect(useCartStore.getState().items).toHaveLength(0);
+    vi.restoreAllMocks();
+  });
+
+  it("keeps items when clear all is cancelled", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/));
+    expect(useCartStore.getState().items).toHaveLength(1);
+    vi.restoreAllMocks();
   });
 });

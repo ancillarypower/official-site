@@ -51,6 +51,8 @@ export const zh = {
   cart_total: "合計",
   cart_checkout: "結帳",
   cart_checkout_processing: "建立訂單中...",
+  cart_clear_all: "清空購物車",
+  cart_clear_confirm: "確定要清空購物車嗎？此操作無法復原。",
   add_to_cart: "加入購物車",
   added: "✓ 已加入",
   in_cart: "在購物車",

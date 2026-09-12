@@ -16,6 +16,12 @@ export function CartPanel() {
 
   const updateField = (field: string, value: string) => setBilling((prev) => ({ ...prev, [field]: value }));
 
+  function handleClearAll() {
+    if (window.confirm(t("cart_clear_confirm"))) {
+      clearCart();
+    }
+  }
+
   async function handleCheckout() {
     if (!billing.first_name || !billing.last_name || !billing.email) { setOrderError(t("checkout_no_woo")); return; }
     setOrderStatus("processing");
@@ -26,7 +32,14 @@ export function CartPanel() {
     <>
       <div className="flex items-center justify-between border-b border-border-subtle px-5 py-5">
         <h2 className="text-sm font-bold">{t("cart_title")}</h2>
-        <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label="Close">✕</button>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button onClick={handleClearAll} className="rounded-md px-2 py-1 text-xs text-secondary transition-colors hover:bg-surface-sunken hover:text-danger" aria-label={t("cart_clear_all")}>
+              🗑 {t("cart_clear_all")}
+            </button>
+          )}
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label="Close">✕</button>
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
         {items.length === 0 ? <div className="py-8 text-center text-sm text-tertiary">{t("cart_empty")}</div> : (
@@ -68,7 +81,7 @@ export function CartPanel() {
             </div>
             {orderError && <div className="rounded-md border border-[oklch(88%_0.06_25)] bg-[oklch(95%_0.04_25)] px-3 py-2.5 text-xs text-[oklch(40%_0.12_25)]">{orderError}</div>}
             <button onClick={handleCheckout} disabled={!wooConnected || orderStatus === "processing"} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{orderStatus === "processing" ? t("cart_checkout_processing") : t("cart_checkout")}</button>
-            {orderStatus === "success" && <button onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">Clear cart</button>}
+            {orderStatus === "success" && <button onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">{t("cart_clear_all")}</button>}
           </>
         )}
       </div>

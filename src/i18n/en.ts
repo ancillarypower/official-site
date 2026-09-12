@@ -55,6 +55,8 @@ export const en: Record<TranslationKey, string> = {
   cart_total: "Total",
   cart_checkout: "Checkout",
   cart_checkout_processing: "Creating order...",
+  cart_clear_all: "Clear All",
+  cart_clear_confirm: "Clear your entire cart? This cannot be undone.",
   add_to_cart: "Add to Cart",
   added: "\u2713 Added",
   in_cart: "in cart",
