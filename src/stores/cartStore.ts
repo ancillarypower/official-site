@@ -21,6 +21,27 @@ interface CartState {
   getQty: (id: number) => number;
 }
 
+/** Current schema version for the persisted cart state. */
+export const CART_VERSION = 1;
+
+/**
+ * Migrate persisted cart data from older versions.
+ *
+ * Version 0 (implicit): Original schema with no version field.
+ * Version 1: Same shape, but version-tracked. Resets cart on upgrade
+ *            to avoid stale data from an incompatible schema.
+ */
+export function migrateCart(
+  persisted: unknown,
+  version: number,
+): CartState | Record<string, unknown> {
+  if (version === 0) {
+    // v0 → v1: clear potentially incompatible items
+    return { ...(persisted as Record<string, unknown>), items: [] };
+  }
+  return persisted as CartState;
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -61,6 +82,10 @@ export const useCartStore = create<CartState>()(
 
       getQty: (id) => get().items.find((i) => i.id === id)?.qty ?? 0,
     }),
-    { name: "ap-cart" },
+    {
+      name: "ap-cart",
+      version: CART_VERSION,
+      migrate: migrateCart,
+    },
   ),
 );
