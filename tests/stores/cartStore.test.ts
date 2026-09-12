@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useCartStore } from "@/stores/cartStore";
-import { CART_VERSION, migrateCart } from "@/stores/cartStore";
+import { useCartStore, CART_VERSION, migrateCart } from "@/stores/cartStore";
 
 const sampleItem = { id: 1, name: "Test Item", price: 10.0, icon: "🎧", img: null };
 
