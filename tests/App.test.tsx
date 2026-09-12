@@ -17,6 +17,9 @@ vi.mock("@/pages/StorePage", () => ({
 vi.mock("@/pages/AboutPage", () => ({
   default: () => createElement("div", { "data-testid": "about-page" }, "About"),
 }));
+vi.mock("@/pages/LegalPage", () => ({
+  default: () => createElement("div", { "data-testid": "legal-page" }, "Legal"),
+}));
 vi.mock("@/components/layout/Sidebar", () => ({
   Sidebar: () => createElement("div", { "data-testid": "sidebar" }),
 }));
@@ -57,6 +60,11 @@ describe("App routing", () => {
   it("renders AboutPage at /about", async () => {
     renderApp("/about");
     await waitFor(() => expect(screen.getByTestId("about-page")).toBeInTheDocument());
+  });
+
+  it("renders LegalPage at /legal", async () => {
+    renderApp("/legal");
+    await waitFor(() => expect(screen.getByTestId("legal-page")).toBeInTheDocument());
   });
 
   it("redirects unknown routes to /", async () => {
