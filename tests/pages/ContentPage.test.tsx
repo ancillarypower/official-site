@@ -94,7 +94,7 @@ describe("ContentPage", () => {
 
   it("shows total items count", () => {
     renderPage();
-    expect(screen.getByText(/3/)).toBeInTheDocument();
+    expect(screen.getByText("\u5171 3 \u9805")).toBeInTheDocument();
   });
 
   it("renders article view when article param is present", () => {
