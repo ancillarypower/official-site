@@ -1,6 +1,7 @@
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { CONTENT_TYPES, PER_PAGE_OPTIONS } from "@/lib/constants";
+import { FontSizeControl } from "@/components/ui/FontSizeControl";
 
 export function SettingsPanel() {
   const { t } = useI18n();
@@ -20,6 +21,16 @@ export function SettingsPanel() {
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-5">
+        <div className="text-[0.7rem] font-semibold tracking-wide text-tertiary uppercase">
+          {t("font_size_section")}
+        </div>
+
+        <div className="flex justify-center">
+          <FontSizeControl />
+        </div>
+
+        <div className="mt-1 border-t border-border-subtle pt-3" />
+
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("site_url_label")}</span>
           <input type="url" value={s.wpUrl} onChange={(e) => s.setWpUrl(e.target.value)} className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />

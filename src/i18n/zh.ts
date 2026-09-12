@@ -25,6 +25,7 @@ export const zh = {
   store_products: "{n} 項商品",
 
   fetch_title: "設定",
+  font_size_section: "字體大小",
   site_url_label: "網站網址",
   site_url_hint: "同時用於 WordPress 內容和 WooCommerce（可分開設定）",
   fetch_wp_section: "WordPress 內容",
