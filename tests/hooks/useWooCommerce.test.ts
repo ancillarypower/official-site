@@ -1,7 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useSettingsStore } from "@/stores/settingsStore";
-
-// Verify the hook module can be imported
+import { describe, it, expect } from "vitest";
 import { useWooProducts, useCheckout } from "@/hooks/useWooCommerce";
 
 describe("useWooCommerce module", () => {
