@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type Theme = "light" | "sepia" | "dark";
+
 interface SettingsState {
   /** WordPress site URL */
   wpUrl: string;
@@ -31,6 +33,11 @@ interface SettingsState {
   fontScale: number;
   setFontScale: (scale: number) => void;
 
+  /** Reading mode theme */
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  cycleTheme: () => void;
+
   /** Active sidebar panel */
   activePanel: "settings" | "cart" | null;
   openPanel: (panel: "settings" | "cart") => void;
@@ -38,6 +45,16 @@ interface SettingsState {
 
   /** Effective WooCommerce base URL */
   getWooBaseUrl: () => string;
+}
+
+const THEME_ORDER: Theme[] = ["light", "sepia", "dark"];
+
+function applyTheme(theme: Theme) {
+  if (theme === "light") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", theme);
+  }
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -68,6 +85,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const clamped = Math.max(0.7, Math.min(1.5, scale));
     document.documentElement.style.setProperty("--font-scale", String(clamped));
     set({ fontScale: clamped });
+  },
+
+  theme: "light",
+  setTheme: (theme) => {
+    applyTheme(theme);
+    set({ theme });
+  },
+  cycleTheme: () => {
+    const current = get().theme;
+    const idx = THEME_ORDER.indexOf(current);
+    const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length]!;
+    applyTheme(next);
+    set({ theme: next });
   },
 
   activePanel: null,

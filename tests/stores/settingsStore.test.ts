@@ -4,7 +4,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
 describe("settingsStore", () => {
   beforeEach(() => {
     document.documentElement.style.removeProperty("--font-scale");
-    useSettingsStore.setState({ wpUrl: "https://www.ancillarypower.com", wooKey: "", wooSecret: "", wooUrl: "", wooUseSameUrl: true, useProxy: false, contentType: "posts", perPage: 20, wooPerPage: 20, fontScale: 1, activePanel: null });
+    document.documentElement.removeAttribute("data-theme");
+    useSettingsStore.setState({ wpUrl: "https://www.ancillarypower.com", wooKey: "", wooSecret: "", wooUrl: "", wooUseSameUrl: true, useProxy: false, contentType: "posts", perPage: 20, wooPerPage: 20, fontScale: 1, theme: "light", activePanel: null });
   });
 
   it("has correct default values", () => {
@@ -13,6 +14,7 @@ describe("settingsStore", () => {
     expect(s.perPage).toBe(20);
     expect(s.useProxy).toBe(false);
     expect(s.fontScale).toBe(1);
+    expect(s.theme).toBe("light");
     expect(s.activePanel).toBeNull();
   });
 
@@ -83,5 +85,41 @@ describe("settingsStore", () => {
   it("getWooBaseUrl adds https if missing", () => {
     useSettingsStore.getState().setWpUrl("mysite.com");
     expect(useSettingsStore.getState().getWooBaseUrl()).toBe("https://mysite.com");
+  });
+
+  it("setTheme to dark applies data-theme attribute", () => {
+    useSettingsStore.getState().setTheme("dark");
+    expect(useSettingsStore.getState().theme).toBe("dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("setTheme to sepia applies data-theme attribute", () => {
+    useSettingsStore.getState().setTheme("sepia");
+    expect(useSettingsStore.getState().theme).toBe("sepia");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("sepia");
+  });
+
+  it("setTheme to light removes data-theme attribute", () => {
+    useSettingsStore.getState().setTheme("dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    useSettingsStore.getState().setTheme("light");
+    expect(useSettingsStore.getState().theme).toBe("light");
+    expect(document.documentElement.getAttribute("data-theme")).toBeNull();
+  });
+
+  it("cycleTheme cycles light -> sepia -> dark -> light", () => {
+    expect(useSettingsStore.getState().theme).toBe("light");
+
+    useSettingsStore.getState().cycleTheme();
+    expect(useSettingsStore.getState().theme).toBe("sepia");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("sepia");
+
+    useSettingsStore.getState().cycleTheme();
+    expect(useSettingsStore.getState().theme).toBe("dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+
+    useSettingsStore.getState().cycleTheme();
+    expect(useSettingsStore.getState().theme).toBe("light");
+    expect(document.documentElement.getAttribute("data-theme")).toBeNull();
   });
 });

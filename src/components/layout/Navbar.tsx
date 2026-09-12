@@ -11,9 +11,15 @@ const NAV_ITEMS = [
   { to: "/about", labelKey: "nav_about" as const },
 ];
 
+const THEME_ICONS: Record<string, string> = {
+  light: "☀",
+  sepia: "📜",
+  dark: "🌙",
+};
+
 export function Navbar() {
   const { lang, toggleLang, t } = useI18n();
-  const { openPanel } = useSettingsStore();
+  const { openPanel, theme, cycleTheme } = useSettingsStore();
   const totalItems = useCartStore((s) => s.totalItems());
   const location = useLocation();
 
@@ -68,6 +74,14 @@ export function Navbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={cycleTheme}
+          className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
+          aria-label={t("theme_toggle")}
+        >
+          {THEME_ICONS[theme] ?? "☀"}
+        </button>
+
         <button
           onClick={toggleLang}
           className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"

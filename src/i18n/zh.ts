@@ -26,6 +26,11 @@ export const zh = {
 
   fetch_title: "設定",
   font_size_section: "字體大小",
+  theme_section: "閱讀主題",
+  theme_light: "明亮",
+  theme_sepia: "護眼",
+  theme_dark: "深色",
+  theme_toggle: "切換閱讀主題",
   site_url_label: "網站網址",
   site_url_hint: "同時用於 WordPress 內容和 WooCommerce（可分開設定）",
   fetch_wp_section: "WordPress 內容",
