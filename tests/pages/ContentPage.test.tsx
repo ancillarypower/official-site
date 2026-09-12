@@ -75,4 +75,31 @@ describe("ContentPage", () => {
     renderPage();
     expect(screen.getByText("1/2")).toBeInTheDocument();
   });
+
+  it("shows empty state when posts array is empty", () => {
+    mockUseWordPress.mockReturnValue({
+      data: { posts: [], totalPages: 0, totalPosts: 0 },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
+    expect(screen.getByText("\uD83D\uDCED")).toBeInTheDocument();
+  });
+
+  it("renders content type label from settings", () => {
+    renderPage();
+    expect(screen.getByText("\u6587\u7AE0")).toBeInTheDocument();
+  });
+
+  it("shows total items count", () => {
+    renderPage();
+    expect(screen.getByText(/3/)).toBeInTheDocument();
+  });
+
+  it("renders article view when article param is present", () => {
+    renderPage("/?article=0");
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+    expect(screen.getByText("Post Alpha")).toBeInTheDocument();
+  });
 });
