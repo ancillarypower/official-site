@@ -12,7 +12,7 @@ describe("HeroBanner", () => {
     );
     expect(screen.getByText("Ancillary Power")).toBeInTheDocument();
     expect(
-      screen.getByText("整合內容、3D 模型與商店的多功能平台"),
+      screen.getByText(/以 AI 驅動虛擬電廠/),
     ).toBeInTheDocument();
   });
 
@@ -26,10 +26,6 @@ describe("HeroBanner", () => {
   });
 
   it("renders without errors", () => {
-    // HeroBanner uses matchMedia and canvas 2d context internally.
-    // In jsdom, canvas.getContext('2d') returns null so the particle
-    // animation doesn't start, but the component should still render
-    // the title overlay without throwing.
     expect(() => {
       render(
         <I18nProvider>

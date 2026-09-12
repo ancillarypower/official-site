@@ -1,6 +1,6 @@
 export const zh = {
   banner_title: "Ancillary Power",
-  banner_sub: "整合內容、3D 模型與商店的多功能平台",
+  banner_sub: "以 AI 驅動虛擬電廠，引領臺灣能源轉型",
   nav_brand_name: "安瑟樂威",
   nav_content: "內容",
   nav_models: "3D 模型",
@@ -89,7 +89,8 @@ export const zh = {
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
 
-  footer_text: "WP 內容 + 3D 檢視器 + WooCommerce 商店",
+  footer_text: "© 2026 安瑟樂威 Ancillary Power",
+  footer_website: "官方網站",
 
   // About
   about_title: "關於安瑟樂威",
