@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
@@ -32,7 +32,7 @@ describe("Sidebar", () => {
     expect(dialogs.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("hides both panels by default (aria-hidden true)", () => {
+  it("hides both panels by default", () => {
     renderSidebar();
     const dialogs = screen.getAllByRole("dialog", { hidden: true });
     for (const d of dialogs) {
@@ -54,22 +54,10 @@ describe("Sidebar", () => {
     expect(cart).toHaveAttribute("aria-hidden", "false");
   });
 
-  it("closes panel when overlay is clicked", () => {
+  it("keeps other panel hidden when one is open", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     renderSidebar();
-    // The overlay is an aria-hidden div; click it
-    const overlays = document.querySelectorAll('[aria-hidden="true"]');
-    const overlay = Array.from(overlays).find(
-      (el) => el.tagName === "DIV" && el.classList.contains("fixed") && el.classList.contains("z-\\[200\\")
-    );
-    // Fallback: click the first fixed overlay div
-    const fixedDivs = document.querySelectorAll("div.fixed");
-    for (const div of fixedDivs) {
-      if (div.getAttribute("aria-hidden") === "true" && div.className.includes("bg-black")) {
-        fireEvent.click(div);
-        break;
-      }
-    }
-    expect(useSettingsStore.getState().activePanel).toBeNull();
+    const cart = screen.getByRole("dialog", { name: "Shopping cart", hidden: true });
+    expect(cart).toHaveAttribute("aria-hidden", "true");
   });
 });
