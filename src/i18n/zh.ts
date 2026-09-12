@@ -153,6 +153,69 @@ export const zh = {
   product_7_desc: "自動調光，無線充電。",
   product_8: "螢幕掛燈",
   product_8_desc: "非對稱光學，USB。",
+
+  // Legal
+  legal_privacy_title: "隱私權政策",
+  legal_privacy_effective: "生效日期：2026 年 9 月",
+  legal_privacy_intro_title: "概述",
+  legal_privacy_intro_text:
+    "安瑟樂威（Ancillary Power，以下簡稱「本公司」）重視您的個人資料保護。本隱私權政策依據中華民國《個人資料保護法》（個資法）制定，說明本網站如何蒐集、處理及利用您的個人資料。使用本網站即表示您已閱讀並理解本政策內容。",
+  legal_privacy_collect_title: "一、我們蒐集哪些資料",
+  legal_privacy_collect_text:
+    "本網站可能蒐集以下類別的個人資料：(1) 結帳資訊：當您透過商店功能下單時，需提供姓名、電子郵件、電話號碼、地址、城市、郵遞區號及國家代碼等帳單資訊，用於建立 WooCommerce 訂單。(2) 瀏覽行為資料：本網站可能透過 Cookie 或類似技術蒐集您的 IP 位址、瀏覽器類型及瀏覽行為，用於改善網站體驗。",
+  legal_privacy_purpose_title: "二、蒐集目的與利用方式",
+  legal_privacy_purpose_text:
+    "本公司蒐集個人資料之特定目的包括：(1) 訂單處理與履約：處理商店訂單、建立付款連結、聯繫配送相關事宜。(2) 客戶服務：回應您的諮詢，提供售後支援。(3) 網站功能運作：提供內容瀏覽、3D 模型檢視、商品展示等服務。(4) 網站分析與改善：了解使用者行為以優化網站設計與效能。個人資料之利用不會超出上述特定目的之必要範圍。",
+  legal_privacy_storage_title: "三、本機資料儲存",
+  legal_privacy_storage_text:
+    "本網站使用瀏覽器本機儲存技術，相關資料僅存在於您的裝置上，不會傳送至本公司伺服器：(1) IndexedDB：儲存您上傳的 3D 模型檔案，供本機檢視使用。(2) localStorage：儲存購物車內容、網站設定偏好（佈景主題、字體大小、語言、WordPress/WooCommerce 連線設定）。您可隨時透過瀏覽器設定清除這些本機資料。",
+  legal_privacy_third_party_title: "四、第三方服務",
+  legal_privacy_third_party_text:
+    "本網站使用以下第三方服務，您的資料可能在服務運作過程中經過這些服務處理：(1) WooCommerce API：用於載入商品資訊及處理訂單，您的帳單資訊將傳送至 WooCommerce 商店端。(2) CORS 代理服務（corsproxy.io、allorigins.win）：用於跨域請求 WordPress 及 WooCommerce API 資料，代理伺服器可能暫時處理傳輸中的資料。(3) jsDelivr CDN：用於載入 3D 模型所需的 Draco 解碼器程式庫。各第三方服務之隱私權政策請參閱其官方網站。",
+  legal_privacy_security_title: "五、資料安全措施",
+  legal_privacy_security_text:
+    "本公司採取合理之技術與組織措施保護個人資料安全，包括：(1) 全站使用 HTTPS 加密傳輸。(2) 前端不儲存信用卡等敏感支付資訊，付款流程由 WooCommerce 商店端處理。(3) 定期檢視並更新安全措施。儘管我們致力保護您的個人資料，網際網路傳輸無法保證百分之百安全，請您自行留意帳號密碼及個人資料之保護。",
+  legal_privacy_rights_title: "六、您的權利",
+  legal_privacy_rights_text:
+    "依據《個人資料保護法》第三條，您就本公司所持有之個人資料享有以下權利：(1) 查詢或請求閱覽。(2) 請求製給複製本。(3) 請求補充或更正。(4) 請求停止蒐集、處理或利用。(5) 請求刪除。如需行使上述權利，請透過本政策末端所列之聯絡方式與我們聯繫，本公司將於收到請求後依法定期限內回覆處理。",
+  legal_privacy_retention_title: "七、資料保存期間",
+  legal_privacy_retention_text:
+    "本公司將在達成蒐集目的之必要期間內保存您的個人資料。訂單相關資料依稅務法規保存五年；其他個人資料於蒐集目的消失或您請求刪除後，依法予以刪除或停止處理利用。本機儲存資料（IndexedDB、localStorage）由您自行管理，可隨時清除。",
+  legal_privacy_changes_title: "八、政策變更",
+  legal_privacy_changes_text:
+    "本公司保留隨時修訂本隱私權政策之權利。政策修訂後將於本頁面公告更新內容及生效日期。如涉及重大變更（如新增第三方資料分享、變更資料利用目的），本公司將以適當方式通知使用者。建議您定期查閱本政策以了解最新內容。",
+  legal_privacy_contact_title: "九、聯絡方式",
+  legal_privacy_contact_text:
+    "如對本隱私權政策有任何疑問，或需行使個人資料相關權利，請透過以下方式聯繫本公司：電子郵件：contact@ancillarypower.com｜電話：02-2727-2988 / 02-7755-5030｜地址：100510 台北市中正區新生南路一段 50 號 4 樓之 5。",
+
+  legal_tos_title: "服務條款",
+  legal_tos_effective: "生效日期：2026 年 9 月",
+  legal_tos_intro_title: "概述",
+  legal_tos_intro_text:
+    "歡迎使用安瑟樂威（Ancillary Power）官方網站（以下簡稱「本網站」）。使用本網站即表示您同意遵守以下服務條款。如您不同意任何條款內容，請停止使用本網站。",
+  legal_tos_use_title: "一、使用規範",
+  legal_tos_use_text:
+    "您同意僅以合法且符合本條款之方式使用本網站。禁止以下行為：(1) 未經授權存取本網站系統或網路。(2) 干擾或破壞網站服務之正常運作。(3) 利用本網站從事任何違法行為。(4) 以自動化工具大量擷取網站內容。本公司保留在不事先通知的情況下，限制或終止違反使用規範之使用者存取權限的權利。",
+  legal_tos_ip_title: "二、智慧財產權",
+  legal_tos_ip_text:
+    "本網站之所有內容，包括但不限於文字、圖片、標誌、程式碼、介面設計及其編排方式，均受中華民國著作權法及國際智慧財產權法律保護，為安瑟樂威或其授權人所有。未經本公司書面同意，不得以任何形式重製、修改、散布、公開展示或利用本網站內容。透過 WordPress API 載入之內容，其著作權歸屬原始發布者所有。",
+  legal_tos_store_title: "三、商店與交易",
+  legal_tos_store_text:
+    "本網站商店功能透過 WooCommerce API 提供商品資訊與訂單服務。商品價格、規格及庫存狀態以 WooCommerce 商店端為準，本網站作為前端展示介面。所有交易之付款處理、退換貨及售後服務均依據 WooCommerce 商店端之相關政策辦理。本公司不對因 WooCommerce 商店端變更或第三方支付處理所產生之問題負責。",
+  legal_tos_disclaimer_title: "四、免責聲明",
+  legal_tos_disclaimer_text:
+    "本網站及其內容係以「現況」提供。本公司不保證：(1) 網站服務不中斷或無錯誤。(2) 透過第三方 API 取得之內容的正確性、完整性或即時性。(3) CORS 代理服務之持續可用性。(4) 3D 模型檢視器在所有裝置及瀏覽器上的相容性。對於因使用或無法使用本網站而產生之任何損害，本公司不負擔保責任。",
+  legal_tos_liability_title: "五、責任限制",
+  legal_tos_liability_text:
+    "在法律允許之最大範圍內，本公司及其董事、員工、合作夥伴對於因使用本網站所產生之任何直接、間接、附帶、特殊或衍生性損害，不負任何責任，包括但不限於利潤損失、資料遺失或業務中斷。無論該等損害係基於合約、侵權或其他法律理論，即使本公司已被告知可能發生該等損害亦同。",
+  legal_tos_changes_title: "六、條款變更",
+  legal_tos_changes_text:
+    "本公司保留隨時修訂本服務條款之權利。修訂後之條款將於本頁面公告，繼續使用本網站即視為您同意修訂後之條款。重大變更將以適當方式通知使用者。",
+  legal_tos_governing_title: "七、準據法與管轄",
+  legal_tos_governing_text:
+    "本服務條款之解釋與適用，以及因使用本網站所生之相關爭議，均以中華民國法律為準據法。雙方同意以臺灣臺北地方法院為第一審管轄法院。",
+
+  legal_footer_link: "隱私權政策與服務條款",
 } as const;
 
 export type TranslationKey = keyof typeof zh;
