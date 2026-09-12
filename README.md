@@ -77,3 +77,5 @@ See `.env.example`. All prefixed with `VITE_` for client-side access.
 ## License
 
 Private — Ancillary Power Co., Ltd.
+
+This project uses open source software. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for a complete list of third-party dependencies, their licenses, and attributions.
