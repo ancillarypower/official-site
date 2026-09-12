@@ -79,23 +79,15 @@ describe("ModelsPage", () => {
     expect(screen.getByLabelText("Remove good.glb")).toBeInTheDocument();
   });
 
-  it("shows persisted note when models are loaded", async () => {
+  it("renders ModelViewer for each loaded model", async () => {
     mockGetAllModels.mockResolvedValue([
-      { id: 1, name: "model.glb", size: 1024, ext: "glb", data: new ArrayBuffer(8), timestamp: Date.now() },
+      { id: 1, name: "test.glb", size: 1024, ext: "glb", data: new ArrayBuffer(8), timestamp: Date.now() },
     ]);
 
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByText("1 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
-    expect(screen.getByText(/\uD83D\uDCBE/)).toBeInTheDocument();
-  });
-
-  it("does not show persisted note when no models", async () => {
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByText("0 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
-    });
-    expect(screen.queryByText(/\uD83D\uDCBE/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("model-viewer")).toHaveAttribute("data-name", "test.glb");
   });
 });

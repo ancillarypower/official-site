@@ -4,14 +4,23 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 
-const { mockFetchWithProxy } = vi.hoisted(() => ({
+const { mockFetchWithProxy, mockWooApiUrl } = vi.hoisted(() => ({
   mockFetchWithProxy: vi.fn(),
+  mockWooApiUrl: vi.fn((base: string, endpoint: string, key: string, secret: string, params?: Record<string, string>) => {
+    const b = base.trim().replace(/\/+$/, "");
+    const url = new URL(`${b}/wp-json/wc/v3/${endpoint}`);
+    url.searchParams.set("consumer_key", key);
+    url.searchParams.set("consumer_secret", secret);
+    if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    return url.toString();
+  }),
 }));
 
-vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/api")>();
-  return { ...actual, fetchWithProxy: mockFetchWithProxy };
-});
+vi.mock("@/lib/api", () => ({
+  fetchWithProxy: (...args: unknown[]) => mockFetchWithProxy(...args),
+  wooApiUrl: (...args: unknown[]) => mockWooApiUrl(...args),
+  wpApiUrl: vi.fn((s: string) => `${s.trim().replace(/\/+$/, "")}/wp-json/wp/v2`),
+}));
 
 import { useWooProducts, useCheckout } from "@/hooks/useWooCommerce";
 
@@ -116,9 +125,9 @@ describe("useWooProducts", () => {
     });
 
     renderHook(() => useWooProducts(3), { wrapper: createWrapper() });
-    await waitFor(() => expect(mockFetchWithProxy).toHaveBeenCalled());
-    const calledUrl = mockFetchWithProxy.mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain("page=3");
+    await waitFor(() => expect(mockWooApiUrl).toHaveBeenCalled());
+    const calledParams = mockWooApiUrl.mock.calls[0]?.[4] as Record<string, string> | undefined;
+    expect(calledParams?.page).toBe("3");
   });
 });
 
