@@ -23,6 +23,12 @@ export const en: Record<TranslationKey, string> = {
   models_loading_db: "Loading saved models from local storage...",
   models_parsing: "Parsing model...",
   models_error: "Failed to load model",
+  models_select_all: "Select All",
+  models_deselect_all: "Deselect All",
+  models_delete_selected: "Delete Selected ({n})",
+  models_delete_selected_confirm: "Delete {n} selected model(s)? This cannot be undone.",
+  models_delete_all: "Delete All",
+  models_delete_all_confirm: "Delete all {n} model(s)? This cannot be undone.",
 
   store_title: "Store",
   store_products: "{n} products",
