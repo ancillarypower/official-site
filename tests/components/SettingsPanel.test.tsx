@@ -11,6 +11,7 @@ function withProviders(ui: React.ReactElement) {
 
 describe("SettingsPanel", () => {
   beforeEach(() => {
+    document.documentElement.removeAttribute("data-theme");
     useSettingsStore.setState({
       wpUrl: "https://test.example.com",
       useProxy: false,
@@ -23,6 +24,7 @@ describe("SettingsPanel", () => {
       wooPerPage: 20,
       activePanel: "settings",
       fontScale: 1,
+      theme: "light",
     });
   });
 
@@ -76,5 +78,28 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.1, 1);
     fireEvent.click(screen.getByLabelText("Decrease font size"));
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.0, 1);
+  });
+
+  it("renders theme section with three theme radio buttons", () => {
+    render(withProviders(<SettingsPanel />));
+    expect(screen.getByText(/\u95B1\u8B80\u4E3B\u984C/)).toBeInTheDocument();
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+  });
+
+  it("switches theme when clicking a theme button", () => {
+    render(withProviders(<SettingsPanel />));
+    const darkButton = screen.getByRole("radio", { name: /\u6DF1\u8272/ });
+    fireEvent.click(darkButton);
+    expect(useSettingsStore.getState().theme).toBe("dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("highlights the active theme button", () => {
+    render(withProviders(<SettingsPanel />));
+    const lightButton = screen.getByRole("radio", { name: /\u660E\u4EAE/ });
+    expect(lightButton).toHaveAttribute("aria-checked", "true");
+    const darkButton = screen.getByRole("radio", { name: /\u6DF1\u8272/ });
+    expect(darkButton).toHaveAttribute("aria-checked", "false");
   });
 });

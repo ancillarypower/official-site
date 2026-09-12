@@ -1,7 +1,13 @@
 import { useI18n } from "@/context/I18nContext";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { useSettingsStore, type Theme } from "@/stores/settingsStore";
 import { CONTENT_TYPES, PER_PAGE_OPTIONS } from "@/lib/constants";
 import { FontSizeControl } from "@/components/ui/FontSizeControl";
+
+const THEME_OPTIONS: { value: Theme; icon: string }[] = [
+  { value: "light", icon: "☀" },
+  { value: "sepia", icon: "📜" },
+  { value: "dark", icon: "🌙" },
+];
 
 export function SettingsPanel() {
   const { t } = useI18n();
@@ -27,6 +33,28 @@ export function SettingsPanel() {
 
         <div className="flex justify-center">
           <FontSizeControl />
+        </div>
+
+        <div className="text-[0.7rem] font-semibold tracking-wide text-tertiary uppercase">
+          {t("theme_section")}
+        </div>
+
+        <div className="flex gap-2" role="radiogroup" aria-label={t("theme_section")}>
+          {THEME_OPTIONS.map(({ value, icon }) => (
+            <button
+              key={value}
+              onClick={() => s.setTheme(value)}
+              className={`flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+                s.theme === value
+                  ? "bg-accent text-white"
+                  : "bg-surface-sunken text-secondary hover:bg-border-default"
+              }`}
+              role="radio"
+              aria-checked={s.theme === value}
+            >
+              {icon} {t(`theme_${value}` as Parameters<typeof t>[0])}
+            </button>
+          ))}
         </div>
 
         <div className="mt-1 border-t border-border-subtle pt-3" />
