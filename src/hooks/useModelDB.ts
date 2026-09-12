@@ -34,8 +34,7 @@ export async function deleteModel(id: number): Promise<void> {
 export async function deleteMultipleModels(ids: number[]): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
-  await Promise.all(ids.map((id) => tx.store.delete(id)));
-  await tx.done;
+  await Promise.all([...ids.map((id) => tx.store.delete(id)), tx.done]);
 }
 
 export async function deleteAllModels(): Promise<void> {
