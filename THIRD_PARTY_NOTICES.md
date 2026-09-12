@@ -16,7 +16,7 @@ This project incorporates material from the open source projects and external se
 | [zustand](https://github.com/pmndrs/zustand) | ^5.0.1 | MIT | © 2019 Paul Henschel | https://zustand-demo.pmnd.rs |
 | [zod](https://github.com/colinhacks/zod) | ^3.23.8 | MIT | © 2025 Colin McDonnell | https://zod.dev |
 | [sonner](https://github.com/emilkowalski/sonner) | ^1.7.0 | MIT | © Emil Kowalski | https://sonner.emilkowal.ski |
-| [idb](https://github.com/jakearchibald/idb) | ^8.0.0 | ISC | © Jake Archibald | https://github.com/jakearchibald/idb |
+| [idb](https://github.com/jakearchibald/idb) | ^8.0.0 | ISC | © 2016 Jake Archibald | https://github.com/jakearchibald/idb |
 
 ## External Services & CDN Resources
 
@@ -25,7 +25,7 @@ This project incorporates material from the open source projects and external se
 - **URL:** `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/`
 - **License:** MIT (part of the [three.js](https://github.com/mrdoob/three.js) project)
 - **Purpose:** Draco-compressed 3D model decoding (GLTF/GLB)
-- **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages)
+- **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages; [Terms of Use](https://www.jsdelivr.com/terms/terms-of-use))
 
 ### corsproxy.io
 
