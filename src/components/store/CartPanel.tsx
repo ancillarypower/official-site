@@ -16,6 +16,12 @@ export function CartPanel() {
 
   const updateField = (field: string, value: string) => setBilling((prev) => ({ ...prev, [field]: value }));
 
+  function handleClearAll() {
+    if (window.confirm(t("cart_clear_confirm"))) {
+      clearCart();
+    }
+  }
+
   async function handleCheckout() {
     if (!billing.first_name || !billing.last_name || !billing.email) { setOrderError(t("checkout_no_woo")); return; }
     setOrderStatus("processing");
@@ -26,7 +32,14 @@ export function CartPanel() {
     <>
       <div className="flex items-center justify-between border-b border-border-subtle px-5 py-5">
         <h2 className="text-sm font-bold">{t("cart_title")}</h2>
-        <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label="Close">✕</button>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button onClick={handleClearAll} className="rounded-md px-2 py-1 text-xs text-secondary transition-colors hover:bg-surface-sunken hover:text-danger" aria-label={t("cart_clear_all")}>
+              \uD83D\uDDD1 {t("cart_clear_all")}
+            </button>
+          )}
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label="Close">\u2715</button>
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
         {items.length === 0 ? <div className="py-8 text-center text-sm text-tertiary">{t("cart_empty")}</div> : (
@@ -34,14 +47,14 @@ export function CartPanel() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 border-b border-border-subtle pb-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-surface-sunken text-lg">
-                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "📦"}
+                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "\uD83D\uDCE6"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{item.name}</div>
                   <div className="text-[0.725rem] text-tertiary">${item.price.toFixed(2)}</div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label="Decrease">−</button>
+                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label="Decrease">\u2212</button>
                   <span className="min-w-5 text-center text-sm font-semibold tabular-nums">{item.qty}</span>
                   <button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label="Increase">+</button>
                 </div>
@@ -68,7 +81,7 @@ export function CartPanel() {
             </div>
             {orderError && <div className="rounded-md border border-[oklch(88%_0.06_25)] bg-[oklch(95%_0.04_25)] px-3 py-2.5 text-xs text-[oklch(40%_0.12_25)]">{orderError}</div>}
             <button onClick={handleCheckout} disabled={!wooConnected || orderStatus === "processing"} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{orderStatus === "processing" ? t("cart_checkout_processing") : t("cart_checkout")}</button>
-            {orderStatus === "success" && <button onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">Clear cart</button>}
+            {orderStatus === "success" && <button onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">{t("cart_clear_all")}</button>}
           </>
         )}
       </div>
