@@ -4,7 +4,7 @@ import { createElement } from "react";
 
 vi.mock("@/components/models/ModelViewer", () => ({
   ModelViewer: (props: { name: string }) =>
-    createElement("div", { "data-testid": "model-viewer" }, props.name),
+    createElement("div", { "data-testid": "model-viewer", "data-name": props.name }),
 }));
 
 import { ModelCard } from "@/components/models/ModelCard";
@@ -45,12 +45,12 @@ describe("ModelCard", () => {
     expect(onRemove).toHaveBeenCalledOnce();
   });
 
-  it("renders ModelViewer with model name", () => {
+  it("passes name to ModelViewer", () => {
     render(createElement(ModelCard, defaultProps));
-    expect(screen.getByTestId("model-viewer")).toHaveTextContent("robot.glb");
+    expect(screen.getByTestId("model-viewer")).toHaveAttribute("data-name", "robot.glb");
   });
 
-  it("renders remove button with ✕ text", () => {
+  it("renders remove button with \u2715 text", () => {
     render(createElement(ModelCard, defaultProps));
     expect(screen.getByLabelText("Remove robot.glb")).toHaveTextContent("\u2715");
   });

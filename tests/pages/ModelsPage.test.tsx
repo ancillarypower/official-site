@@ -5,7 +5,7 @@ import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/components/models/ModelViewer", () => ({
   ModelViewer: (props: { name: string }) =>
-    createElement("div", { "data-testid": "model-viewer" }, props.name),
+    createElement("div", { "data-testid": "model-viewer", "data-name": props.name }),
 }));
 
 const { mockSaveModel, mockGetAllModels, mockDeleteModel } = vi.hoisted(() => ({
@@ -61,8 +61,8 @@ describe("ModelsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("2 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
-    expect(screen.getByText("model.glb")).toBeInTheDocument();
-    expect(screen.getByText("scene.obj")).toBeInTheDocument();
+    expect(screen.getByLabelText("Remove model.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText("Remove scene.obj")).toBeInTheDocument();
   });
 
   it("filters out records with null id", async () => {
@@ -75,8 +75,8 @@ describe("ModelsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("1 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
-    expect(screen.queryByText("bad.glb")).not.toBeInTheDocument();
-    expect(screen.getByText("good.glb")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Remove bad.glb")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Remove good.glb")).toBeInTheDocument();
   });
 
   it("shows persisted note when models are loaded", async () => {
