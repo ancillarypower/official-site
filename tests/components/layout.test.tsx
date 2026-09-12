@@ -56,15 +56,27 @@ describe("Navbar", () => {
 });
 
 describe("Footer", () => {
-  it("renders footer text", () => {
+  it("renders copyright text", () => {
     render(withProviders(<Footer />));
-    expect(screen.getByText("WP 內容 + 3D 檢視器 + WooCommerce 商店")).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 安瑟樂威/)).toBeInTheDocument();
   });
 
-  it("renders external links", () => {
+  it("renders company website link", () => {
     render(withProviders(<Footer />));
-    expect(screen.getByText("WooCommerce API")).toHaveAttribute("href", expect.stringContaining("woocommerce"));
-    expect(screen.getByText("Three.js")).toHaveAttribute("href", expect.stringContaining("threejs"));
+    const websiteLink = screen.getByText("官方網站");
+    expect(websiteLink).toHaveAttribute("href", "https://www.ancillarypower.com");
+  });
+
+  it("renders contact email link", () => {
+    render(withProviders(<Footer />));
+    const emailLink = screen.getByText("contact@ancillarypower.com");
+    expect(emailLink).toHaveAttribute("href", "mailto:contact@ancillarypower.com");
+  });
+
+  it("does not render developer documentation links", () => {
+    render(withProviders(<Footer />));
+    expect(screen.queryByText("WooCommerce API")).not.toBeInTheDocument();
+    expect(screen.queryByText("Three.js")).not.toBeInTheDocument();
   });
 });
 

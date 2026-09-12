@@ -2,7 +2,7 @@ import type { TranslationKey } from "./zh";
 
 export const en: Record<TranslationKey, string> = {
   banner_title: "Ancillary Power",
-  banner_sub: "Multi-tool platform: Content, 3D Models & Store",
+  banner_sub: "AI-Driven Virtual Power Plants, Leading Taiwan's Energy Transition",
   nav_brand_name: "Ancillary Power",
   nav_content: "Content",
   nav_models: "3D Models",
@@ -93,7 +93,8 @@ export const en: Record<TranslationKey, string> = {
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",
 
-  footer_text: "WP Content + 3D Viewer + WooCommerce Store",
+  footer_text: "\u00a9 2026 Ancillary Power",
+  footer_website: "Official Website",
 
   // About
   about_title: "About Ancillary Power",

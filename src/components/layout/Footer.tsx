@@ -10,22 +10,20 @@ export function Footer() {
         <ul className="ml-auto flex list-none gap-4">
           <li>
             <a
-              href="https://developer.woocommerce.com/docs/apis/rest-api/v3/"
+              href="https://www.ancillarypower.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[0.725rem] text-tertiary transition-colors hover:text-primary"
             >
-              WooCommerce API
+              {t("footer_website")}
             </a>
           </li>
           <li>
             <a
-              href="https://threejs.org/docs/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:contact@ancillarypower.com"
               className="text-[0.725rem] text-tertiary transition-colors hover:text-primary"
             >
-              Three.js
+              {t("about_email_value")}
             </a>
           </li>
         </ul>
