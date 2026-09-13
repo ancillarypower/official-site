@@ -84,4 +84,33 @@ describe("ArticleView", () => {
     render(withProviders(<ArticleView post={captionPost} onBack={vi.fn()} />));
     expect(screen.getByText("Caption text")).toBeInTheDocument();
   });
+
+  it("sanitizes malicious HTML content (XSS regression #41)", () => {
+    const xssPost: WpPost = {
+      id: 99,
+      title: "XSS Test",
+      content: '<p>Safe content</p><script>alert("xss")</script><img src=x onerror=alert(1)><iframe src="https://evil.com"></iframe>',
+    };
+    const { container } = render(withProviders(<ArticleView post={xssPost} onBack={vi.fn()} />));
+    const articleBody = container.querySelector(".article-body");
+    expect(articleBody).toBeInTheDocument();
+    expect(articleBody!.innerHTML).not.toContain("<script");
+    expect(articleBody!.innerHTML).not.toContain("onerror");
+    expect(articleBody!.innerHTML).not.toContain("<iframe");
+    expect(articleBody!.innerHTML).toContain("Safe content");
+  });
+
+  it("strips event handlers from WordPress HTML (XSS regression #41)", () => {
+    const eventPost: WpPost = {
+      id: 100,
+      title: "Event Handler XSS",
+      content: '<div onmouseover="steal()">Hover me</div><a href="javascript:void(0)">Click</a><p>Normal paragraph</p>',
+    };
+    const { container } = render(withProviders(<ArticleView post={eventPost} onBack={vi.fn()} />));
+    const articleBody = container.querySelector(".article-body");
+    expect(articleBody).toBeInTheDocument();
+    expect(articleBody!.innerHTML).not.toContain("onmouseover");
+    expect(articleBody!.innerHTML).not.toContain("javascript:");
+    expect(articleBody!.innerHTML).toContain("Normal paragraph");
+  });
 });
