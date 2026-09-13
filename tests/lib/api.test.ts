@@ -25,6 +25,18 @@ describe("wpApiUrl", () => {
       "https://example.com/blog/wp-json/wp/v2",
     );
   });
+
+  it("preserves http scheme", () => {
+    expect(wpApiUrl("http://localhost:8080")).toBe(
+      "http://localhost:8080/wp-json/wp/v2",
+    );
+  });
+
+  it("handles whitespace around URL", () => {
+    expect(wpApiUrl("  https://example.com  ")).toBe(
+      "https://example.com/wp-json/wp/v2",
+    );
+  });
 });
 
 describe("wooApiUrl", () => {
@@ -56,6 +68,18 @@ describe("wooApiUrl", () => {
     const parsed = new URL(url);
     expect(parsed.searchParams.get("consumer_key")).toBe("ck_a&b=c");
     expect(parsed.searchParams.get("consumer_secret")).toBe("cs_d+e");
+  });
+
+  it("handles multiple extra params", () => {
+    const url = wooApiUrl("https://shop.com", "products", "k", "s", {
+      per_page: "10",
+      page: "2",
+      orderby: "date",
+    });
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get("per_page")).toBe("10");
+    expect(parsed.searchParams.get("page")).toBe("2");
+    expect(parsed.searchParams.get("orderby")).toBe("date");
   });
 });
 
@@ -98,5 +122,30 @@ describe("fetchWithProxy", () => {
     const result = await fetchWithProxy("https://api.test.com/missing", true);
     expect(result.status).toBe(404);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to next proxy when first returns server error", async () => {
+    const serverError = new Response("Error", { status: 500 });
+    const okResponse = new Response("ok", { status: 200 });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(serverError)
+      .mockResolvedValueOnce(okResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await fetchWithProxy("https://api.test.com/data", true);
+    expect(result.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to next proxy when first throws", async () => {
+    const okResponse = new Response("ok", { status: 200 });
+    const mockFetch = vi.fn()
+      .mockRejectedValueOnce(new Error("timeout"))
+      .mockResolvedValueOnce(okResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await fetchWithProxy("https://api.test.com/data", true);
+    expect(result.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,10 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { saveModel, getAllModels, deleteModel } from "@/hooks/useModelDB";
+import {
+  saveModel,
+  getAllModels,
+  deleteModel,
+  deleteMultipleModels,
+  deleteAllModels,
+} from "@/hooks/useModelDB";
 
 describe("useModelDB", () => {
   beforeEach(async () => {
     const models = await getAllModels();
-    for (const m of models) { if (m.id != null) await deleteModel(m.id); }
+    for (const m of models) {
+      if (m.id != null) await deleteModel(m.id);
+    }
   });
 
   it("saves and retrieves a model", async () => {
@@ -43,5 +51,34 @@ describe("useModelDB", () => {
     await saveModel("data.glb", 5, "glb", original.buffer);
     const models = await getAllModels();
     expect(new Uint8Array(models[0]!.data)).toEqual(original);
+  });
+
+  it("deletes multiple models by ids", async () => {
+    const id1 = await saveModel("a.glb", 10, "glb", new ArrayBuffer(10));
+    const id2 = await saveModel("b.obj", 20, "obj", new ArrayBuffer(20));
+    const id3 = await saveModel("c.stl", 30, "stl", new ArrayBuffer(30));
+    await deleteMultipleModels([id1, id3]);
+    const remaining = await getAllModels();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.name).toBe("b.obj");
+  });
+
+  it("deleteMultipleModels with empty array is a no-op", async () => {
+    await saveModel("keep.glb", 10, "glb", new ArrayBuffer(10));
+    await deleteMultipleModels([]);
+    expect(await getAllModels()).toHaveLength(1);
+  });
+
+  it("deletes all models", async () => {
+    await saveModel("a.glb", 10, "glb", new ArrayBuffer(10));
+    await saveModel("b.obj", 20, "obj", new ArrayBuffer(20));
+    await saveModel("c.stl", 30, "stl", new ArrayBuffer(30));
+    await deleteAllModels();
+    expect(await getAllModels()).toHaveLength(0);
+  });
+
+  it("deleteAllModels on empty DB is a no-op", async () => {
+    await deleteAllModels();
+    expect(await getAllModels()).toHaveLength(0);
   });
 });
