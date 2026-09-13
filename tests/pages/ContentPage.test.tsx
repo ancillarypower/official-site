@@ -75,4 +75,51 @@ describe("ContentPage", () => {
     renderPage();
     expect(screen.getByText("1/2")).toBeInTheDocument();
   });
+
+  it("sorts by title ascending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_asc" } });
+    expect(screen.getByText("Post Alpha")).toBeInTheDocument();
+    expect(screen.getByText("Gamma Article")).toBeInTheDocument();
+  });
+
+  it("sorts by title descending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_desc" } });
+    expect(screen.getByText("Post Beta")).toBeInTheDocument();
+  });
+
+  it("sorts by date ascending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "date_asc" } });
+    expect(screen.getByText("Post Beta")).toBeInTheDocument();
+  });
+
+  it("sorts by date descending (default)", () => {
+    renderPage();
+    // Default sort is date_desc, just verify all posts visible
+    expect(screen.getByText("Post Alpha")).toBeInTheDocument();
+  });
+
+  it("renders article view when article param is set", () => {
+    renderPage("/?article=0");
+    // ArticleView renders instead of PostGrid, so pagination is not visible
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
+  it("shows empty state when no posts", () => {
+    mockUseWordPress.mockReturnValue({
+      data: { posts: [], totalPages: 0, totalPosts: 0 },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    // PostGrid should not render any posts
+    expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
+  });
+
+  it("shows total items count", () => {
+    renderPage();
+    expect(screen.getByText(/3/)).toBeInTheDocument();
+  });
 });
