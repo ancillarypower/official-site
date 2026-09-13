@@ -56,57 +56,43 @@ describe("StorePage", () => {
     expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
   });
 
-  it("sorts by price ascending", () => {
+  it("sorts products by price ascending", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price_asc" } });
     expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
   });
 
-  it("sorts by price descending", () => {
+  it("sorts products by price descending", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price_desc" } });
     expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
   });
 
-  it("sorts by title ascending", () => {
+  it("sorts products by title ascending", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_asc" } });
     expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
   });
 
-  it("sorts by title descending", () => {
+  it("sorts products by title descending", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_desc" } });
     expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
   });
 
-  it("renders WooCommerce products with badge", () => {
+  it("renders WooCommerce products with badge and pagination", () => {
     mockUseWooProducts.mockReturnValue({
       data: {
-        products: [{
-          id: 1, name: "WC Product", short_description: "<p>desc</p>",
-          price: "29.99", regular_price: "29.99", sale_price: "",
-          images: [{ src: "https://example.com/img.jpg" }], stock_status: "instock",
-        }],
-        totalProducts: 1, totalPages: 1,
+        products: [
+          { id: 1, name: "WC Product", short_description: "<p>desc</p>", price: "29.99", regular_price: "29.99", sale_price: "", images: [{ src: "https://example.com/img.jpg" }], stock_status: "instock" },
+        ],
+        totalProducts: 30,
+        totalPages: 3,
       },
     });
     renderPage();
     expect(screen.getByText("WC Product")).toBeInTheDocument();
     expect(screen.getByText(/WooCommerce/)).toBeInTheDocument();
-  });
-
-  it("renders pagination with WooCommerce data", () => {
-    mockUseWooProducts.mockReturnValue({
-      data: {
-        products: [{
-          id: 1, name: "P", short_description: "", price: "10",
-          regular_price: "10", sale_price: "", images: [], stock_status: "instock",
-        }],
-        totalProducts: 30, totalPages: 3,
-      },
-    });
-    renderPage();
     expect(screen.getByText("1/3")).toBeInTheDocument();
   });
 });

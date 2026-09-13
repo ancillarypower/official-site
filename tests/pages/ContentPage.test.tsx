@@ -94,15 +94,16 @@ describe("ContentPage", () => {
     expect(screen.getByText("Post Beta")).toBeInTheDocument();
   });
 
-  it("renders article view with article param", () => {
+  it("renders article view when article param is set", () => {
     renderPage("/?article=0");
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
 
-  it("shows empty state", () => {
+  it("shows empty state when no posts", () => {
     mockUseWordPress.mockReturnValue({
       data: { posts: [], totalPages: 0, totalPosts: 0 },
-      isLoading: false, error: null,
+      isLoading: false,
+      error: null,
     });
     renderPage();
     expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();

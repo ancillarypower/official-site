@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
-// Stub all heavy dependencies to avoid WebGL/WASM in jsdom
 vi.mock("web-ifc", () => ({
   IfcAPI: vi.fn().mockImplementation(() => ({
     SetWasmPath: vi.fn(),
@@ -10,11 +9,8 @@ vi.mock("web-ifc", () => ({
     OpenModel: vi.fn().mockReturnValue(0),
     CloseModel: vi.fn(),
     GetGeometry: vi.fn().mockReturnValue({
-      GetVertexData: () => 0,
-      GetVertexDataSize: () => 0,
-      GetIndexData: () => 0,
-      GetIndexDataSize: () => 0,
-      delete: vi.fn(),
+      GetVertexData: () => 0, GetVertexDataSize: () => 0,
+      GetIndexData: () => 0, GetIndexDataSize: () => 0, delete: vi.fn(),
     }),
     GetVertexArray: vi.fn().mockReturnValue(new Float32Array([0, 1, 2, 0, 0, 1])),
     GetIndexArray: vi.fn().mockReturnValue(new Uint32Array([0])),
@@ -30,7 +26,8 @@ vi.mock("three", async () => ({
   })),
   WebGLRenderer: vi.fn().mockImplementation(() => ({
     setSize: vi.fn(), setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
-    domElement: { parentNode: { removeChild: vi.fn() } }, render: vi.fn(), dispose: vi.fn(),
+    domElement: document.createElement("canvas"),
+    render: vi.fn(), dispose: vi.fn(),
   })),
   AmbientLight: vi.fn(),
   DirectionalLight: vi.fn().mockImplementation(() => ({ position: { set: vi.fn() } })),
@@ -41,18 +38,12 @@ vi.mock("three", async () => ({
     getSize: vi.fn().mockReturnValue({ x: 1, y: 1, z: 1 }),
   })),
   Vector3: vi.fn().mockImplementation(() => ({ x: 0, y: 0, z: 0, copy: vi.fn() })),
-  Group: vi.fn().mockImplementation(() => ({
-    children: [{}], add: vi.fn(),
-  })),
+  Group: vi.fn().mockImplementation(() => ({ children: [{}], add: vi.fn() })),
   Mesh: vi.fn(), MeshPhongMaterial: vi.fn(), MeshStandardMaterial: vi.fn(),
-  BufferGeometry: vi.fn().mockImplementation(() => ({
-    setAttribute: vi.fn(), setIndex: vi.fn(), applyMatrix4: vi.fn().mockReturnThis(),
-  })),
+  BufferGeometry: vi.fn().mockImplementation(() => ({ setAttribute: vi.fn(), setIndex: vi.fn(), applyMatrix4: vi.fn().mockReturnThis() })),
   BufferAttribute: vi.fn(),
   Matrix4: vi.fn().mockImplementation(() => ({ fromArray: vi.fn().mockReturnThis() })),
-  PMREMGenerator: vi.fn().mockImplementation(() => ({
-    fromScene: vi.fn().mockReturnValue({ texture: {} }), dispose: vi.fn(),
-  })),
+  PMREMGenerator: vi.fn().mockImplementation(() => ({ fromScene: vi.fn().mockReturnValue({ texture: {} }), dispose: vi.fn() })),
   ACESFilmicToneMapping: 0, DoubleSide: 2, SRGBColorSpace: "srgb",
 }));
 
@@ -62,10 +53,25 @@ vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
     target: { copy: vi.fn() }, update: vi.fn(),
   })),
 }));
-vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({ GLTFLoader: vi.fn() }));
-vi.mock("three/examples/jsm/loaders/DRACOLoader.js", () => ({ DRACOLoader: vi.fn() }));
-vi.mock("three/examples/jsm/loaders/OBJLoader.js", () => ({ OBJLoader: vi.fn() }));
-vi.mock("three/examples/jsm/loaders/STLLoader.js", () => ({ STLLoader: vi.fn() }));
+vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
+  GLTFLoader: vi.fn().mockImplementation(() => ({
+    setDRACOLoader: vi.fn(),
+    parse: vi.fn((_d: unknown, _p: string, onLoad: (r: unknown) => void) => {
+      onLoad({ scene: { children: [{}], add: vi.fn() } });
+    }),
+  })),
+}));
+vi.mock("three/examples/jsm/loaders/DRACOLoader.js", () => ({
+  DRACOLoader: vi.fn().mockImplementation(() => ({ setDecoderPath: vi.fn() })),
+}));
+vi.mock("three/examples/jsm/loaders/OBJLoader.js", () => ({
+  OBJLoader: vi.fn().mockImplementation(() => ({
+    parse: vi.fn(() => ({ children: [{}], add: vi.fn() })),
+  })),
+}));
+vi.mock("three/examples/jsm/loaders/STLLoader.js", () => ({
+  STLLoader: vi.fn().mockImplementation(() => ({ parse: vi.fn(() => ({})) })),
+}));
 vi.mock("three/examples/jsm/environments/RoomEnvironment.js", () => ({ RoomEnvironment: vi.fn() }));
 vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
   mergeGeometries: vi.fn().mockReturnValue({}),
@@ -74,9 +80,7 @@ vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
 describe("ModelViewer IFC support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({
-      observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn(),
-    })));
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
@@ -84,11 +88,49 @@ describe("ModelViewer IFC support", () => {
 
   it("renders loading state for IFC files", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(
-      <I18nProvider>
-        <ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} />
-      </I18nProvider>,
-    );
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} /></I18nProvider>);
     expect(screen.getByText(/\u89e3\u6790\u6a21\u578b/)).toBeInTheDocument();
+  });
+});
+
+describe("ModelViewer GLB/OBJ/STL support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("loads GLB model", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("loads OBJ model", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.obj" ext="obj" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("loads STL model", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.stl" ext="stl" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("loads GLTF text model", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.gltf" ext="gltf" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("cleans up on unmount", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+    unmount();
+    expect(vi.mocked(cancelAnimationFrame)).toHaveBeenCalled();
   });
 });
