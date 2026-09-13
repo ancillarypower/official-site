@@ -17,7 +17,7 @@ This project incorporates material from the open source projects and external se
 | [zod](https://github.com/colinhacks/zod) | ^3.23.8 | MIT | © 2025 Colin McDonnell | https://zod.dev |
 | [sonner](https://github.com/emilkowalski/sonner) | ^1.7.0 | MIT | © Emil Kowalski | https://sonner.emilkowal.ski |
 | [idb](https://github.com/jakearchibald/idb) | ^8.0.0 | ISC | © 2016 Jake Archibald | https://github.com/jakearchibald/idb |
-| [dompurify](https://github.com/cure53/DOMPurify) | ^3.2.0 | MPL-2.0 OR Apache-2.0 | © 2015–2026 Mario Heiderich, Cure53 | https://github.com/cure53/DOMPurify |
+| [dompurify](https://github.com/cure53/DOMPurify) | ^3.2.4 | MPL-2.0 OR Apache-2.0 | © 2015–2026 Mario Heiderich, Cure53 | https://github.com/cure53/DOMPurify |
 | [web-ifc](https://github.com/ThatOpen/engine_web-ifc) | ^0.0.77 | MPL-2.0 | © That Open Company | https://thatopen.github.io/engine_web-ifc/docs/ |
 
 ## External Services & CDN Resources
