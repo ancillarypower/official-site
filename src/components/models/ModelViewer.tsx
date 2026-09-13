@@ -24,7 +24,6 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
     let ro: ResizeObserver | null = null;
 
     async function init() {
-      // Re-check inside async closure for TS strictNullChecks
       if (!el || disposed) return;
 
       try {
@@ -183,13 +182,14 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
                 const dst3 = v * 3;
                 const dst4 = v * 4;
 
-                positions[dst3] = vertexData[src];
-                positions[dst3 + 1] = vertexData[src + 1];
-                positions[dst3 + 2] = vertexData[src + 2];
+                // Indices are guaranteed within bounds (vertexCount = vertexData.length / 6)
+                positions[dst3] = vertexData[src]!;
+                positions[dst3 + 1] = vertexData[src + 1]!;
+                positions[dst3 + 2] = vertexData[src + 2]!;
 
-                normals[dst3] = vertexData[src + 3];
-                normals[dst3 + 1] = vertexData[src + 4];
-                normals[dst3 + 2] = vertexData[src + 5];
+                normals[dst3] = vertexData[src + 3]!;
+                normals[dst3 + 1] = vertexData[src + 4]!;
+                normals[dst3 + 2] = vertexData[src + 5]!;
 
                 colors[dst4] = tmpColor.r;
                 colors[dst4 + 1] = tmpColor.g;
