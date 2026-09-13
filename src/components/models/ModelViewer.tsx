@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
-import type { WebGLRenderer, Object3D } from "three";
+import type { WebGLRenderer, Object3D, BufferGeometry } from "three";
 import { IFC_WASM_CDN } from "@/lib/constants";
 
 interface ModelViewerProps {
@@ -151,8 +151,8 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
             COORDINATE_TO_ORIGIN: true,
           });
 
-          const opaqueGeometries: THREE.BufferGeometry[] = [];
-          const transparentGeometries: THREE.BufferGeometry[] = [];
+          const opaqueGeometries: BufferGeometry[] = [];
+          const transparentGeometries: BufferGeometry[] = [];
           const tmpColor = new THREE.Color();
 
           ifcApi.StreamAllMeshes(modelID, (flatMesh) => {
@@ -286,10 +286,10 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
             ),
           );
         } else if (ext === "stl") {
-          const geometry = new STLLoader().parse(buf);
+          const stlGeometry = new STLLoader().parse(buf);
           fitToView(
             new THREE.Mesh(
-              geometry,
+              stlGeometry,
               new THREE.MeshStandardMaterial({
                 color: 0x8899aa,
                 metalness: 0.3,
