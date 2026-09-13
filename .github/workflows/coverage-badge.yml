@@ -29,7 +29,7 @@ jobs:
       - name: Run tests with coverage
         run: pnpm test:coverage
 
-      - name: Generate badge SVG
+      - name: Check coverage threshold
         run: |
           PCT=$(node --input-type=commonjs -e "
             const fs = require('fs');
@@ -37,13 +37,20 @@ jobs:
             console.log(Math.round(summary.total.lines.pct));
           ")
           echo "COVERAGE_PCT=$PCT" >> "$GITHUB_ENV"
+          echo "Coverage: ${PCT}%"
+          if [ "$PCT" -lt 90 ]; then
+            echo "::error::Coverage ${PCT}% is below the 90% threshold"
+            exit 1
+          fi
 
-          if [ "$PCT" -ge 80 ]; then COLOR="brightgreen"
-          elif [ "$PCT" -ge 60 ]; then COLOR="yellow"
+      - name: Generate badge SVG
+        run: |
+          if [ "$COVERAGE_PCT" -ge 80 ]; then COLOR="brightgreen"
+          elif [ "$COVERAGE_PCT" -ge 60 ]; then COLOR="yellow"
           else COLOR="red"; fi
 
           mkdir -p .badges
-          curl -sfL "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}?style=flat-square" \
+          curl -sfL "https://img.shields.io/badge/coverage-${COVERAGE_PCT}%25-${COLOR}?style=flat-square" \
             -o .badges/coverage.svg
 
           if [ ! -s .badges/coverage.svg ]; then

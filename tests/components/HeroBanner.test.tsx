@@ -12,7 +12,7 @@ describe("HeroBanner", () => {
     );
     expect(screen.getByText("Ancillary Power")).toBeInTheDocument();
     expect(
-      screen.getByText(/以 AI 驅動虛擬電廠/),
+      screen.getByText(/\u4EE5 AI \u9A45\u52D5\u865B\u64EC\u96FB\u5EE0/),
     ).toBeInTheDocument();
   });
 
