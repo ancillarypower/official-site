@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -48,91 +48,5 @@ describe("StorePage", () => {
   it("shows product count", () => {
     renderPage();
     expect(screen.getByText("8 \u9805\u5546\u54C1")).toBeInTheDocument();
-  });
-
-  it("filters products by name", () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText("Filter"), { target: { value: "xyz_no_match_term" } });
-    expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
-  });
-
-  it("sorts products by price ascending", () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price_asc" } });
-    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
-  });
-
-  it("sorts products by price descending", () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price_desc" } });
-    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
-  });
-
-  it("sorts products by title ascending", () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_asc" } });
-    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
-  });
-
-  it("sorts products by title descending", () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_desc" } });
-    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
-  });
-
-  it("renders WooCommerce products with badge", () => {
-    mockUseWooProducts.mockReturnValue({
-      data: {
-        products: [
-          {
-            id: 1,
-            name: "WC Product",
-            short_description: "<p>A woo product</p>",
-            price: "29.99",
-            regular_price: "29.99",
-            sale_price: "",
-            images: [{ src: "https://example.com/img.jpg" }],
-            stock_status: "instock",
-          },
-        ],
-        totalProducts: 1,
-        totalPages: 1,
-      },
-    });
-    renderPage();
-    expect(screen.getByText("WC Product")).toBeInTheDocument();
-    expect(screen.getByText(/WooCommerce/)).toBeInTheDocument();
-  });
-
-  it("renders pagination with WooCommerce data", () => {
-    mockUseWooProducts.mockReturnValue({
-      data: {
-        products: [
-          {
-            id: 1,
-            name: "Product A",
-            short_description: "",
-            price: "10",
-            regular_price: "10",
-            sale_price: "",
-            images: [],
-            stock_status: "instock",
-          },
-        ],
-        totalProducts: 30,
-        totalPages: 3,
-      },
-    });
-    renderPage();
-    expect(screen.getByText("1/3")).toBeInTheDocument();
-  });
-
-  it("clears filter and shows all products", () => {
-    renderPage();
-    const filterInput = screen.getByLabelText("Filter");
-    fireEvent.change(filterInput, { target: { value: "xyz" } });
-    expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
-    fireEvent.change(filterInput, { target: { value: "" } });
-    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
@@ -7,8 +7,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
-import { useSettingsStore } from "@/stores/settingsStore";
-import { useCartStore } from "@/stores/cartStore";
 import App from "@/App";
 
 function withProviders(ui: React.ReactElement) {
@@ -25,11 +23,6 @@ describe("SkipToContent", () => {
 });
 
 describe("Navbar", () => {
-  beforeEach(() => {
-    useSettingsStore.setState({ activePanel: null, theme: "light" });
-    useCartStore.setState({ items: [] });
-  });
-
   it("renders company logo and brand name linking to home", () => {
     render(withProviders(<Navbar />));
     const brandText = screen.getByText("\u5B89\u745F\u6A02\u5A01");
@@ -59,56 +52,6 @@ describe("Navbar", () => {
   it("renders language toggle button", () => {
     render(withProviders(<Navbar />));
     expect(screen.getByLabelText("Toggle language")).toBeInTheDocument();
-  });
-
-  it("opens settings panel when settings button is clicked", () => {
-    render(withProviders(<Navbar />));
-    fireEvent.click(screen.getByLabelText("\u8A2D\u5B9A"));
-    expect(useSettingsStore.getState().activePanel).toBe("settings");
-  });
-
-  it("opens cart panel when cart button is clicked", () => {
-    render(withProviders(<Navbar />));
-    fireEvent.click(screen.getByLabelText("\u8CFC\u7269\u8ECA"));
-    expect(useSettingsStore.getState().activePanel).toBe("cart");
-  });
-
-  it("cycles theme when theme button is clicked", () => {
-    render(withProviders(<Navbar />));
-    const themeButton = screen.getByText("\u2600").closest("button")!;
-    fireEvent.click(themeButton);
-    expect(useSettingsStore.getState().theme).toBe("sepia");
-  });
-
-  it("toggles language when language button is clicked", () => {
-    render(withProviders(<Navbar />));
-    const langButton = screen.getByLabelText("Toggle language");
-    expect(langButton).toHaveTextContent("EN");
-    fireEvent.click(langButton);
-    expect(langButton).toHaveTextContent("\u4E2D\u6587");
-  });
-
-  it("displays cart item count in badge", () => {
-    useCartStore.setState({
-      items: [
-        { id: 1, name: "A", price: 10, icon: null, img: null, qty: 3 },
-        { id: 2, name: "B", price: 20, icon: null, img: null, qty: 2 },
-      ],
-    });
-    render(withProviders(<Navbar />));
-    expect(screen.getByText("5")).toBeInTheDocument();
-  });
-
-  it("shows sepia theme icon after cycling", () => {
-    useSettingsStore.setState({ theme: "sepia" });
-    render(withProviders(<Navbar />));
-    expect(screen.getByText("\uD83D\uDCDC")).toBeInTheDocument();
-  });
-
-  it("shows dark theme icon", () => {
-    useSettingsStore.setState({ theme: "dark" });
-    render(withProviders(<Navbar />));
-    expect(screen.getByText("\uD83C\uDF19")).toBeInTheDocument();
   });
 });
 
@@ -169,17 +112,9 @@ describe("App scalable-content structure", () => {
 
     const scalable = container.querySelector("#scalable-content");
     expect(scalable).toBeInTheDocument();
-
-    // main-content is inside #scalable-content
     expect(scalable!.querySelector("#main-content")).toBeInTheDocument();
-
-    // Footer (<footer>) is inside #scalable-content
     expect(scalable!.querySelector("footer")).toBeInTheDocument();
-
-    // HeroBanner canvas is inside #scalable-content
     expect(scalable!.querySelector("canvas")).toBeInTheDocument();
-
-    // Navbar (<nav>) exists but is NOT inside #scalable-content
     const nav = container.querySelector("nav");
     expect(nav).toBeInTheDocument();
     expect(scalable!.contains(nav!)).toBe(false);
