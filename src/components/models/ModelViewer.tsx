@@ -150,6 +150,10 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
             COORDINATE_TO_ORIGIN: true,
           });
 
+          if (modelID === -1) {
+            throw new Error("Failed to open IFC file: unsupported schema or invalid data");
+          }
+
           const opaqueGeometries: BufferGeometry[] = [];
           const transparentGeometries: BufferGeometry[] = [];
           const tmpColor = new THREE.Color();
