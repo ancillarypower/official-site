@@ -102,4 +102,34 @@ describe("SettingsPanel", () => {
     const darkButton = screen.getByRole("radio", { name: /\u6DF1\u8272/ });
     expect(darkButton).toHaveAttribute("aria-checked", "false");
   });
+
+  it("toggles wooUseSameUrl checkbox", () => {
+    render(withProviders(<SettingsPanel />));
+    const checkboxes = screen.getAllByRole("checkbox");
+    const sameUrlCheckbox = checkboxes[1]!;
+    expect(sameUrlCheckbox).toBeChecked();
+    fireEvent.click(sameUrlCheckbox);
+    expect(useSettingsStore.getState().wooUseSameUrl).toBe(false);
+  });
+
+  it("updates site URL on input change", () => {
+    render(withProviders(<SettingsPanel />));
+    const urlInput = screen.getByDisplayValue("https://test.example.com");
+    fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
+    expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
+  });
+
+  it("updates WooCommerce key on input", () => {
+    render(withProviders(<SettingsPanel />));
+    const keyInput = screen.getByPlaceholderText("ck_xxx");
+    fireEvent.change(keyInput, { target: { value: "ck_test123" } });
+    expect(useSettingsStore.getState().wooKey).toBe("ck_test123");
+  });
+
+  it("updates WooCommerce secret on input", () => {
+    render(withProviders(<SettingsPanel />));
+    const secretInput = screen.getByPlaceholderText("cs_xxx");
+    fireEvent.change(secretInput, { target: { value: "cs_secret456" } });
+    expect(useSettingsStore.getState().wooSecret).toBe("cs_secret456");
+  });
 });
