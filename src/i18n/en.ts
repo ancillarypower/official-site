@@ -17,7 +17,7 @@ export const en: Record<TranslationKey, string> = {
   models_title: "3D Models",
   models_drop: "Drop 3D models here or click to browse",
   models_formats:
-    "Supports .glb, .gltf, .obj, .stl (stored locally in IndexedDB)",
+    "Supports .glb, .gltf, .obj, .stl, .ifc (stored locally in IndexedDB)",
   models_loaded: "{n} loaded",
   models_persisted: "Saved locally",
   models_loading_db: "Loading saved models from local storage...",
