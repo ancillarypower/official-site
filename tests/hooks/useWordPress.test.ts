@@ -162,10 +162,11 @@ describe("useWordPress hook", () => {
   });
 
   it("falls back to normalizeRawPost when Zod parse fails", async () => {
-    // Posts with valid structure but extra unexpected fields that might trip Zod
+    // Use a string id so wpPostSchema.safeParse fails (id must be number)
     const posts = [
-      { id: 1, title: { rendered: "Fallback" }, unexpected_field: true },
+      { id: "not-a-number", title: { rendered: "Fallback" }, date: "2026-01-01" },
     ];
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify(posts), {
         status: 200,
@@ -178,8 +179,11 @@ describe("useWordPress hook", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(warnSpy).toHaveBeenCalled();
     expect(result.current.data?.posts).toBeDefined();
     expect(result.current.data?.posts[0]?.title).toBe("Fallback");
+    expect(result.current.data?.posts[0]?.id).toBe(0);
+    warnSpy.mockRestore();
   });
 
   it("throws when response is not an array", async () => {
@@ -229,5 +233,43 @@ describe("useWordPress hook", () => {
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
     expect(calledUrl).toContain("per_page=50");
     expect(calledUrl).toContain("page=3");
+  });
+
+  it("uses totalPosts from parsed data length when header returns 0", async () => {
+    const posts = [
+      { id: 1, title: { rendered: "A" } },
+      { id: 2, title: { rendered: "B" } },
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(posts), {
+        status: 200,
+        headers: { "X-WP-Total": "0" },
+      }),
+    ));
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.totalPosts).toBe(2);
+  });
+
+  it("reads lowercase header variants", async () => {
+    const posts = [{ id: 1, title: "Test" }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(posts), {
+        status: 200,
+        headers: { "x-wp-totalpages": "7", "x-wp-total": "35" },
+      }),
+    ));
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.totalPages).toBe(7);
+    expect(result.current.data?.totalPosts).toBe(35);
   });
 });

@@ -14,7 +14,18 @@ vi.mock("web-ifc", () => ({
     }),
     GetVertexArray: vi.fn().mockReturnValue(new Float32Array([0, 1, 2, 0, 0, 1])),
     GetIndexArray: vi.fn().mockReturnValue(new Uint32Array([0])),
-    StreamAllMeshes: vi.fn(),
+    StreamAllMeshes: vi.fn((_modelID: number, callback: (flatMesh: unknown) => void) => {
+      callback({
+        geometries: {
+          size: () => 2,
+          get: (i: number) => ({
+            geometryExpressID: i,
+            color: { x: 0.5, y: 0.5, z: 0.5, w: i === 0 ? 1 : 0.5 },
+            flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
+          }),
+        },
+      });
+    }),
   })),
 }));
 
@@ -24,10 +35,13 @@ vi.mock("three", async () => ({
   PerspectiveCamera: vi.fn().mockImplementation(() => ({
     position: { set: vi.fn() }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: vi.fn(),
   })),
-  WebGLRenderer: vi.fn().mockImplementation(() => ({
-    setSize: vi.fn(), setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
-    domElement: { parentNode: { removeChild: vi.fn() } }, render: vi.fn(), dispose: vi.fn(),
-  })),
+  WebGLRenderer: vi.fn().mockImplementation(() => {
+    const canvas = document.createElement("canvas");
+    return {
+      setSize: vi.fn(), setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
+      domElement: canvas, render: vi.fn(), dispose: vi.fn(),
+    };
+  }),
   AmbientLight: vi.fn(),
   DirectionalLight: vi.fn().mockImplementation(() => ({ position: { set: vi.fn() } })),
   GridHelper: vi.fn(),
@@ -90,6 +104,12 @@ describe("ModelViewer IFC support", () => {
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} /></I18nProvider>);
     expect(screen.getByText(/\u89e3\u6790\u6a21\u578b/)).toBeInTheDocument();
   });
+
+  it("processes IFC geometries and reaches ready state", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
 });
 
 describe("ModelViewer GLB/OBJ/STL support", () => {
@@ -123,5 +143,20 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.gltf" ext="gltf" data={new ArrayBuffer(8)} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("respects prefers-reduced-motion and disables autoRotate", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+  });
+
+  it("cleans up renderer and animation frame on unmount", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+    unmount();
+    expect(cancelAnimationFrame).toHaveBeenCalled();
   });
 });
