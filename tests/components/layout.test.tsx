@@ -32,7 +32,7 @@ describe("Navbar", () => {
 
   it("renders company logo and brand name linking to home", () => {
     render(withProviders(<Navbar />));
-    const brandText = screen.getByText("安瑟樂威");
+    const brandText = screen.getByText("\u5B89\u745F\u6A02\u5A01");
     expect(brandText).toBeInTheDocument();
     const brandLink = brandText.closest("a");
     expect(brandLink).toHaveAttribute("href", "/");
@@ -44,16 +44,16 @@ describe("Navbar", () => {
   it("renders navigation with links", () => {
     render(withProviders(<Navbar />));
     expect(screen.getByRole("navigation")).toBeInTheDocument();
-    expect(screen.getByText("內容")).toBeInTheDocument();
-    expect(screen.getByText("3D 模型")).toBeInTheDocument();
-    expect(screen.getByText("商店")).toBeInTheDocument();
-    expect(screen.getByText("關於我們")).toBeInTheDocument();
+    expect(screen.getByText("\u5167\u5BB9")).toBeInTheDocument();
+    expect(screen.getByText("3D \u6A21\u578B")).toBeInTheDocument();
+    expect(screen.getByText("\u5546\u5E97")).toBeInTheDocument();
+    expect(screen.getByText("\u95DC\u65BC\u6211\u5011")).toBeInTheDocument();
   });
 
   it("renders settings and cart buttons", () => {
     render(withProviders(<Navbar />));
-    expect(screen.getByLabelText("設定")).toBeInTheDocument();
-    expect(screen.getByLabelText("購物車")).toBeInTheDocument();
+    expect(screen.getByLabelText("\u8A2D\u5B9A")).toBeInTheDocument();
+    expect(screen.getByLabelText("\u8CFC\u7269\u8ECA")).toBeInTheDocument();
   });
 
   it("renders language toggle button", () => {
@@ -63,19 +63,19 @@ describe("Navbar", () => {
 
   it("opens settings panel when settings button is clicked", () => {
     render(withProviders(<Navbar />));
-    fireEvent.click(screen.getByLabelText("設定"));
+    fireEvent.click(screen.getByLabelText("\u8A2D\u5B9A"));
     expect(useSettingsStore.getState().activePanel).toBe("settings");
   });
 
   it("opens cart panel when cart button is clicked", () => {
     render(withProviders(<Navbar />));
-    fireEvent.click(screen.getByLabelText("購物車"));
+    fireEvent.click(screen.getByLabelText("\u8CFC\u7269\u8ECA"));
     expect(useSettingsStore.getState().activePanel).toBe("cart");
   });
 
   it("cycles theme when theme button is clicked", () => {
     render(withProviders(<Navbar />));
-    const themeButton = screen.getByText("☀").closest("button")!;
+    const themeButton = screen.getByText("\u2600").closest("button")!;
     fireEvent.click(themeButton);
     expect(useSettingsStore.getState().theme).toBe("sepia");
   });
@@ -85,7 +85,7 @@ describe("Navbar", () => {
     const langButton = screen.getByLabelText("Toggle language");
     expect(langButton).toHaveTextContent("EN");
     fireEvent.click(langButton);
-    expect(langButton).toHaveTextContent("中文");
+    expect(langButton).toHaveTextContent("\u4E2D\u6587");
   });
 
   it("displays cart item count in badge", () => {
@@ -102,25 +102,25 @@ describe("Navbar", () => {
   it("shows sepia theme icon", () => {
     useSettingsStore.setState({ theme: "sepia" });
     render(withProviders(<Navbar />));
-    expect(screen.getByText("📜")).toBeInTheDocument();
+    expect(screen.getByText("\uD83D\uDCDC")).toBeInTheDocument();
   });
 
   it("shows dark theme icon", () => {
     useSettingsStore.setState({ theme: "dark" });
     render(withProviders(<Navbar />));
-    expect(screen.getByText("🌙")).toBeInTheDocument();
+    expect(screen.getByText("\uD83C\uDF19")).toBeInTheDocument();
   });
 });
 
 describe("Footer", () => {
   it("renders copyright text", () => {
     render(withProviders(<Footer />));
-    expect(screen.getByText(/© 2026 安瑟樂威/)).toBeInTheDocument();
+    expect(screen.getByText(/\u00A9 2026 \u5B89\u745F\u6A02\u5A01/)).toBeInTheDocument();
   });
 
   it("renders company website link", () => {
     render(withProviders(<Footer />));
-    const websiteLink = screen.getByText("官方網站");
+    const websiteLink = screen.getByText("\u5B98\u65B9\u7DB2\u7AD9");
     expect(websiteLink).toHaveAttribute("href", "https://www.ancillarypower.com");
   });
 
