@@ -46,7 +46,7 @@ This project incorporates material from the open source projects and external se
 ### AllOrigins (allorigins.win)
 
 - **URL:** `https://api.allorigins.win/`
-- **License:** MIT (source: [gnuns/AllOrigins](https://github.com/gnOrigins))
+- **License:** MIT (source: [gnuns/AllOrigins](https://github.com/gnuns/allOrigins))
 - **Purpose:** CORS proxy fallback for cross-origin API requests
 
 ## License Texts
@@ -85,7 +85,7 @@ REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
 AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
 INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-Other TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
@@ -95,7 +95,7 @@ The full text of the Apache License 2.0 is available at:
 https://www.apache.org/licenses/LICENSE-2.0
 
 Key terms: Licensed works may be used, reproduced, modified, and distributed
-freeely. Modified files must carry prominent notices. A patent license is
+freely. Modified files must carry prominent notices. A patent license is
 granted from each contributor. The license does not grant trademark rights.
 Apache-2.0 is compatible with MIT, ISC, and MPL-2.0 licenses.
 
