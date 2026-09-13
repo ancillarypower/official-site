@@ -14,7 +14,7 @@ export const zh = {
 
   models_title: "3D 模型",
   models_drop: "拖放 3D 模型至此處或點擊瀏覽",
-  models_formats: "支援 .glb、.gltf、.obj、.stl（儲存於本機 IndexedDB）",
+  models_formats: "支援 .glb、.gltf、.obj、.stl、.ifc（儲存於本機 IndexedDB）",
   models_loaded: "{n} 個已載入",
   models_persisted: "已儲存至本機",
   models_loading_db: "正在從本機載入已儲存的模型...",

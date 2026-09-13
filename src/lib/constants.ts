@@ -8,8 +8,12 @@ export const CORS_PROXIES = [
 export const DRACO_CDN =
   "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/";
 
+/** web-ifc WASM CDN path */
+export const IFC_WASM_CDN =
+  "https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/";
+
 /** Supported 3D model extensions */
-export const MODEL_EXTENSIONS = ["glb", "gltf", "obj", "stl"] as const;
+export const MODEL_EXTENSIONS = ["glb", "gltf", "obj", "stl", "ifc"] as const;
 export type ModelExtension = (typeof MODEL_EXTENSIONS)[number];
 
 /** Content types available from WP REST API */

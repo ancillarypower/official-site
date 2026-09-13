@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D } from "three";
+import { IFC_WASM_CDN } from "@/lib/constants";
 
 interface ModelViewerProps {
   name: string;
@@ -133,7 +134,133 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
         }
 
         const buf = data.slice(0);
-        if (ext === "glb" || ext === "gltf") {
+        if (ext === "ifc") {
+          // IFC loading branch: web-ifc WASM parser + three.js geometry pipeline
+          const WebIFC = await import("web-ifc");
+          const { mergeGeometries } = await import(
+            "three/examples/jsm/utils/BufferGeometryUtils.js"
+          );
+          if (disposed) return;
+
+          const ifcApi = new WebIFC.IfcAPI();
+          ifcApi.SetWasmPath(IFC_WASM_CDN, true);
+          await ifcApi.Init();
+          if (disposed) { return; }
+
+          const modelID = ifcApi.OpenModel(new Uint8Array(buf), {
+            COORDINATE_TO_ORIGIN: true,
+          });
+
+          const opaqueGeometries: THREE.BufferGeometry[] = [];
+          const transparentGeometries: THREE.BufferGeometry[] = [];
+          const tmpColor = new THREE.Color();
+
+          ifcApi.StreamAllMeshes(modelID, (flatMesh) => {
+            const placedGeometries = flatMesh.geometries;
+            for (let i = 0; i < placedGeometries.size(); i++) {
+              const pg = placedGeometries.get(i);
+              const geometry = ifcApi.GetGeometry(modelID, pg.geometryExpressID);
+              const vertexData = ifcApi.GetVertexArray(
+                geometry.GetVertexData(),
+                geometry.GetVertexDataSize(),
+              );
+              const indexData = ifcApi.GetIndexArray(
+                geometry.GetIndexData(),
+                geometry.GetIndexDataSize(),
+              );
+
+              // De-interleave vertex data: web-ifc returns [x,y,z,nx,ny,nz] per vertex
+              const vertexCount = vertexData.length / 6;
+              const positions = new Float32Array(vertexCount * 3);
+              const normals = new Float32Array(vertexCount * 3);
+              const colors = new Float32Array(vertexCount * 4);
+
+              // sRGB -> linear color space conversion
+              tmpColor.setRGB(pg.color.x, pg.color.y, pg.color.z, THREE.SRGBColorSpace);
+
+              for (let v = 0; v < vertexCount; v++) {
+                const src = v * 6;
+                const dst3 = v * 3;
+                const dst4 = v * 4;
+
+                positions[dst3] = vertexData[src];
+                positions[dst3 + 1] = vertexData[src + 1];
+                positions[dst3 + 2] = vertexData[src + 2];
+
+                normals[dst3] = vertexData[src + 3];
+                normals[dst3 + 1] = vertexData[src + 4];
+                normals[dst3 + 2] = vertexData[src + 5];
+
+                colors[dst4] = tmpColor.r;
+                colors[dst4 + 1] = tmpColor.g;
+                colors[dst4 + 2] = tmpColor.b;
+                colors[dst4 + 3] = pg.color.w;
+              }
+
+              const bufGeom = new THREE.BufferGeometry();
+              bufGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+              bufGeom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+              bufGeom.setAttribute("color", new THREE.BufferAttribute(colors, 4));
+              bufGeom.setIndex(new THREE.BufferAttribute(indexData, 1));
+
+              // Apply placement transform
+              const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
+              bufGeom.applyMatrix4(matrix);
+
+              // Separate opaque vs transparent
+              if (pg.color.w !== 1) {
+                transparentGeometries.push(bufGeom);
+              } else {
+                opaqueGeometries.push(bufGeom);
+              }
+
+              // Release WASM heap memory
+              (geometry as unknown as { delete: () => void }).delete();
+            }
+          });
+
+          // Close the model to free WASM memory
+          ifcApi.CloseModel(modelID);
+
+          const group = new THREE.Group();
+
+          if (opaqueGeometries.length > 0) {
+            const merged = mergeGeometries(opaqueGeometries);
+            if (merged) {
+              group.add(
+                new THREE.Mesh(
+                  merged,
+                  new THREE.MeshPhongMaterial({
+                    side: THREE.DoubleSide,
+                    vertexColors: true,
+                  }),
+                ),
+              );
+            }
+          }
+
+          if (transparentGeometries.length > 0) {
+            const merged = mergeGeometries(transparentGeometries);
+            if (merged) {
+              group.add(
+                new THREE.Mesh(
+                  merged,
+                  new THREE.MeshPhongMaterial({
+                    side: THREE.DoubleSide,
+                    vertexColors: true,
+                    transparent: true,
+                  }),
+                ),
+              );
+            }
+          }
+
+          if (group.children.length === 0) {
+            throw new Error("No visible geometry in IFC file");
+          }
+
+          fitToView(group);
+        } else if (ext === "glb" || ext === "gltf") {
           const loader = new GLTFLoader();
           const draco = new DRACOLoader();
           draco.setDecoderPath(

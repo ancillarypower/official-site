@@ -6,17 +6,18 @@ This project incorporates material from the open source projects and external se
 
 | Package | Version | License | Copyright | Homepage |
 |---------|---------|---------|-----------|----------|
-| [react](https://github.com/facebook/react) | ^18.3.1 | MIT | © Meta Platforms, Inc. and affiliates | https://react.dev |
-| [react-dom](https://github.com/facebook/react) | ^18.3.1 | MIT | © Meta Platforms, Inc. and affiliates | https://react.dev |
-| [react-router-dom](https://github.com/remix-run/react-router) | ^7.0.2 | MIT | © React Training LLC 2015–2019, Remix Software Inc. 2020–2021, Shopify Inc. 2022–2023 | https://reactrouter.com |
-| [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) | ^8.17.10 | MIT | © 2019–2025 Poimandres | https://docs.pmnd.rs/react-three-fiber |
-| [@react-three/drei](https://github.com/pmndrs/drei) | ^9.114.3 | MIT | © 2020 react-spring | https://github.com/pmndrs/drei |
-| [three](https://github.com/mrdoob/three.js) | ^0.160.1 | MIT | © 2010–2026 three.js authors | https://threejs.org |
-| [@tanstack/react-query](https://github.com/TanStack/query) | ^5.62.0 | MIT | © 2021–present Tanner Linsley | https://tanstack.com/query |
-| [zustand](https://github.com/pmndrs/zustand) | ^5.0.1 | MIT | © 2019 Paul Henschel | https://zustand-demo.pmnd.rs |
-| [zod](https://github.com/colinhacks/zod) | ^3.23.8 | MIT | © 2025 Colin McDonnell | https://zod.dev |
-| [sonner](https://github.com/emilkowalski/sonner) | ^1.7.0 | MIT | © Emil Kowalski | https://sonner.emilkowal.ski |
-| [idb](https://github.com/jakearchibald/idb) | ^8.0.0 | ISC | © 2016 Jake Archibald | https://github.com/jakearchibald/idb |
+| [react](https://github.com/facebook/react) | ^18.3.1 | MIT | \u00a9 Meta Platforms, Inc. and affiliates | https://react.dev |
+| [react-dom](https://github.com/facebook/react) | ^18.3.1 | MIT | \u00a9 Meta Platforms, Inc. and affiliates | https://react.dev |
+| [react-router-dom](https://github.com/remix-run/react-router) | ^7.0.2 | MIT | \u00a9 React Training LLC 2015\u20132019, Remix Software Inc. 2020\u20132021, Shopify Inc. 2022\u20132023 | https://reactrouter.com |
+| [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) | ^8.17.10 | MIT | \u00a9 2019\u20132025 Poimandres | https://docs.pmnd.rs/react-three-fiber |
+| [@react-three/drei](https://github.com/pmndrs/drei) | ^9.114.3 | MIT | \u00a9 2020 react-spring | https://github.com/pmndrs/drei |
+| [three](https://github.com/mrdoob/three.js) | ^0.160.1 | MIT | \u00a9 2010\u20132026 three.js authors | https://threejs.org |
+| [@tanstack/react-query](https://github.com/TanStack/query) | ^5.62.0 | MIT | \u00a9 2021\u2013present Tanner Linsley | https://tanstack.com/query |
+| [zustand](https://github.com/pmndrs/zustand) | ^5.0.1 | MIT | \u00a9 2019 Paul Henschel | https://zustand-demo.pmnd.rs |
+| [zod](https://github.com/colinhacks/zod) | ^3.23.8 | MIT | \u00a9 2025 Colin McDonnell | https://zod.dev |
+| [sonner](https://github.com/emilkowalski/sonner) | ^1.7.0 | MIT | \u00a9 Emil Kowalski | https://sonner.emilkowal.ski |
+| [idb](https://github.com/jakearchibald/idb) | ^8.0.0 | ISC | \u00a9 2016 Jake Archibald | https://github.com/jakearchibald/idb |
+| [web-ifc](https://github.com/ThatOpen/engine_web-ifc) | ^0.0.77 | MPL-2.0 | \u00a9 That Open Company | https://thatopen.github.io/engine_web-ifc/docs/ |
 
 ## External Services & CDN Resources
 
@@ -25,6 +26,13 @@ This project incorporates material from the open source projects and external se
 - **URL:** `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/`
 - **License:** MIT (part of the [three.js](https://github.com/mrdoob/three.js) project)
 - **Purpose:** Draco-compressed 3D model decoding (GLTF/GLB)
+- **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages; [Terms of Use](https://www.jsdelivr.com/terms/terms-of-use))
+
+### web-ifc WASM Runtime (via jsDelivr CDN)
+
+- **URL:** `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/`
+- **License:** MPL-2.0 (part of the [web-ifc](https://github.com/ThatOpen/engine_web-ifc) project)
+- **Purpose:** IFC (Industry Foundation Classes) file parsing via WebAssembly
 - **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages; [Terms of Use](https://www.jsdelivr.com/terms/terms-of-use))
 
 ### corsproxy.io
@@ -79,3 +87,13 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
+
+### Mozilla Public License 2.0 (MPL-2.0)
+
+The full text of the MPL-2.0 is available at:
+https://www.mozilla.org/en-US/MPL/2.0/
+
+Key obligations: If you modify any file licensed under MPL-2.0, you must make
+the modified source of that file available under MPL-2.0. Unmodified files and
+your own project files are not affected. MPL-2.0 is compatible with MIT, ISC,
+Apache-2.0, and GPL licenses.

@@ -22,7 +22,7 @@ export function ModelUpload({ onFilesSelected }: ModelUploadProps) {
 
   return (
     <div className={`relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${dragover ? "border-accent bg-accent-subtle" : "border-border-default hover:border-accent hover:bg-accent-subtle"}`} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragover(true); }} onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragover(false); }} onDrop={onDrop} onClick={() => inputRef.current?.click()} role="button" tabIndex={0} aria-label={t("models_drop")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}>
-      <input ref={inputRef} type="file" multiple accept=".glb,.gltf,.obj,.stl" className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
+      <input ref={inputRef} type="file" multiple accept=".glb,.gltf,.obj,.stl,.ifc" className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
       <div className="pointer-events-none text-3xl">📦</div>
       <div className="pointer-events-none mt-3 text-sm font-semibold">{t("models_drop")}</div>
       <div className="pointer-events-none mt-1 text-xs text-tertiary">{t("models_formats")}</div>
