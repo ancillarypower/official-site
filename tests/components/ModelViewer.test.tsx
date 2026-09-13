@@ -66,7 +66,7 @@ vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
 vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
   GLTFLoader: vi.fn().mockImplementation(() => ({
     setDRACOLoader: vi.fn(),
-    parse: vi.fn((data: unknown, path: string, onLoad: (result: { scene: unknown }) => void) => {
+    parse: vi.fn((_data: unknown, _path: string, onLoad: (r: unknown) => void) => {
       onLoad({ scene: { children: [{}], add: vi.fn() } });
     }),
   })),
@@ -172,7 +172,7 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     });
   });
 
-  it("cleans up renderer on unmount", async () => {
+  it("cleans up on unmount", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     const { unmount } = render(
       <I18nProvider>
@@ -183,7 +183,6 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
     unmount();
-    // cancelAnimationFrame should be called on cleanup
     expect(vi.mocked(cancelAnimationFrame)).toHaveBeenCalled();
   });
 });
