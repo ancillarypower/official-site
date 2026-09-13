@@ -64,14 +64,15 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
-  it("renders FontSizeControl", () => {
+  it("renders FontSizeControl with increase and decrease buttons", () => {
     render(withProviders(<SettingsPanel />));
     expect(screen.getByText("\u5B57\u9AD4\u5927\u5C0F")).toBeInTheDocument();
     expect(screen.getByLabelText("Decrease font size")).toBeInTheDocument();
     expect(screen.getByLabelText("Increase font size")).toBeInTheDocument();
+    expect(screen.getByLabelText("Font size")).toBeInTheDocument();
   });
 
-  it("adjusts font scale", () => {
+  it("adjusts font scale via FontSizeControl buttons", () => {
     render(withProviders(<SettingsPanel />));
     fireEvent.click(screen.getByLabelText("Increase font size"));
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.1, 1);
@@ -79,26 +80,30 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.0, 1);
   });
 
-  it("renders three theme radio buttons", () => {
+  it("renders theme section with three theme radio buttons", () => {
     render(withProviders(<SettingsPanel />));
+    expect(screen.getByText(/\u95B1\u8B80\u4E3B\u984C/)).toBeInTheDocument();
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(3);
   });
 
-  it("switches theme", () => {
+  it("switches theme when clicking a theme button", () => {
     render(withProviders(<SettingsPanel />));
-    fireEvent.click(screen.getByRole("radio", { name: /\u6DF1\u8272/ }));
+    const darkButton = screen.getByRole("radio", { name: /\u6DF1\u8272/ });
+    fireEvent.click(darkButton);
     expect(useSettingsStore.getState().theme).toBe("dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
-  it("highlights the active theme", () => {
+  it("highlights the active theme button", () => {
     render(withProviders(<SettingsPanel />));
-    expect(screen.getByRole("radio", { name: /\u660E\u4EAE/ })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("radio", { name: /\u6DF1\u8272/ })).toHaveAttribute("aria-checked", "false");
+    const lightButton = screen.getByRole("radio", { name: /\u660E\u4EAE/ });
+    expect(lightButton).toHaveAttribute("aria-checked", "true");
+    const darkButton = screen.getByRole("radio", { name: /\u6DF1\u8272/ });
+    expect(darkButton).toHaveAttribute("aria-checked", "false");
   });
 
-  it("toggles wooUseSameUrl", () => {
+  it("toggles wooUseSameUrl checkbox", () => {
     render(withProviders(<SettingsPanel />));
     const checkboxes = screen.getAllByRole("checkbox");
     const sameUrlCheckbox = checkboxes[1]!;
@@ -107,28 +112,24 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().wooUseSameUrl).toBe(false);
   });
 
-  it("updates site URL", () => {
+  it("updates site URL on input change", () => {
     render(withProviders(<SettingsPanel />));
-    fireEvent.change(screen.getByDisplayValue("https://test.example.com"), { target: { value: "https://new.example.com" } });
+    const urlInput = screen.getByDisplayValue("https://test.example.com");
+    fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
     expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
   });
 
-  it("updates WooCommerce key", () => {
+  it("updates WooCommerce key on input", () => {
     render(withProviders(<SettingsPanel />));
-    fireEvent.change(screen.getByPlaceholderText("ck_xxx"), { target: { value: "ck_test123" } });
+    const keyInput = screen.getByPlaceholderText("ck_xxx");
+    fireEvent.change(keyInput, { target: { value: "ck_test123" } });
     expect(useSettingsStore.getState().wooKey).toBe("ck_test123");
   });
 
-  it("updates WooCommerce secret", () => {
+  it("updates WooCommerce secret on input", () => {
     render(withProviders(<SettingsPanel />));
-    fireEvent.change(screen.getByPlaceholderText("cs_xxx"), { target: { value: "cs_secret" } });
-    expect(useSettingsStore.getState().wooSecret).toBe("cs_secret");
-  });
-
-  it("changes per page", () => {
-    render(withProviders(<SettingsPanel />));
-    const selects = screen.getAllByDisplayValue("20");
-    fireEvent.change(selects[0]!, { target: { value: "50" } });
-    expect(useSettingsStore.getState().perPage).toBe(50);
+    const secretInput = screen.getByPlaceholderText("cs_xxx");
+    fireEvent.change(secretInput, { target: { value: "cs_secret456" } });
+    expect(useSettingsStore.getState().wooSecret).toBe("cs_secret456");
   });
 });

@@ -91,7 +91,7 @@ describe("CartPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("increases item quantity", () => {
+  it("increases item quantity when increase button is clicked", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
     });
@@ -100,7 +100,7 @@ describe("CartPanel", () => {
     expect(useCartStore.getState().items[0]?.qty).toBe(2);
   });
 
-  it("removes item when quantity reaches zero", () => {
+  it("removes item when quantity reaches zero via decrease", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
     });
@@ -122,6 +122,7 @@ describe("CartPanel", () => {
     });
     const { container } = render(withProviders(<CartPanel />));
     const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
   });
 
@@ -149,5 +150,16 @@ describe("CartPanel", () => {
     render(withProviders(<CartPanel />));
     const inputs = screen.getAllByRole("textbox");
     expect(inputs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("handles checkout click safely", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    render(withProviders(<CartPanel />));
+    expect(() => {
+      fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    }).not.toThrow();
   });
 });
