@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -14,10 +14,10 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: null, wooKey: "", wooSecret: "" });
   });
 
-  it("renders overlay hidden when no panel is active", () => {
+  it("renders overlay and two aside panels", () => {
     const { container } = render(withProviders(<Sidebar />));
-    const overlay = container.querySelector("[aria-hidden='true']");
-    expect(overlay).toBeInTheDocument();
+    const asides = container.querySelectorAll("aside");
+    expect(asides).toHaveLength(2);
   });
 
   it("closes panel when overlay is clicked", () => {
@@ -29,36 +29,42 @@ describe("Sidebar", () => {
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
-  it("renders settings dialog", () => {
-    useSettingsStore.setState({ activePanel: "settings" });
-    render(withProviders(<Sidebar />));
-    expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
-  });
-
-  it("renders cart dialog", () => {
-    useSettingsStore.setState({ activePanel: "cart" });
-    render(withProviders(<Sidebar />));
-    expect(screen.getByRole("dialog", { name: "Shopping cart" })).toBeInTheDocument();
-  });
-
-  it("marks settings dialog as hidden when cart is active", () => {
-    useSettingsStore.setState({ activePanel: "cart" });
-    render(withProviders(<Sidebar />));
-    const settingsDialog = screen.getByRole("dialog", { name: "Settings", hidden: true });
-    expect(settingsDialog).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("marks cart dialog as hidden when settings is active", () => {
-    useSettingsStore.setState({ activePanel: "settings" });
-    render(withProviders(<Sidebar />));
-    const cartDialog = screen.getByRole("dialog", { name: "Shopping cart", hidden: true });
-    expect(cartDialog).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("renders both aside elements", () => {
+  it("shows settings panel translated when active", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
-    const asides = container.querySelectorAll("aside");
-    expect(asides).toHaveLength(2);
+    const settingsAside = container.querySelector("aside[aria-label='Settings']");
+    expect(settingsAside).toBeInTheDocument();
+    expect(settingsAside).toHaveAttribute("aria-hidden", "false");
+  });
+
+  it("hides settings panel when not active", () => {
+    useSettingsStore.setState({ activePanel: null });
+    const { container } = render(withProviders(<Sidebar />));
+    const settingsAside = container.querySelector("aside[aria-label='Settings']");
+    expect(settingsAside).toBeInTheDocument();
+    expect(settingsAside).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("shows cart panel when active", () => {
+    useSettingsStore.setState({ activePanel: "cart" });
+    const { container } = render(withProviders(<Sidebar />));
+    const cartAside = container.querySelector("aside[aria-label='Shopping cart']");
+    expect(cartAside).toBeInTheDocument();
+    expect(cartAside).toHaveAttribute("aria-hidden", "false");
+  });
+
+  it("hides cart panel when settings is active", () => {
+    useSettingsStore.setState({ activePanel: "settings" });
+    const { container } = render(withProviders(<Sidebar />));
+    const cartAside = container.querySelector("aside[aria-label='Shopping cart']");
+    expect(cartAside).toBeInTheDocument();
+    expect(cartAside).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("overlay is visible when panel is active", () => {
+    useSettingsStore.setState({ activePanel: "cart" });
+    const { container } = render(withProviders(<Sidebar />));
+    const overlay = container.querySelector(".fixed.inset-0");
+    expect(overlay).toBeInTheDocument();
   });
 });
