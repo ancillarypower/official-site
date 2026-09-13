@@ -90,4 +90,64 @@ describe("CartPanel", () => {
     expect(useCartStore.getState().items).toHaveLength(1);
     vi.restoreAllMocks();
   });
+
+  it("increases item quantity", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
+    });
+    render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByLabelText("Increase"));
+    expect(useCartStore.getState().items[0]?.qty).toBe(2);
+  });
+
+  it("removes item when quantity reaches zero", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
+    });
+    render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByLabelText("Decrease"));
+    expect(useCartStore.getState().items).toHaveLength(0);
+  });
+
+  it("closes panel when close button is clicked", () => {
+    useSettingsStore.setState({ activePanel: "cart" });
+    render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByLabelText("Close"));
+    expect(useSettingsStore.getState().activePanel).toBeNull();
+  });
+
+  it("renders item image when available", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 25, icon: null, img: "https://example.com/img.jpg", qty: 1 }],
+    });
+    const { container } = render(withProviders(<CartPanel />));
+    const img = container.querySelector("img");
+    expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
+  });
+
+  it("renders default icon when no image or icon", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 25, icon: null, img: null, qty: 1 }],
+    });
+    render(withProviders(<CartPanel />));
+    expect(screen.getByText("\uD83D\uDCE6")).toBeInTheDocument();
+  });
+
+  it("enables checkout when WooCommerce is connected", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    render(withProviders(<CartPanel />));
+    expect(screen.getByText("\u7D50\u5E33")).not.toBeDisabled();
+  });
+
+  it("renders billing form when cart has items", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    render(withProviders(<CartPanel />));
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
+  });
 });

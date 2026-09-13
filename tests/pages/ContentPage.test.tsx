@@ -75,4 +75,36 @@ describe("ContentPage", () => {
     renderPage();
     expect(screen.getByText("1/2")).toBeInTheDocument();
   });
+
+  it("sorts by title ascending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_asc" } });
+    expect(screen.getByText("Gamma Article")).toBeInTheDocument();
+  });
+
+  it("sorts by title descending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "title_desc" } });
+    expect(screen.getByText("Post Beta")).toBeInTheDocument();
+  });
+
+  it("sorts by date ascending", () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "date_asc" } });
+    expect(screen.getByText("Post Beta")).toBeInTheDocument();
+  });
+
+  it("renders article view with article param", () => {
+    renderPage("/?article=0");
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
+  it("shows empty state", () => {
+    mockUseWordPress.mockReturnValue({
+      data: { posts: [], totalPages: 0, totalPosts: 0 },
+      isLoading: false, error: null,
+    });
+    renderPage();
+    expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
+  });
 });
