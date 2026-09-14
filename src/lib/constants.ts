@@ -4,6 +4,9 @@ export const CORS_PROXIES = [
   "https://api.allorigins.win/raw?url=",
 ];
 
+/** Default fetch timeout in milliseconds (15 seconds) */
+export const FETCH_TIMEOUT = 15_000;
+
 /** three.js Draco decoder CDN path */
 export const DRACO_CDN =
   "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/";
