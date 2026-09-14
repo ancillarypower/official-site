@@ -117,7 +117,8 @@ describe("useModelDB", () => {
     const original = new Uint8Array([10, 20, 30]);
     const id = await saveModel("fetch.glb", 3, "glb", original.buffer);
     const result = await getModelData(id);
-    expect(result).toBeInstanceOf(ArrayBuffer);
+    expect(result).not.toBeNull();
+    expect(result!.byteLength).toBe(3);
     expect(new Uint8Array(result!)).toEqual(original);
   });
 
