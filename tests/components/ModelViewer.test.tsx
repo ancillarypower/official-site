@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
@@ -103,10 +103,6 @@ describe("ModelViewer IFC support", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("renders loading state for IFC files", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
@@ -127,10 +123,6 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("loads GLB model", async () => {
