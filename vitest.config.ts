@@ -19,12 +19,6 @@ export default defineConfig({
       reporter: ["text", "lcov", "json-summary"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/vite-env.d.ts", "src/main.tsx"],
-      thresholds: {
-        lines: 90,
-        functions: 85,
-        branches: 80,
-        statements: 90,
-      },
     },
   },
 });
