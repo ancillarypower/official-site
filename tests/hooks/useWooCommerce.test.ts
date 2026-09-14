@@ -91,7 +91,7 @@ describe("useWooProducts", () => {
     expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
   });
 
-  it("uses URL auth params in proxy mode", async () => {
+  it("does not include credentials in proxy mode URL", async () => {
     useSettingsStore.setState({ useProxy: true });
     const products = [
       { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
@@ -108,11 +108,11 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Proxy mode: URL should contain credentials (encoded inside proxy URL)
+    // Regression (Issue #43): credentials must NOT appear in proxy URL
     const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
     const decodedUrl = decodeURIComponent(calledUrl);
-    expect(decodedUrl).toContain("consumer_key=ck_test");
-    expect(decodedUrl).toContain("consumer_secret=cs_test");
+    expect(decodedUrl).not.toContain("consumer_key");
+    expect(decodedUrl).not.toContain("consumer_secret");
   });
 
   it("defaults totalPages to 1 when header is missing", async () => {
@@ -236,30 +236,24 @@ describe("useCheckout", () => {
     ).rejects.toThrow("Bad request");
   });
 
-  it("uses URL auth params in proxy mode", async () => {
+  it("throws immediately in proxy mode without calling fetch", async () => {
     useSettingsStore.setState({ useProxy: true });
-    const orderResponse = { id: 200 };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(orderResponse), { status: 200 }),
-    ));
+    vi.stubGlobal("fetch", vi.fn());
 
     const { result } = renderHook(() => useCheckout(), {
       wrapper: createWrapper(),
     });
 
-    const order = await result.current.mutateAsync({
-      items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
-      billing: {
-        first_name: "A", last_name: "B", email: "a@b.com",
-        phone: "", address_1: "", city: "", postcode: "", country: "TW",
-      },
-    });
-
-    expect(order.id).toBe(200);
-    // Proxy mode: credentials should be in URL
-    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
-    const decodedUrl = decodeURIComponent(calledUrl);
-    expect(decodedUrl).toContain("consumer_key=ck_test");
-    expect(decodedUrl).toContain("consumer_secret=cs_test");
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "", address_1: "", city: "", postcode: "", country: "TW",
+        },
+      }),
+    ).rejects.toThrow("Checkout is not available in proxy mode");
+    // No network request should have been made
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

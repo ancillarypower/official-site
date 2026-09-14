@@ -224,4 +224,48 @@ describe("fetchWithProxy", () => {
     expect(result.status).toBe(200);
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
+
+  // --- Regression tests for Issue #43: credential leakage via CORS proxy ---
+
+  it("throws when proxy mode URL contains consumer_key", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    await expect(
+      fetchWithProxy(
+        "https://shop.com/wp-json/wc/v3/products?consumer_key=ck_xxx&consumer_secret=cs_xxx",
+        true,
+      ),
+    ).rejects.toThrow("WooCommerce credentials must not be sent through CORS proxy");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("throws when proxy mode URL contains only consumer_secret", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    await expect(
+      fetchWithProxy(
+        "https://shop.com/wp-json/wc/v3/products?consumer_secret=cs_xxx",
+        true,
+      ),
+    ).rejects.toThrow("WooCommerce credentials must not be sent through CORS proxy");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("allows proxy mode URL without credentials", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    const result = await fetchWithProxy(
+      "https://shop.com/wp-json/wc/v3/products?per_page=10",
+      true,
+    );
+    expect(result.status).toBe(200);
+  });
+
+  it("allows direct mode even if URL contains credential params", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    const result = await fetchWithProxy(
+      "https://shop.com/wp-json/wc/v3/products?consumer_key=ck_xxx",
+      false,
+    );
+    expect(result.status).toBe(200);
+  });
 });

@@ -10,6 +10,10 @@ let proxyIndex = 0;
  * to the native `fetch()` call (e.g. for custom headers or POST body).
  * Proxy mode does NOT forward `init` because public CORS proxies cannot
  * relay custom request headers to the origin server.
+ *
+ * **Security:** Throws if the URL contains WooCommerce credentials
+ * (`consumer_key` / `consumer_secret`) and proxy mode is enabled,
+ * preventing credential leakage to third-party CORS proxy services.
  */
 export async function fetchWithProxy(
   url: string,
@@ -18,6 +22,16 @@ export async function fetchWithProxy(
 ): Promise<Response> {
   if (!useProxy) {
     return fetch(url, init);
+  }
+
+  // Defense-in-depth: never send WooCommerce credentials through
+  // third-party CORS proxies. The caller should omit credentials
+  // for proxy-mode requests; this guard catches mistakes.
+  if (url.includes("consumer_key") || url.includes("consumer_secret")) {
+    throw new Error(
+      "WooCommerce credentials must not be sent through CORS proxy. " +
+        "Use direct mode or a self-hosted backend proxy.",
+    );
   }
 
   for (let i = 0; i < CORS_PROXIES.length; i++) {
@@ -80,8 +94,9 @@ export function wooAuthHeaders(key: string, secret: string): HeadersInit {
 /**
  * Return credential query parameters for WooCommerce REST API.
  *
- * Use this **only** in proxy mode where custom headers cannot be forwarded.
- * Spread the result into the `params` argument of {@link wooApiUrl}.
+ * @deprecated Proxy mode no longer sends credentials to avoid leaking
+ * them to third-party CORS proxy services (see Issue #43). This function
+ * is retained for backward compatibility but should not be used.
  */
 export function wooAuthParams(
   key: string,
