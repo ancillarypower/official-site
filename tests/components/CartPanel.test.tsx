@@ -1,19 +1,37 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
 import { CartPanel } from "@/components/store/CartPanel";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 
+/* ── Mock useCheckout (Issue #44 regression) ── */
+const mockCheckout = vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" });
+vi.mock("@/hooks/useWooCommerce", () => ({
+  useCheckout: () => ({
+    mutateAsync: mockCheckout,
+    isPending: false,
+  }),
+}));
+
 function withProviders(ui: React.ReactElement) {
-  return <MemoryRouter><I18nProvider>{ui}</I18nProvider></MemoryRouter>;
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <I18nProvider>{ui}</I18nProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
 }
 
 describe("CartPanel", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
     useSettingsStore.setState({ activePanel: "cart", wooKey: "" });
+    mockCheckout.mockClear();
   });
 
   it("shows empty cart message", () => {
@@ -161,5 +179,72 @@ describe("CartPanel", () => {
     expect(() => {
       fireEvent.click(screen.getByText("\u7D50\u5E33"));
     }).not.toThrow();
+  });
+
+  /* ── Issue #44 Regression Tests ── */
+
+  it("calls checkout mutation with items and billing on valid checkout", async () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    const { container } = render(withProviders(<CartPanel />));
+
+    // Fill required billing fields (first_name, last_name, email)
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(mockCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.arrayContaining([
+          expect.objectContaining({ id: 1, name: "Widget", qty: 2 }),
+        ]),
+        billing: expect.objectContaining({
+          first_name: "John",
+          last_name: "Doe",
+          email: "john@example.com",
+        }),
+      }),
+    );
+  });
+
+  it("shows error message when checkout fails", async () => {
+    mockCheckout.mockRejectedValueOnce(new Error("Payment gateway unavailable"));
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    const { container } = render(withProviders(<CartPanel />));
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Payment gateway unavailable")).toBeInTheDocument();
+    });
+  });
+
+  it("does not call checkout when required billing fields are empty", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    render(withProviders(<CartPanel />));
+
+    // Click checkout without filling billing fields
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    expect(mockCheckout).not.toHaveBeenCalled();
   });
 });
