@@ -106,6 +106,9 @@ export interface ModelRecord {
   timestamp: number;
 }
 
+/** Model metadata without the heavy ArrayBuffer payload. */
+export type ModelMeta = Omit<ModelRecord, "data">;
+
 /* ── Display product (unified for sample + Woo) ── */
 
 export interface DisplayProduct {

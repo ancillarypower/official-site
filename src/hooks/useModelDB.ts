@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from "idb";
-import type { ModelRecord } from "@/lib/types";
+import type { ModelRecord, ModelMeta } from "@/lib/types";
 
 const DB_NAME = "wp_renderer_models";
 const DB_VERSION = 1;
@@ -24,6 +24,28 @@ export async function saveModel(name: string, size: number, ext: string, data: A
 export async function getAllModels(): Promise<ModelRecord[]> {
   const db = await getDB();
   return db.getAll(STORE_NAME);
+}
+
+/**
+ * Retrieve metadata for all stored models without retaining ArrayBuffer
+ * references in the returned array. IndexedDB always loads the full record
+ * (including data), but we strip it immediately so the caller's state does
+ * not keep the heavy payload alive in memory.
+ */
+export async function getAllModelMeta(): Promise<ModelMeta[]> {
+  const db = await getDB();
+  const all = await db.getAll(STORE_NAME);
+  return all.map(({ id, name, size, ext, timestamp }) => ({ id, name, size, ext, timestamp }));
+}
+
+/**
+ * Read a single model's ArrayBuffer on demand.
+ * Returns null when the id does not exist.
+ */
+export async function getModelData(id: number): Promise<ArrayBuffer | null> {
+  const db = await getDB();
+  const record = await db.get(STORE_NAME, id);
+  return record?.data ?? null;
 }
 
 export async function deleteModel(id: number): Promise<void> {

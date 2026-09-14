@@ -8,14 +8,14 @@ vi.mock("@/components/models/ModelViewer", () => ({
     createElement("div", { "data-testid": "model-viewer" }, props.name),
 }));
 
-const mockGetAllModels = vi.fn().mockResolvedValue([]);
+const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
 const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
 const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
 const mockDeleteAllModels = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/hooks/useModelDB", () => ({
   saveModel: vi.fn().mockResolvedValue(1),
-  getAllModels: (...args: unknown[]) => mockGetAllModels(...args),
+  getAllModelMeta: (...args: unknown[]) => mockGetAllModelMeta(...args),
   deleteModel: (...args: unknown[]) => mockDeleteModel(...args),
   deleteMultipleModels: (...args: unknown[]) => mockDeleteMultipleModels(...args),
   deleteAllModels: (...args: unknown[]) => mockDeleteAllModels(...args),
@@ -24,15 +24,15 @@ vi.mock("@/hooks/useModelDB", () => ({
 import ModelsPage from "@/pages/ModelsPage";
 
 const sampleModels = [
-  { id: 1, name: "cube.glb", size: 1_048_576, ext: "glb", data: new ArrayBuffer(8), timestamp: Date.now() },
-  { id: 2, name: "sphere.obj", size: 2_097_152, ext: "obj", data: new ArrayBuffer(8), timestamp: Date.now() },
-  { id: 3, name: "plane.stl", size: 524_288, ext: "stl", data: new ArrayBuffer(8), timestamp: Date.now() },
+  { id: 1, name: "cube.glb", size: 1_048_576, ext: "glb", timestamp: Date.now() },
+  { id: 2, name: "sphere.obj", size: 2_097_152, ext: "obj", timestamp: Date.now() },
+  { id: 3, name: "plane.stl", size: 524_288, ext: "stl", timestamp: Date.now() },
 ];
 
 describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAllModels.mockResolvedValue([]);
+    mockGetAllModelMeta.mockResolvedValue([]);
   });
 
   it("renders models title", async () => {
@@ -66,7 +66,7 @@ describe("ModelsPage", () => {
   });
 
   it("shows toolbar with select all and delete all when models exist", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByText("\u5168\u9078")).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("ModelsPage", () => {
   });
 
   it("toggles select all and shows delete selected button", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByText("\u5168\u9078")).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("ModelsPage", () => {
   });
 
   it("calls deleteAllModels on confirm", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -100,7 +100,7 @@ describe("ModelsPage", () => {
   });
 
   it("does not delete all when confirm is cancelled", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -112,7 +112,7 @@ describe("ModelsPage", () => {
   });
 
   it("calls deleteMultipleModels for selected items on confirm", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -131,7 +131,7 @@ describe("ModelsPage", () => {
   });
 
   it("renders checkboxes on each model card", async () => {
-    mockGetAllModels.mockResolvedValue(sampleModels);
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
