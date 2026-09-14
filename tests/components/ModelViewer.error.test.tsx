@@ -9,8 +9,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
-// ---- Hoisted spy so tests can swap GLTFLoader.parse behavior ----
-const gltfParseSpy = vi.fn();
+// vi.hoisted() ensures this spy exists when the hoisted vi.mock()
+// factories below execute, before any other module-scope code runs.
+const { gltfParseSpy } = vi.hoisted(() => ({
+  gltfParseSpy: vi.fn(),
+}));
 
 vi.mock("web-ifc", () => ({
   IfcAPI: vi.fn().mockImplementation(() => ({
