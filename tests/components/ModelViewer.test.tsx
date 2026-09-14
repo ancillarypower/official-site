@@ -170,8 +170,37 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
 });
 
 describe("ModelViewer GLTF error handling", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Restore GLTFLoader and Box3 to factory defaults.
+    // vi.restoreAllMocks() does NOT reset vi.fn() implementations (only
+    // spies), so overrides from a previous test persist. Explicitly
+    // re-set them here to guarantee each test starts clean.
+    const gltfMod = await import("three/examples/jsm/loaders/GLTFLoader.js");
+    vi.mocked(gltfMod.GLTFLoader).mockImplementation(
+      () =>
+        ({
+          setDRACOLoader: vi.fn(),
+          parse: vi.fn(
+            (_d: unknown, _p: string, onLoad: (r: unknown) => void) => {
+              onLoad({ scene: { children: [{}], add: vi.fn() } });
+            },
+          ),
+        }) as unknown as InstanceType<typeof gltfMod.GLTFLoader>,
+    );
+
+    const threeMod = await import("three");
+    vi.mocked(threeMod.Box3).mockImplementation(
+      () =>
+        ({
+          setFromObject: vi.fn().mockReturnThis(),
+          isEmpty: vi.fn().mockReturnValue(false),
+          getCenter: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0, copy: vi.fn() }),
+          getSize: vi.fn().mockReturnValue({ x: 1, y: 1, z: 1 }),
+        }) as unknown as InstanceType<typeof threeMod.Box3>,
+    );
+
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
