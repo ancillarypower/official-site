@@ -278,9 +278,25 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
           loader.parse(
             payload,
             "",
-            (result) => fitToView(result.scene),
+            (result) => {
+              if (!disposed) {
+                try {
+                  fitToView(result.scene);
+                } catch (e) {
+                  setErrorMsg(
+                    e instanceof Error ? e.message : "GLTF parse failed",
+                  );
+                  setStatus("error");
+                }
+              }
+            },
             (err) => {
-              throw err;
+              if (!disposed) {
+                setErrorMsg(
+                  err instanceof Error ? err.message : "GLTF parse failed",
+                );
+                setStatus("error");
+              }
             },
           );
         } else if (ext === "obj") {
