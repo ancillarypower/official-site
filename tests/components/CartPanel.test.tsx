@@ -8,7 +8,9 @@ import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 /* ── Mock useCheckout (Issue #44 regression) ── */
-const mockCheckout = vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" });
+const { mockCheckout } = vi.hoisted(() => ({
+  mockCheckout: vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" }),
+}));
 vi.mock("@/hooks/useWooCommerce", () => ({
   useCheckout: () => ({
     mutateAsync: mockCheckout,
