@@ -36,6 +36,7 @@ describe("HeroBanner", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("renders banner title and subtitle", () => {

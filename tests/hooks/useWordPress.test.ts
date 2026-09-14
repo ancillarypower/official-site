@@ -90,6 +90,7 @@ describe("normalizeRawPost", () => {
 describe("useWordPress hook", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     useSettingsStore.setState({
       wpUrl: "https://test.example.com",
       contentType: "posts",
@@ -100,6 +101,7 @@ describe("useWordPress hook", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("is disabled when wpUrl is empty", () => {
