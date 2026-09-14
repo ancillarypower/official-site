@@ -96,9 +96,10 @@ describe("ModelViewer GLTF error handling", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+  // NOTE: Do NOT use vi.restoreAllMocks() here. It resets ALL vi.fn()
+  // implementations, including those inside vi.mock() factories, causing
+  // PerspectiveCamera/Scene/etc to return bare {} in subsequent tests.
+  // vi.clearAllMocks() in beforeEach is sufficient (clears call history).
 
   it("shows error message when GLTF parsing fails", async () => {
     gltfParseSpy.mockImplementation(
