@@ -90,6 +90,41 @@ vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
   mergeGeometries: vi.fn().mockReturnValue({}),
 }));
 
+// Helper: restore GLTFLoader and Box3 to their factory defaults.
+// vi.restoreAllMocks() only restores spies, not vi.fn() implementations.
+// Call this in beforeEach of any block that overrides these mocks.
+async function resetOverridableMocks() {
+  const { GLTFLoader } = await import(
+    "three/examples/jsm/loaders/GLTFLoader.js"
+  );
+  vi.mocked(GLTFLoader).mockImplementation(
+    () =>
+      ({
+        setDRACOLoader: vi.fn(),
+        parse: vi.fn(
+          (_d: unknown, _p: string, onLoad: (r: unknown) => void) => {
+            onLoad({ scene: { children: [{}], add: vi.fn() } });
+          },
+        ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
+  );
+
+  const { Box3 } = await import("three");
+  vi.mocked(Box3).mockImplementation(
+    () =>
+      ({
+        setFromObject: vi.fn().mockReturnThis(),
+        isEmpty: vi.fn().mockReturnValue(false),
+        getCenter: vi
+          .fn()
+          .mockReturnValue({ x: 0, y: 0, z: 0, copy: vi.fn() }),
+        getSize: vi.fn().mockReturnValue({ x: 1, y: 1, z: 1 }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
+  );
+}
+
 describe("ModelViewer IFC support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -166,5 +201,120 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(cancelAnimationFrame).toHaveBeenCalled();
+  });
+});
+
+describe("ModelViewer GLTF error handling", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await resetOverridableMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("shows error message when GLTF parsing fails", async () => {
+    const { GLTFLoader } = await import(
+      "three/examples/jsm/loaders/GLTFLoader.js"
+    );
+    vi.mocked(GLTFLoader).mockImplementation(
+      () =>
+        ({
+          setDRACOLoader: vi.fn(),
+          parse: vi.fn(
+            (
+              _d: unknown,
+              _p: string,
+              _onLoad: unknown,
+              onError: (e: Error) => void,
+            ) => {
+              onError(new Error("corrupt file"));
+            },
+          ),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(
+      <I18nProvider>
+        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/corrupt file/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows error when GLTF scene has no visible geometry", async () => {
+    const { Box3 } = await import("three");
+    vi.mocked(Box3).mockImplementation(
+      () =>
+        ({
+          setFromObject: vi.fn().mockReturnThis(),
+          isEmpty: vi.fn().mockReturnValue(true),
+          getCenter: vi
+            .fn()
+            .mockReturnValue({ x: 0, y: 0, z: 0, copy: vi.fn() }),
+          getSize: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(
+      <I18nProvider>
+        <ModelViewer name="empty.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/No visible geometry/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not throw when error callback fires after unmount", async () => {
+    let capturedOnError: ((e: Error) => void) | null = null;
+    const { GLTFLoader } = await import(
+      "three/examples/jsm/loaders/GLTFLoader.js"
+    );
+    vi.mocked(GLTFLoader).mockImplementation(
+      () =>
+        ({
+          setDRACOLoader: vi.fn(),
+          parse: vi.fn(
+            (
+              _d: unknown,
+              _p: string,
+              _onLoad: unknown,
+              onError: (e: Error) => void,
+            ) => {
+              capturedOnError = onError;
+            },
+          ),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider>
+        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(capturedOnError).not.toBeNull();
+    });
+
+    unmount();
+
+    expect(() => capturedOnError!(new Error("late error"))).not.toThrow();
   });
 });
