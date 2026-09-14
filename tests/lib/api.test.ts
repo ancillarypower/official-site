@@ -146,7 +146,10 @@ describe("fetchWithProxy", () => {
 
     const result = await fetchWithProxy("https://api.test.com/data", false);
     expect(result.status).toBe(200);
-    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data", undefined);
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[0]).toBe("https://api.test.com/data");
+    expect(callArgs[1]).toHaveProperty("signal");
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
   });
 
   it("forwards init options in direct mode", async () => {
@@ -157,7 +160,10 @@ describe("fetchWithProxy", () => {
       headers: { Authorization: "Basic dGVzdA==" },
     };
     await fetchWithProxy("https://api.test.com/data", false, init);
-    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data", init);
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[0]).toBe("https://api.test.com/data");
+    expect(callArgs[1].headers).toEqual({ Authorization: "Basic dGVzdA==" });
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
   });
 
   it("tries CORS proxies when proxy is enabled", async () => {
@@ -177,10 +183,11 @@ describe("fetchWithProxy", () => {
     await fetchWithProxy("https://api.test.com/data", true, {
       headers: { Authorization: "Basic dGVzdA==" },
     });
-    // Proxy mode only passes the proxy URL, no init
+    // Proxy mode only passes the proxy URL + signal, no caller init
     const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(callArgs).toHaveLength(1);
     expect(callArgs[0]).toContain("corsproxy");
+    expect(callArgs[1]).toHaveProperty("signal");
+    expect(callArgs[1]).not.toHaveProperty("headers");
   });
 
   it("throws when all proxies fail", async () => {
@@ -267,5 +274,57 @@ describe("fetchWithProxy", () => {
       false,
     );
     expect(result.status).toBe(200);
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[1]).toHaveProperty("signal");
+  });
+
+  // --- Regression tests for Issue #47: fetch timeout ---
+
+  it("attaches timeout signal in direct mode", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    await fetchWithProxy("https://api.test.com/data", false);
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[1]).toBeDefined();
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("attaches timeout signal in proxy mode", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    await fetchWithProxy("https://api.test.com/data", true);
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[1]).toBeDefined();
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("merges caller signal with timeout signal in direct mode", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const controller = new AbortController();
+    await fetchWithProxy("https://api.test.com/data", false, {
+      signal: controller.signal,
+    });
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const signal = callArgs[1].signal as AbortSignal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    // The merged signal should not be the same reference as the caller's
+    // signal (it wraps both caller + timeout via AbortSignal.any)
+    expect(signal).not.toBe(controller.signal);
+  });
+
+  it("preserves caller headers when merging timeout signal", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    await fetchWithProxy("https://api.test.com/data", false, {
+      headers: { Authorization: "Basic abc123" },
+    });
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[1].headers).toEqual({ Authorization: "Basic abc123" });
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
   });
 });
