@@ -1,10 +1,29 @@
-import { CORS_PROXIES } from "./constants";
+import { CORS_PROXIES, FETCH_TIMEOUT } from "./constants";
 
 let proxyIndex = 0;
 
 /**
+ * Build a composite AbortSignal that fires when either the caller's
+ * signal aborts or the timeout expires, whichever comes first.
+ *
+ * If the caller did not supply a signal, a plain timeout signal is used.
+ */
+function buildSignal(init?: RequestInit): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT);
+  const callerSignal = init?.signal;
+  if (!callerSignal) return timeoutSignal;
+  return AbortSignal.any([callerSignal, timeoutSignal]);
+}
+
+/**
  * Fetch with optional CORS proxy rotation.
  * Tries each proxy in turn until one succeeds.
+ *
+ * Every request (direct and proxied) is subject to a {@link FETCH_TIMEOUT}
+ * timeout. In direct mode the caller's optional `init.signal` is merged
+ * with the timeout signal via `AbortSignal.any()`. In proxy mode the
+ * timeout signal is attached to each individual proxy attempt; a timeout
+ * is treated as a proxy failure and triggers the next proxy in rotation.
  *
  * When `useProxy` is false, the optional `init` parameter is forwarded
  * to the native `fetch()` call (e.g. for custom headers or POST body).
@@ -21,7 +40,7 @@ export async function fetchWithProxy(
   init?: RequestInit,
 ): Promise<Response> {
   if (!useProxy) {
-    return fetch(url, init);
+    return fetch(url, { ...init, signal: buildSignal(init) });
   }
 
   // Defense-in-depth: never send WooCommerce credentials through
@@ -39,13 +58,15 @@ export async function fetchWithProxy(
     const proxy = CORS_PROXIES[idx];
     if (!proxy) continue;
     try {
-      const response = await fetch(proxy + encodeURIComponent(url));
+      const response = await fetch(proxy + encodeURIComponent(url), {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
+      });
       if (response.ok || response.status === 404) {
         proxyIndex = idx;
         return response;
       }
     } catch {
-      // Try next proxy
+      // Timeout or network error: try next proxy
     }
   }
 
