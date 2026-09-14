@@ -1,5 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchWithProxy, wooApiUrl } from "@/lib/api";
+import {
+  fetchWithProxy,
+  wooApiUrl,
+  wooAuthHeaders,
+  wooAuthParams,
+} from "@/lib/api";
 import {
   wooProductArraySchema,
   wooOrderSchema,
@@ -23,12 +28,26 @@ export function useWooProducts(page: number = 1) {
   return useQuery<WooQueryResult>({
     queryKey: ["woo-products", baseUrl, wooKey, wooPerPage, page],
     queryFn: async () => {
-      const url = wooApiUrl(baseUrl, "products", wooKey, wooSecret, {
+      const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
         page: String(page),
-      });
+      };
 
-      const response = await fetchWithProxy(url, useProxy);
+      // Proxy mode: credentials in URL params (CORS proxies can't forward headers).
+      // Direct mode: credentials in Authorization header (never in URL).
+      const url = useProxy
+        ? wooApiUrl(baseUrl, "products", {
+            ...wooAuthParams(wooKey, wooSecret),
+            ...pageParams,
+          })
+        : wooApiUrl(baseUrl, "products", pageParams);
+
+      const response = useProxy
+        ? await fetchWithProxy(url, true)
+        : await fetchWithProxy(url, false, {
+            headers: wooAuthHeaders(wooKey, wooSecret),
+          });
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const totalPages = parseInt(
@@ -73,7 +92,6 @@ export function useCheckout() {
 
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {
-      const url = wooApiUrl(baseUrl, "orders", wooKey, wooSecret);
       const body = {
         payment_method: "",
         payment_method_title: "",
@@ -84,9 +102,25 @@ export function useCheckout() {
         status: "pending",
       };
 
-      const response = useProxy
-        ? await fetchWithProxy(url, true)
-        : await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      let response: Response;
+
+      if (useProxy) {
+        // Proxy mode: credentials in URL params (proxy can't forward headers).
+        // NOTE: POST body is lost through CORS proxy (known issue #45/#166).
+        const url = wooApiUrl(baseUrl, "orders", wooAuthParams(wooKey, wooSecret));
+        response = await fetchWithProxy(url, true);
+      } else {
+        // Direct mode: credentials in Authorization header, never in URL.
+        const url = wooApiUrl(baseUrl, "orders");
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            ...wooAuthHeaders(wooKey, wooSecret),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      }
 
       if (!response.ok) {
         const err = await response.json().catch(() => null);

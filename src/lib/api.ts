@@ -5,13 +5,19 @@ let proxyIndex = 0;
 /**
  * Fetch with optional CORS proxy rotation.
  * Tries each proxy in turn until one succeeds.
+ *
+ * When `useProxy` is false, the optional `init` parameter is forwarded
+ * to the native `fetch()` call (e.g. for custom headers or POST body).
+ * Proxy mode does NOT forward `init` because public CORS proxies cannot
+ * relay custom request headers to the origin server.
  */
 export async function fetchWithProxy(
   url: string,
   useProxy: boolean,
+  init?: RequestInit,
 ): Promise<Response> {
   if (!useProxy) {
-    return fetch(url);
+    return fetch(url, init);
   }
 
   for (let i = 0; i < CORS_PROXIES.length; i++) {
@@ -41,21 +47,48 @@ export function wpApiUrl(siteUrl: string): string {
 }
 
 /**
- * Build a WooCommerce REST API URL with auth params.
+ * Build a WooCommerce REST API URL.
+ *
+ * Credentials are **not** included in the URL. Use {@link wooAuthHeaders}
+ * (direct mode) or {@link wooAuthParams} (proxy mode) to authenticate.
  */
 export function wooApiUrl(
   baseUrl: string,
   endpoint: string,
-  key: string,
-  secret: string,
   params: Record<string, string> = {},
 ): string {
   const base = baseUrl.trim().replace(/\/+$/, "");
   const url = new URL(`${base}/wp-json/wc/v3/${endpoint}`);
-  url.searchParams.set("consumer_key", key);
-  url.searchParams.set("consumer_secret", secret);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
   return url.toString();
+}
+
+/**
+ * Return an HTTP Basic Authentication header for WooCommerce REST API.
+ *
+ * Use this for **direct** requests (no CORS proxy) so that credentials
+ * never appear in the URL, browser history, Referrer headers, or logs.
+ */
+export function wooAuthHeaders(key: string, secret: string): HeadersInit {
+  return {
+    Authorization: `Basic ${btoa(`${key}:${secret}`)}`,
+  };
+}
+
+/**
+ * Return credential query parameters for WooCommerce REST API.
+ *
+ * Use this **only** in proxy mode where custom headers cannot be forwarded.
+ * Spread the result into the `params` argument of {@link wooApiUrl}.
+ */
+export function wooAuthParams(
+  key: string,
+  secret: string,
+): Record<string, string> {
+  return {
+    consumer_key: key,
+    consumer_secret: secret,
+  };
 }
