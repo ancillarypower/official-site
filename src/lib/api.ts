@@ -64,7 +64,8 @@ export function wpApiUrl(siteUrl: string): string {
  * Build a WooCommerce REST API URL.
  *
  * Credentials are **not** included in the URL. Use {@link wooAuthHeaders}
- * (direct mode) or {@link wooAuthParams} (proxy mode) to authenticate.
+ * for direct-mode authentication. Proxy mode does not support
+ * authenticated WooCommerce requests (see Issue #43).
  */
 export function wooApiUrl(
   baseUrl: string,
