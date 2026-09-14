@@ -6,13 +6,34 @@ let proxyIndex = 0;
  * Build a composite AbortSignal that fires when either the caller's
  * signal aborts or the timeout expires, whichever comes first.
  *
+ * Uses a manual AbortController instead of `AbortSignal.any()` for
+ * broader runtime compatibility (Node.js 20 jsdom lacks it).
+ *
  * If the caller did not supply a signal, a plain timeout signal is used.
  */
 function buildSignal(init?: RequestInit): AbortSignal {
-  const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT);
   const callerSignal = init?.signal;
-  if (!callerSignal) return timeoutSignal;
-  return AbortSignal.any([callerSignal, timeoutSignal]);
+  if (!callerSignal) return AbortSignal.timeout(FETCH_TIMEOUT);
+
+  // Merge caller signal + timeout into one AbortController
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")), FETCH_TIMEOUT);
+
+  // Forward caller abort
+  if (callerSignal.aborted) {
+    clearTimeout(timer);
+    controller.abort(callerSignal.reason);
+  } else {
+    callerSignal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      controller.abort(callerSignal.reason);
+    }, { once: true });
+  }
+
+  // Clean up timer when controller aborts (from timeout)
+  controller.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
+
+  return controller.signal;
 }
 
 /**
@@ -21,9 +42,9 @@ function buildSignal(init?: RequestInit): AbortSignal {
  *
  * Every request (direct and proxied) is subject to a {@link FETCH_TIMEOUT}
  * timeout. In direct mode the caller's optional `init.signal` is merged
- * with the timeout signal via `AbortSignal.any()`. In proxy mode the
- * timeout signal is attached to each individual proxy attempt; a timeout
- * is treated as a proxy failure and triggers the next proxy in rotation.
+ * with the timeout signal. In proxy mode the timeout signal is attached
+ * to each individual proxy attempt; a timeout is treated as a proxy
+ * failure and triggers the next proxy in rotation.
  *
  * When `useProxy` is false, the optional `init` parameter is forwarded
  * to the native `fetch()` call (e.g. for custom headers or POST body).
