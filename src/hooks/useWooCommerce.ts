@@ -3,7 +3,6 @@ import {
   fetchWithProxy,
   wooApiUrl,
   wooAuthHeaders,
-  wooAuthParams,
 } from "@/lib/api";
 import {
   wooProductArraySchema,
@@ -33,15 +32,12 @@ export function useWooProducts(page: number = 1) {
         page: String(page),
       };
 
-      // Proxy mode: credentials in URL params (CORS proxies can't forward headers).
-      // Direct mode: credentials in Authorization header (never in URL).
-      const url = useProxy
-        ? wooApiUrl(baseUrl, "products", {
-            ...wooAuthParams(wooKey, wooSecret),
-            ...pageParams,
-          })
-        : wooApiUrl(baseUrl, "products", pageParams);
+      const url = wooApiUrl(baseUrl, "products", pageParams);
 
+      // Direct mode: credentials in Authorization header (never in URL).
+      // Proxy mode: no credentials — public CORS proxies cannot securely
+      // relay authentication (Issue #43). Unauthenticated requests may
+      // still succeed if the WooCommerce store allows public product access.
       const response = useProxy
         ? await fetchWithProxy(url, true)
         : await fetchWithProxy(url, false, {
@@ -92,6 +88,17 @@ export function useCheckout() {
 
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {
+      // Proxy mode cannot securely handle checkout:
+      // 1. POST body is lost through CORS proxy (Issue #45/#166)
+      // 2. Credentials must not be sent to third-party proxies (Issue #43)
+      if (useProxy) {
+        throw new Error(
+          "Checkout is not available in proxy mode. " +
+            "CORS proxies cannot forward POST body or authentication securely. " +
+            "Please disable the proxy or use a self-hosted backend proxy.",
+        );
+      }
+
       const body = {
         payment_method: "",
         payment_method_title: "",
@@ -102,25 +109,16 @@ export function useCheckout() {
         status: "pending",
       };
 
-      let response: Response;
-
-      if (useProxy) {
-        // Proxy mode: credentials in URL params (proxy can't forward headers).
-        // NOTE: POST body is lost through CORS proxy (known issue #45/#166).
-        const url = wooApiUrl(baseUrl, "orders", wooAuthParams(wooKey, wooSecret));
-        response = await fetchWithProxy(url, true);
-      } else {
-        // Direct mode: credentials in Authorization header, never in URL.
-        const url = wooApiUrl(baseUrl, "orders");
-        response = await fetch(url, {
-          method: "POST",
-          headers: {
-            ...wooAuthHeaders(wooKey, wooSecret),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-      }
+      // Direct mode: credentials in Authorization header, never in URL.
+      const url = wooApiUrl(baseUrl, "orders");
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...wooAuthHeaders(wooKey, wooSecret),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
 
       if (!response.ok) {
         const err = await response.json().catch(() => null);
