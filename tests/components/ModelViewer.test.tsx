@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
+vi.mock("@/hooks/useModelDB", () => ({
+  getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+}));
+
 vi.mock("web-ifc", () => ({
   IfcAPI: vi.fn().mockImplementation(() => ({
     SetWasmPath: vi.fn(),
@@ -105,13 +109,13 @@ describe("ModelViewer IFC support", () => {
 
   it("renders loading state for IFC files", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
     expect(screen.getByText(/\u89e3\u6790\u6a21\u578b/)).toBeInTheDocument();
   });
 
   it("processes IFC geometries and reaches ready state", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 });
@@ -131,38 +135,38 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
 
   it("loads GLB model", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 
   it("loads OBJ model", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="t.obj" ext="obj" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="t.obj" ext="obj" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 
   it("loads STL model", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="t.stl" ext="stl" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 
   it("loads GLTF text model", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="t.gltf" ext="gltf" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="t.gltf" ext="gltf" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 
   it("respects prefers-reduced-motion and disables autoRotate", async () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
   });
 
   it("cleans up renderer and animation frame on unmount", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" data={new ArrayBuffer(8)} /></I18nProvider>);
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(cancelAnimationFrame).toHaveBeenCalled();

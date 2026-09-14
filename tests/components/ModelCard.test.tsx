@@ -13,7 +13,7 @@ const defaultProps = {
   name: "robot.glb",
   size: 5_242_880,
   ext: "glb",
-  data: new ArrayBuffer(8),
+  modelId: 1,
   onRemove: vi.fn(),
 };
 
