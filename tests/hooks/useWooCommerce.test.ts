@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { useWooProducts, useCheckout } from "@/hooks/useWooCommerce";
+import { useWooProducts, useCheckout, normalizeRawProduct } from "@/hooks/useWooCommerce";
 
 function createWrapper() {
   const qc = new QueryClient({
@@ -140,7 +140,7 @@ describe("useWooProducts", () => {
     expect(result.current.error).toBeInstanceOf(Error);
   });
 
-  it("falls back to raw data when Zod parse fails", async () => {
+  it("handles extra fields in valid product data", async () => {
     const products = [{ id: 1, name: "Raw", price: "5", unexpected: true }];
     const mockResponse = new Response(JSON.stringify(products), {
       status: 200,
@@ -154,6 +154,111 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.products).toBeDefined();
+  });
+
+  it("warns and normalizes products when Zod safeParse fails", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Data that triggers safeParse failure: id must be number, not string
+    const invalidProducts = [
+      { id: "bad", name: 123, extra: true },
+      { id: "also-bad" },
+    ];
+    const mockResponse = new Response(JSON.stringify(invalidProducts), {
+      status: 200,
+      headers: { "X-WP-TotalPages": "1", "X-WP-Total": "2" },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Regression (Issue #48): console.warn must be called on parse failure
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[Woo] Zod parse warning:",
+      expect.anything(),
+    );
+
+    // Products should be normalized with safe defaults
+    const products = result.current.data?.products;
+    expect(products).toHaveLength(2);
+    // First item: id was string "bad" → default 0, name was number → default ""
+    expect(products?.[0]?.id).toBe(0);
+    expect(products?.[0]?.name).toBe("");
+    expect(products?.[0]?.price).toBe("0");
+    expect(products?.[0]?.stock_status).toBe("instock");
+    expect(products?.[0]?.images).toEqual([]);
+    // Second item: all fields missing → all defaults
+    expect(products?.[1]?.id).toBe(0);
+    expect(products?.[1]?.name).toBe("");
+  });
+
+  it("throws when API returns non-array and Zod parse fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Non-array response that also fails Zod parse
+    const mockResponse = new Response(JSON.stringify({ error: "not found" }), {
+      status: 200,
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe(
+      "Unexpected API response: expected an array",
+    );
+  });
+});
+
+describe("normalizeRawProduct", () => {
+  it("returns correct defaults for empty object", () => {
+    const product = normalizeRawProduct({});
+    expect(product.id).toBe(0);
+    expect(product.name).toBe("");
+    expect(product.price).toBe("0");
+    expect(product.regular_price).toBe("0");
+    expect(product.sale_price).toBe("");
+    expect(product.short_description).toBe("");
+    expect(product.stock_status).toBe("instock");
+    expect(product.images).toEqual([]);
+  });
+
+  it("preserves valid field values", () => {
+    const product = normalizeRawProduct({
+      id: 42,
+      name: "Test Product",
+      price: "19.99",
+      regular_price: "24.99",
+      sale_price: "19.99",
+      short_description: "<p>A test</p>",
+      stock_status: "outofstock",
+      images: [{ src: "https://example.com/img.jpg" }],
+    });
+    expect(product.id).toBe(42);
+    expect(product.name).toBe("Test Product");
+    expect(product.price).toBe("19.99");
+    expect(product.regular_price).toBe("24.99");
+    expect(product.sale_price).toBe("19.99");
+    expect(product.short_description).toBe("<p>A test</p>");
+    expect(product.stock_status).toBe("outofstock");
+    expect(product.images).toEqual([{ src: "https://example.com/img.jpg" }]);
+  });
+
+  it("coerces wrong types to defaults", () => {
+    const product = normalizeRawProduct({
+      id: "not-a-number",
+      name: 123,
+      price: 9.99,
+      images: "not-an-array",
+    });
+    expect(product.id).toBe(0);
+    expect(product.name).toBe("");
+    expect(product.price).toBe("0");
+    expect(product.images).toEqual([]);
   });
 });
 

@@ -13,6 +13,26 @@ import {
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { CartItem } from "@/stores/cartStore";
 
+/**
+ * Normalize a raw API response item into a shape that matches WooProduct
+ * when Zod safeParse fails and the schema defaults are skipped.
+ * Mirrors the normalizeRawPost() pattern in useWordPress.ts.
+ */
+export function normalizeRawProduct(p: Record<string, unknown>): WooProduct {
+  return {
+    id: typeof p.id === "number" ? p.id : 0,
+    name: typeof p.name === "string" ? p.name : "",
+    price: typeof p.price === "string" ? p.price : "0",
+    regular_price: typeof p.regular_price === "string" ? p.regular_price : "0",
+    sale_price: typeof p.sale_price === "string" ? p.sale_price : "",
+    short_description:
+      typeof p.short_description === "string" ? p.short_description : "",
+    stock_status:
+      typeof p.stock_status === "string" ? p.stock_status : "instock",
+    images: Array.isArray(p.images) ? p.images : [],
+  };
+}
+
 interface WooQueryResult {
   products: WooProduct[];
   totalPages: number;
@@ -58,10 +78,21 @@ export function useWooProducts(page: number = 1) {
       const raw = await response.json();
       const parsed = wooProductArraySchema.safeParse(raw);
 
+      if (!parsed.success) {
+        console.warn("[Woo] Zod parse warning:", parsed.error);
+        if (!Array.isArray(raw)) {
+          throw new Error("Unexpected API response: expected an array");
+        }
+        const products = (raw as Record<string, unknown>[]).map(
+          normalizeRawProduct,
+        );
+        return { products, totalPages, totalProducts: totalProducts || products.length };
+      }
+
       return {
-        products: parsed.success ? parsed.data : (raw as WooProduct[]),
+        products: parsed.data,
         totalPages,
-        totalProducts: totalProducts || (parsed.success ? parsed.data.length : 0),
+        totalProducts: totalProducts || parsed.data.length,
       };
     },
     enabled: !!baseUrl && !!wooKey && !!wooSecret,
