@@ -168,3 +168,114 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     expect(cancelAnimationFrame).toHaveBeenCalled();
   });
 });
+
+describe("ModelViewer GLTF error handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("shows error message when GLTF parsing fails", async () => {
+    // Override GLTFLoader to call error callback instead of success
+    const gltfMod = await import("three/examples/jsm/loaders/GLTFLoader.js");
+    vi.mocked(gltfMod.GLTFLoader).mockImplementation(
+      () =>
+        ({
+          setDRACOLoader: vi.fn(),
+          parse: vi.fn(
+            (
+              _d: unknown,
+              _p: string,
+              _onLoad: unknown,
+              onError: (e: Error) => void,
+            ) => {
+              onError(new Error("corrupt file"));
+            },
+          ),
+        }) as unknown as InstanceType<typeof gltfMod.GLTFLoader>,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(
+      <I18nProvider>
+        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/corrupt file/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows error when GLTF scene has no visible geometry", async () => {
+    // Override Box3.isEmpty to return true so fitToView throws
+    const threeMod = await import("three");
+    vi.mocked(threeMod.Box3).mockImplementation(
+      () =>
+        ({
+          setFromObject: vi.fn().mockReturnThis(),
+          isEmpty: vi.fn().mockReturnValue(true),
+          getCenter: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0, copy: vi.fn() }),
+          getSize: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }),
+        }) as unknown as InstanceType<typeof threeMod.Box3>,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(
+      <I18nProvider>
+        <ModelViewer name="empty.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/No visible geometry/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not throw when error callback fires after unmount", async () => {
+    // Capture the error callback to fire it manually after unmount
+    let capturedOnError: ((e: Error) => void) | null = null;
+    const gltfMod = await import("three/examples/jsm/loaders/GLTFLoader.js");
+    vi.mocked(gltfMod.GLTFLoader).mockImplementation(
+      () =>
+        ({
+          setDRACOLoader: vi.fn(),
+          parse: vi.fn(
+            (
+              _d: unknown,
+              _p: string,
+              _onLoad: unknown,
+              onError: (e: Error) => void,
+            ) => {
+              capturedOnError = onError;
+            },
+          ),
+        }) as unknown as InstanceType<typeof gltfMod.GLTFLoader>,
+    );
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider>
+        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+      </I18nProvider>,
+    );
+
+    // Wait for init() to run and capture the callback
+    await waitFor(() => {
+      expect(capturedOnError).not.toBeNull();
+    });
+
+    // Unmount sets disposed = true
+    unmount();
+
+    // Fire error after unmount: should not throw or cause state update
+    expect(() => capturedOnError!(new Error("late error"))).not.toThrow();
+  });
+});
