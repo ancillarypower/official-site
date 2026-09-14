@@ -90,41 +90,6 @@ vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
   mergeGeometries: vi.fn().mockReturnValue({}),
 }));
 
-// Helper: restore GLTFLoader and Box3 to their factory defaults.
-// vi.restoreAllMocks() only restores spies, not vi.fn() implementations.
-// Call this in beforeEach of any block that overrides these mocks.
-async function resetOverridableMocks() {
-  const { GLTFLoader } = await import(
-    "three/examples/jsm/loaders/GLTFLoader.js"
-  );
-  vi.mocked(GLTFLoader).mockImplementation(
-    () =>
-      ({
-        setDRACOLoader: vi.fn(),
-        parse: vi.fn(
-          (_d: unknown, _p: string, onLoad: (r: unknown) => void) => {
-            onLoad({ scene: { children: [{}], add: vi.fn() } });
-          },
-        ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  );
-
-  const { Box3 } = await import("three");
-  vi.mocked(Box3).mockImplementation(
-    () =>
-      ({
-        setFromObject: vi.fn().mockReturnThis(),
-        isEmpty: vi.fn().mockReturnValue(false),
-        getCenter: vi
-          .fn()
-          .mockReturnValue({ x: 0, y: 0, z: 0, copy: vi.fn() }),
-        getSize: vi.fn().mockReturnValue({ x: 1, y: 1, z: 1 }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  );
-}
-
 describe("ModelViewer IFC support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -207,7 +172,9 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
 describe("ModelViewer GLTF error handling", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    await resetOverridableMocks();
+    // Reset module cache so each test's dynamic import() gets a fresh
+    // ModelViewer that binds to the current mock implementations.
+    vi.resetModules();
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -219,6 +186,8 @@ describe("ModelViewer GLTF error handling", () => {
   });
 
   it("shows error message when GLTF parsing fails", async () => {
+    // Override GLTFLoader BEFORE importing ModelViewer so the fresh
+    // module instance binds to this error-callback mock.
     const { GLTFLoader } = await import(
       "three/examples/jsm/loaders/GLTFLoader.js"
     );
@@ -253,6 +222,7 @@ describe("ModelViewer GLTF error handling", () => {
   });
 
   it("shows error when GLTF scene has no visible geometry", async () => {
+    // Override Box3.isEmpty BEFORE importing ModelViewer.
     const { Box3 } = await import("three");
     vi.mocked(Box3).mockImplementation(
       () =>
