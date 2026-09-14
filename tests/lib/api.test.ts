@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchWithProxy, wpApiUrl, wooApiUrl } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams } from "@/lib/api";
 
 describe("wpApiUrl", () => {
   it("builds correct URL from site URL", () => {
@@ -40,38 +40,35 @@ describe("wpApiUrl", () => {
 });
 
 describe("wooApiUrl", () => {
-  it("builds correct URL with auth params", () => {
-    const url = wooApiUrl("https://shop.com", "products", "ck_key", "cs_secret", {
+  it("builds correct URL without credentials", () => {
+    const url = wooApiUrl("https://shop.com", "products", {
       per_page: "10",
     });
     const parsed = new URL(url);
     expect(parsed.pathname).toBe("/wp-json/wc/v3/products");
-    expect(parsed.searchParams.get("consumer_key")).toBe("ck_key");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_secret");
     expect(parsed.searchParams.get("per_page")).toBe("10");
   });
 
+  it("does not include consumer_key or consumer_secret by default", () => {
+    const url = wooApiUrl("https://shop.com", "products");
+    expect(url).not.toContain("consumer_key");
+    expect(url).not.toContain("consumer_secret");
+  });
+
   it("strips trailing slashes from base URL", () => {
-    const url = wooApiUrl("https://shop.com//", "orders", "k", "s");
+    const url = wooApiUrl("https://shop.com//", "orders");
     expect(new URL(url).pathname).toBe("/wp-json/wc/v3/orders");
   });
 
   it("works with no extra params", () => {
-    const url = wooApiUrl("https://shop.com", "products", "k", "s");
+    const url = wooApiUrl("https://shop.com", "products");
     const parsed = new URL(url);
-    expect(parsed.searchParams.get("consumer_key")).toBe("k");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("s");
-  });
-
-  it("handles special characters in credentials", () => {
-    const url = wooApiUrl("https://shop.com", "products", "ck_a&b=c", "cs_d+e");
-    const parsed = new URL(url);
-    expect(parsed.searchParams.get("consumer_key")).toBe("ck_a&b=c");
-    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_d+e");
+    expect(parsed.pathname).toBe("/wp-json/wc/v3/products");
+    expect([...parsed.searchParams.keys()]).toHaveLength(0);
   });
 
   it("handles multiple extra params", () => {
-    const url = wooApiUrl("https://shop.com", "products", "k", "s", {
+    const url = wooApiUrl("https://shop.com", "products", {
       per_page: "10",
       page: "2",
       orderby: "date",
@@ -80,6 +77,61 @@ describe("wooApiUrl", () => {
     expect(parsed.searchParams.get("per_page")).toBe("10");
     expect(parsed.searchParams.get("page")).toBe("2");
     expect(parsed.searchParams.get("orderby")).toBe("date");
+  });
+
+  it("can include auth params when explicitly spread", () => {
+    const url = wooApiUrl("https://shop.com", "products", {
+      ...wooAuthParams("ck_key", "cs_secret"),
+      per_page: "10",
+    });
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get("consumer_key")).toBe("ck_key");
+    expect(parsed.searchParams.get("consumer_secret")).toBe("cs_secret");
+    expect(parsed.searchParams.get("per_page")).toBe("10");
+  });
+});
+
+describe("wooAuthHeaders", () => {
+  it("returns Authorization header with Basic scheme", () => {
+    const headers = wooAuthHeaders("ck_key", "cs_secret");
+    expect(headers).toHaveProperty("Authorization");
+    expect((headers as Record<string, string>).Authorization).toMatch(
+      /^Basic /,
+    );
+  });
+
+  it("encodes key:secret as base64", () => {
+    const headers = wooAuthHeaders("ck_key", "cs_secret");
+    const encoded = (headers as Record<string, string>).Authorization!.replace(
+      "Basic ",
+      "",
+    );
+    expect(atob(encoded)).toBe("ck_key:cs_secret");
+  });
+
+  it("handles special characters in credentials", () => {
+    const headers = wooAuthHeaders("ck_a&b=c", "cs_d+e");
+    const encoded = (headers as Record<string, string>).Authorization!.replace(
+      "Basic ",
+      "",
+    );
+    expect(atob(encoded)).toBe("ck_a&b=c:cs_d+e");
+  });
+});
+
+describe("wooAuthParams", () => {
+  it("returns consumer_key and consumer_secret", () => {
+    const params = wooAuthParams("ck_key", "cs_secret");
+    expect(params).toEqual({
+      consumer_key: "ck_key",
+      consumer_secret: "cs_secret",
+    });
+  });
+
+  it("handles special characters in credentials", () => {
+    const params = wooAuthParams("ck_a&b=c", "cs_d+e");
+    expect(params.consumer_key).toBe("ck_a&b=c");
+    expect(params.consumer_secret).toBe("cs_d+e");
   });
 });
 
@@ -94,7 +146,18 @@ describe("fetchWithProxy", () => {
 
     const result = await fetchWithProxy("https://api.test.com/data", false);
     expect(result.status).toBe(200);
-    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data");
+    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data", undefined);
+  });
+
+  it("forwards init options in direct mode", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const init: RequestInit = {
+      headers: { Authorization: "Basic dGVzdA==" },
+    };
+    await fetchWithProxy("https://api.test.com/data", false, init);
+    expect(fetch).toHaveBeenCalledWith("https://api.test.com/data", init);
   });
 
   it("tries CORS proxies when proxy is enabled", async () => {
@@ -105,6 +168,19 @@ describe("fetchWithProxy", () => {
     expect(result.status).toBe(200);
     const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
     expect(calledUrl).toContain(encodeURIComponent("https://api.test.com/data"));
+  });
+
+  it("does not forward init in proxy mode", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    await fetchWithProxy("https://api.test.com/data", true, {
+      headers: { Authorization: "Basic dGVzdA==" },
+    });
+    // Proxy mode only passes the proxy URL, no init
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs).toHaveLength(1);
+    expect(callArgs[0]).toContain("corsproxy");
   });
 
   it("throws when all proxies fail", async () => {

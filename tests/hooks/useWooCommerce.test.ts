@@ -61,7 +61,7 @@ describe("useWooProducts", () => {
     expect(result.current.data).toBeUndefined();
   });
 
-  it("fetches and parses products", async () => {
+  it("fetches products with Basic Auth header in direct mode", async () => {
     const products = [
       { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "<p>desc</p>", stock_status: "instock", images: [] },
     ];
@@ -80,6 +80,39 @@ describe("useWooProducts", () => {
     expect(result.current.data?.products[0]?.name).toBe("Widget");
     expect(result.current.data?.totalPages).toBe(3);
     expect(result.current.data?.totalProducts).toBe(25);
+
+    // Regression: credentials must NOT appear in the URL
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const calledUrl = callArgs?.[0] as string;
+    const calledInit = callArgs?.[1] as RequestInit | undefined;
+    expect(calledUrl).not.toContain("consumer_key");
+    expect(calledUrl).not.toContain("consumer_secret");
+    // Credentials sent via Authorization header instead
+    expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
+  });
+
+  it("uses URL auth params in proxy mode", async () => {
+    useSettingsStore.setState({ useProxy: true });
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockResponse = new Response(JSON.stringify(products), {
+      status: 200,
+      headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Proxy mode: URL should contain credentials (encoded inside proxy URL)
+    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
+    const decodedUrl = decodeURIComponent(calledUrl);
+    expect(decodedUrl).toContain("consumer_key=ck_test");
+    expect(decodedUrl).toContain("consumer_secret=cs_test");
   });
 
   it("defaults totalPages to 1 when header is missing", async () => {
@@ -108,7 +141,6 @@ describe("useWooProducts", () => {
   });
 
   it("falls back to raw data when Zod parse fails", async () => {
-    // Products with unexpected extra fields that still have id/name
     const products = [{ id: 1, name: "Raw", price: "5", unexpected: true }];
     const mockResponse = new Response(JSON.stringify(products), {
       status: 200,
@@ -121,7 +153,6 @@ describe("useWooProducts", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // Should still return data (either parsed or raw fallback)
     expect(result.current.data?.products).toBeDefined();
   });
 });
@@ -154,7 +185,7 @@ describe("useCheckout", () => {
     expect(result.current.isPending).toBe(false);
   });
 
-  it("submits an order", async () => {
+  it("submits an order with Basic Auth header in direct mode", async () => {
     const orderResponse = { id: 100, order_key: "wc_order_abc", payment_url: "https://shop.example.com/pay" };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify(orderResponse), { status: 200 }),
@@ -173,6 +204,16 @@ describe("useCheckout", () => {
     });
 
     expect(order.id).toBe(100);
+
+    // Regression: credentials must NOT appear in the URL
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const calledUrl = callArgs?.[0] as string;
+    const calledInit = callArgs?.[1] as RequestInit | undefined;
+    expect(calledUrl).not.toContain("consumer_key");
+    expect(calledUrl).not.toContain("consumer_secret");
+    // Credentials sent via Authorization header instead
+    expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
+    expect(calledInit?.method).toBe("POST");
   });
 
   it("throws on HTTP error", async () => {
@@ -195,7 +236,7 @@ describe("useCheckout", () => {
     ).rejects.toThrow("Bad request");
   });
 
-  it("uses fetchWithProxy when proxy is enabled", async () => {
+  it("uses URL auth params in proxy mode", async () => {
     useSettingsStore.setState({ useProxy: true });
     const orderResponse = { id: 200 };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
@@ -215,8 +256,10 @@ describe("useCheckout", () => {
     });
 
     expect(order.id).toBe(200);
-    // When useProxy is true, fetchWithProxy is called with proxy URL
+    // Proxy mode: credentials should be in URL
     const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain("corsproxy");
+    const decodedUrl = decodeURIComponent(calledUrl);
+    expect(decodedUrl).toContain("consumer_key=ck_test");
+    expect(decodedUrl).toContain("consumer_secret=cs_test");
   });
 });
