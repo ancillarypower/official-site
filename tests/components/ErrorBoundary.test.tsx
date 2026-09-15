@@ -23,12 +23,17 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>,
     );
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
-    expect(screen.getByText("Test explosion")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Test explosion"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/unexpected error/i),
+    ).toBeInTheDocument();
     expect(screen.getByText("Reload Page")).toBeInTheDocument();
     spy.mockRestore();
   });
 
-  it("shows generic message when error has no message", () => {
+  it("shows generic message even when error has no message", () => {
     function Bomb(): JSX.Element {
       throw new Error();
     }
@@ -39,6 +44,9 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>,
     );
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(
+      screen.getByText(/unexpected error/i),
+    ).toBeInTheDocument();
     spy.mockRestore();
   });
 
@@ -54,6 +62,31 @@ describe("ErrorBoundary", () => {
     );
     const btn = screen.getByText("Reload Page");
     expect(btn.tagName).toBe("BUTTON");
+    spy.mockRestore();
+  });
+
+  it("does not display raw error message (credential leak prevention)", () => {
+    const sensitiveUrl =
+      "HTTP 401 at https://example.com/wp-json/wc/v3/orders?consumer_key=ck_live_xxx&consumer_secret=cs_live_xxx";
+    function Bomb(): JSX.Element {
+      throw new Error(sensitiveUrl);
+    }
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+    expect(screen.queryByText(sensitiveUrl)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/consumer_key/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/consumer_secret/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/unexpected error/i),
+    ).toBeInTheDocument();
     spy.mockRestore();
   });
 });
