@@ -1,14 +1,9 @@
 import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
+import { decodeHtml } from "@/lib/utils";
 
 interface PostCardProps { post: WpPost; onClick: () => void; }
-
-function decodeHtml(html: string): string {
-  const el = document.createElement("textarea");
-  el.innerHTML = html;
-  return el.value;
-}
 
 export function PostCard({ post, onClick }: PostCardProps) {
   const { lang } = useI18n();
