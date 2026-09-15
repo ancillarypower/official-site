@@ -30,6 +30,8 @@ export const en: Record<TranslationKey, string> = {
   models_delete_all: "Delete All",
   models_delete_all_confirm: "Delete all {n} model(s)? This cannot be undone.",
   models_file_too_large: "{name} exceeds {limit}MB limit",
+  models_db_error: "Unable to access local database. 3D model features may be limited.",
+  models_upload_error: "Failed to save {name}",
 
   store_title: "Store",
   store_products: "{n} products",

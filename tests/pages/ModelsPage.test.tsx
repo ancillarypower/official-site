@@ -8,13 +8,17 @@ vi.mock("@/components/models/ModelViewer", () => ({
     createElement("div", { "data-testid": "model-viewer" }, props.name),
 }));
 
+const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
+
+const mockSaveModel = vi.fn().mockResolvedValue(1);
 const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
 const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
 const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
 const mockDeleteAllModels = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/hooks/useModelDB", () => ({
-  saveModel: vi.fn().mockResolvedValue(1),
+  saveModel: (...args: unknown[]) => mockSaveModel(...args),
   getAllModelMeta: (...args: unknown[]) => mockGetAllModelMeta(...args),
   deleteModel: (...args: unknown[]) => mockDeleteModel(...args),
   deleteMultipleModels: (...args: unknown[]) => mockDeleteMultipleModels(...args),
@@ -138,5 +142,45 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText("Select sphere.obj")).toBeInTheDocument();
       expect(screen.getByLabelText("Select plane.stl")).toBeInTheDocument();
     });
+  });
+
+  it("shows toast.error when IndexedDB is unavailable", async () => {
+    mockGetAllModelMeta.mockRejectedValue(new Error("IndexedDB access denied"));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledOnce();
+    });
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.stringContaining("\u8CC7\u6599\u5EAB")
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[ModelsPage] IndexedDB unavailable:",
+      expect.any(Error)
+    );
+    expect(screen.getByText("0 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
+    warnSpy.mockRestore();
+  });
+
+  it("shows toast.error with filename when saveModel fails", async () => {
+    mockSaveModel.mockRejectedValueOnce(new Error("QuotaExceededError"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
+    });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalled();
+    });
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.stringContaining("test.glb")
+    );
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
