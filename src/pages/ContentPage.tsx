@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -18,12 +18,16 @@ const SORT_OPTIONS = [
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
 
+function parsePageParam(value: string | null): number {
+  const raw = Number(value);
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+}
+
 export default function ContentPage() {
   const { t } = useI18n();
   const contentType = useSettingsStore((s) => s.contentType);
-  const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const page = parsePageParam(searchParams.get("page"));
   const articleParam = searchParams.get("article");
   const articleId =
     articleParam !== null && /^\d+$/.test(articleParam)
@@ -31,6 +35,15 @@ export default function ContentPage() {
       : null;
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("date_desc");
+
+  const setPage = (p: number) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (p === 1) next.delete("page");
+      else next.set("page", String(p));
+      return next;
+    }, { replace: true });
+  };
 
   const { data, isLoading, error } = useWordPress(page);
 
@@ -63,7 +76,11 @@ export default function ContentPage() {
     return (
       <ArticleView
         post={selectedPost}
-        onBack={() => navigate("/", { replace: true })}
+        onBack={() => setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.delete("article");
+          return next;
+        }, { replace: true })}
       />
     );
   }
@@ -84,16 +101,26 @@ export default function ContentPage() {
       </div>
       <ContentToolbar
         filterValue={filter}
-        onFilterChange={setFilter}
+        onFilterChange={(v) => {
+          setFilter(v);
+          if (page !== 1) setPage(1);
+        }}
         sortValue={sort}
-        onSortChange={setSort}
+        onSortChange={(v) => {
+          setSort(v);
+          if (page !== 1) setPage(1);
+        }}
         sortOptions={SORT_OPTIONS}
       />
       <PostGrid
         posts={filteredPosts}
         onSelectPost={(i) => {
           const post = filteredPosts[i];
-          if (post) setSearchParams({ article: String(post.id) });
+          if (post) setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set("article", String(post.id));
+            return next;
+          });
         }}
       />
       <Pagination

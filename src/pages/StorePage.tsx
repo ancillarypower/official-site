@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { useWooProducts } from "@/hooks/useWooCommerce";
 import { ProductGrid } from "@/components/store/ProductGrid";
@@ -16,13 +17,28 @@ const SORT_OPTIONS = [
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
 
+function parsePageParam(value: string | null): number {
+  const raw = Number(value);
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+}
+
 export default function StorePage() {
   const { t } = useI18n();
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parsePageParam(searchParams.get("page"));
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("default");
   const { data: wooData } = useWooProducts(page);
   const usingSamples = !wooData;
+
+  const setPage = (p: number) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (p === 1) next.delete("page");
+      else next.set("page", String(p));
+      return next;
+    }, { replace: true });
+  };
 
   const products: DisplayProduct[] = useMemo(() => {
     if (wooData) {
@@ -53,7 +69,7 @@ export default function StorePage() {
         <span className="text-xs text-tertiary">{t("store_products", { n: totalProducts })}</span>
         {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">🔗 WooCommerce</span>}
       </div>
-      <ContentToolbar filterValue={filter} onFilterChange={setFilter} sortValue={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
+      <ContentToolbar filterValue={filter} onFilterChange={(v) => { setFilter(v); if (page !== 1) setPage(1); }} sortValue={sort} onSortChange={(v) => { setSort(v); if (page !== 1) setPage(1); }} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
       <ProductGrid products={filteredProducts} />
       {!usingSamples && wooData && <Pagination currentPage={page} totalPages={wooData.totalPages} onPageChange={setPage} />}
     </div>

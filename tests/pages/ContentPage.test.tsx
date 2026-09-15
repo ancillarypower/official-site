@@ -103,10 +103,6 @@ describe("ContentPage", () => {
   });
 
   it("selects post by id, not array index", () => {
-    // mockPosts has 3 items (indices 0-2) with ids 1, 2, 3
-    // ?article=3 should select the post with id=3 (Gamma Article)
-    // Old (index-based) code: data.posts[3] is undefined -> falls to list
-    // New (id-based) code: finds post with id=3 -> renders ArticleView
     renderPage("/?article=3");
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
@@ -119,9 +115,7 @@ describe("ContentPage", () => {
 
   it("navigates to article view on card click", () => {
     renderPage();
-    // Click the first visible post title; event bubbles to PostCard onClick
     fireEvent.click(screen.getByText("Post Alpha"));
-    // After click, URL param is set to post.id, ArticleView replaces list
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
 
@@ -133,5 +127,38 @@ describe("ContentPage", () => {
     });
     renderPage();
     expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
+  });
+
+  // --- Pagination URL sync regression tests ---
+
+  it("reads page from URL and passes to useWordPress", () => {
+    renderPage("/?page=2");
+    expect(mockUseWordPress).toHaveBeenCalledWith(2);
+  });
+
+  it("defaults to page 1 when page param is missing", () => {
+    renderPage("/");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+  });
+
+  it("defaults to page 1 for non-numeric page param", () => {
+    renderPage("/?page=abc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+  });
+
+  it("floors fractional page param", () => {
+    renderPage("/?page=2.9");
+    expect(mockUseWordPress).toHaveBeenCalledWith(2);
+  });
+
+  it("clamps zero and negative page to 1", () => {
+    renderPage("/?page=0");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+  });
+
+  it("preserves page param when selecting an article", () => {
+    renderPage("/?page=2");
+    fireEvent.click(screen.getByText("Post Alpha"));
+    expect(mockUseWordPress).toHaveBeenCalledWith(2);
   });
 });
