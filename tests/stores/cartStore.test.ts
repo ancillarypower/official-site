@@ -63,6 +63,25 @@ describe("cartStore", () => {
     expect(useCartStore.getState().totalPrice()).toBe(45);
   });
 
+  it("calculates totalPrice without floating-point drift (299.99 * 3)", () => {
+    // Regression: 299.99 * 3 = 899.9699999999999 in IEEE 754
+    useCartStore.getState().addItem({ ...sampleItem, price: 299.99 }, 3);
+    expect(useCartStore.getState().totalPrice()).toBe(899.97);
+  });
+
+  it("calculates totalPrice without floating-point drift (19.99 * 7)", () => {
+    // Regression: 19.99 * 7 = 139.92999999999998 in IEEE 754
+    useCartStore.getState().addItem({ ...sampleItem, price: 19.99 }, 7);
+    expect(useCartStore.getState().totalPrice()).toBe(139.93);
+  });
+
+  it("calculates totalPrice without drift across multiple items", () => {
+    // Regression: 0.1 + 0.2 = 0.30000000000000004 in IEEE 754
+    useCartStore.getState().addItem({ ...sampleItem, id: 1, price: 0.1 }, 1);
+    useCartStore.getState().addItem({ ...sampleItem, id: 2, price: 0.2 }, 1);
+    expect(useCartStore.getState().totalPrice()).toBe(0.3);
+  });
+
   it("getQty returns 0 for unknown item", () => {
     expect(useCartStore.getState().getQty(999)).toBe(0);
   });
