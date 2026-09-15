@@ -29,6 +29,7 @@ export const en: Record<TranslationKey, string> = {
   models_delete_selected_confirm: "Delete {n} selected model(s)? This cannot be undone.",
   models_delete_all: "Delete All",
   models_delete_all_confirm: "Delete all {n} model(s)? This cannot be undone.",
+  models_file_too_large: "{name} exceeds {limit}MB limit",
 
   store_title: "Store",
   store_products: "{n} products",
