@@ -97,8 +97,31 @@ describe("ContentPage", () => {
     expect(screen.getByText("Post Beta")).toBeInTheDocument();
   });
 
-  it("renders article view when article param is set", () => {
-    renderPage("/?article=0");
+  it("renders article view when article param matches a post id", () => {
+    renderPage("/?article=1");
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
+  it("selects post by id, not array index", () => {
+    // mockPosts has 3 items (indices 0-2) with ids 1, 2, 3
+    // ?article=3 should select the post with id=3 (Gamma Article)
+    // Old (index-based) code: data.posts[3] is undefined -> falls to list
+    // New (id-based) code: finds post with id=3 -> renders ArticleView
+    renderPage("/?article=3");
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
+  it("falls back to list when article id does not exist", () => {
+    renderPage("/?article=999");
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+    expect(screen.getByText("Post Alpha")).toBeInTheDocument();
+  });
+
+  it("navigates to article view on card click", () => {
+    renderPage();
+    // Click the first visible post title; event bubbles to PostCard onClick
+    fireEvent.click(screen.getByText("Post Alpha"));
+    // After click, URL param is set to post.id, ArticleView replaces list
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
 
