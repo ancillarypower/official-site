@@ -3,22 +3,22 @@ import { useI18n } from "@/context/I18nContext";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
-import { saveModel, getAllModels, deleteModel, deleteMultipleModels, deleteAllModels } from "@/hooks/useModelDB";
-import type { ModelRecord } from "@/lib/types";
+import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels } from "@/hooks/useModelDB";
+import type { ModelMeta } from "@/lib/types";
 
-interface LoadedModel extends ModelRecord { id: number; }
+interface LoadedModelMeta extends ModelMeta { id: number; }
 
 export default function ModelsPage() {
   const { t } = useI18n();
-  const [models, setModels] = useState<LoadedModel[]>([]);
+  const [models, setModels] = useState<LoadedModelMeta[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  useEffect(() => { getAllModels().then((records) => { setModels(records.filter((r): r is LoadedModel => r.id != null)); }); }, []);
+  useEffect(() => { getAllModelMeta().then((records) => { setModels(records.filter((r): r is LoadedModelMeta => r.id != null)); }); }, []);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
     for (const file of files) {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      try { const ab = await file.arrayBuffer(); if (ab.byteLength === 0) continue; const id = await saveModel(file.name, file.size, ext, ab); setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, data: ab, timestamp: Date.now() }]); } catch (err) { console.error("Failed to process:", file.name, err); }
+      try { const ab = await file.arrayBuffer(); if (ab.byteLength === 0) continue; const id = await saveModel(file.name, file.size, ext, ab); setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]); } catch (err) { console.error("Failed to process:", file.name, err); }
     }
   }, []);
 
@@ -75,7 +75,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            💾 {t("models_persisted")}
+            \uD83D\uDCBE {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -96,7 +96,7 @@ export default function ModelsPage() {
               onClick={handleDeleteAll}
               className="ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)]"
             >
-              🗑 {t("models_delete_all")}
+              \uD83D\uDDD1 {t("models_delete_all")}
             </button>
           </div>
         </>
@@ -108,7 +108,7 @@ export default function ModelsPage() {
             name={model.name}
             size={model.size}
             ext={model.ext}
-            data={model.data}
+            modelId={model.id}
             selected={selectedIds.has(model.id)}
             onToggleSelect={() => toggleSelect(model.id)}
             onRemove={() => handleRemove(model.id)}

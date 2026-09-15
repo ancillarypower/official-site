@@ -2,14 +2,15 @@ import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D, BufferGeometry } from "three";
 import { IFC_WASM_CDN } from "@/lib/constants";
+import { getModelData } from "@/hooks/useModelDB";
 
 interface ModelViewerProps {
   name: string;
   ext: string;
-  data: ArrayBuffer;
+  modelId: number;
 }
 
-export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
+export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -27,6 +28,16 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
       if (!el || disposed) return;
 
       try {
+        // Load model data on demand from IndexedDB.
+        // IndexedDB returns a structured clone, so no extra .slice() needed.
+        const data = await getModelData(modelId);
+        if (disposed) return;
+        if (!data) {
+          setErrorMsg("Model data not found in storage");
+          setStatus("error");
+          return;
+        }
+
         const THREE = await import("three");
         const { OrbitControls } = await import(
           "three/examples/jsm/controls/OrbitControls.js"
@@ -132,7 +143,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
           setStatus("ready");
         }
 
-        const buf = data.slice(0);
+        const buf = data;
         if (ext === "ifc") {
           // IFC loading branch: web-ifc WASM parser + three.js geometry pipeline
           const WebIFC = await import("web-ifc");
@@ -337,7 +348,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
         renderer.domElement.parentNode?.removeChild(renderer.domElement);
       }
     };
-  }, [ext, data]);
+  }, [ext, modelId]);
 
   return (
     <div className="relative aspect-video w-full bg-[oklch(14%_0.008_250)]">
@@ -352,7 +363,7 @@ export function ModelViewer({ name: _name, ext, data }: ModelViewerProps) {
       )}
       {status === "error" && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-[oklch(14%_0.008_250)] p-4 text-center text-sm text-[oklch(65%_0.08_25)]">
-          <span>\u26a0\ufe0f</span>
+          <span>\u26A0\uFE0F</span>
           <span>
             {t("models_error")}: {errorMsg}
           </span>

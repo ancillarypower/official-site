@@ -5,7 +5,7 @@
  * error-path GLTFLoader behavior without leaking into the happy-path
  * tests in ModelViewer.test.tsx.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
@@ -13,6 +13,10 @@ import { I18nProvider } from "@/context/I18nContext";
 // factories below execute, before any other module-scope code runs.
 const { gltfParseSpy } = vi.hoisted(() => ({
   gltfParseSpy: vi.fn(),
+}));
+
+vi.mock("@/hooks/useModelDB", () => ({
+  getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
 
 vi.mock("web-ifc", () => ({
@@ -111,7 +115,7 @@ describe("ModelViewer GLTF error handling", () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(
       <I18nProvider>
-        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+        <ModelViewer name="bad.glb" ext="glb" modelId={1} />
       </I18nProvider>,
     );
 
@@ -144,7 +148,7 @@ describe("ModelViewer GLTF error handling", () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(
       <I18nProvider>
-        <ModelViewer name="empty.glb" ext="glb" data={new ArrayBuffer(8)} />
+        <ModelViewer name="empty.glb" ext="glb" modelId={1} />
       </I18nProvider>,
     );
 
@@ -164,7 +168,7 @@ describe("ModelViewer GLTF error handling", () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     const { unmount } = render(
       <I18nProvider>
-        <ModelViewer name="bad.glb" ext="glb" data={new ArrayBuffer(8)} />
+        <ModelViewer name="bad.glb" ext="glb" modelId={1} />
       </I18nProvider>,
     );
 

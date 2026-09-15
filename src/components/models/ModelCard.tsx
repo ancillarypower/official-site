@@ -4,19 +4,19 @@ interface ModelCardProps {
   name: string;
   size: number;
   ext: string;
-  data: ArrayBuffer;
+  modelId: number;
   selected?: boolean;
   onToggleSelect?: () => void;
   onRemove: () => void;
 }
 
-export function ModelCard({ name, size, ext, data, selected = false, onToggleSelect, onRemove }: ModelCardProps) {
+export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove }: ModelCardProps) {
   return (
     <div className={`animate-fade-in overflow-hidden rounded-xl border bg-surface-raised transition-colors ${
       selected ? "border-accent ring-2 ring-accent/30" : "border-border-subtle"
     }`}>
       <div className="relative">
-        <ModelViewer name={name} ext={ext} data={data} />
+        <ModelViewer name={name} ext={ext} modelId={modelId} />
         {onToggleSelect && (
           <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-surface-raised/80 backdrop-blur-sm">
             <input
