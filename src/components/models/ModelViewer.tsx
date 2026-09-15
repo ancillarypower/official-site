@@ -23,6 +23,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let animId: number;
     let renderer: WebGLRenderer | null = null;
     let ro: ResizeObserver | null = null;
+    let ctxLostHandler: ((e: Event) => void) | null = null;
+    let ctxRestoredHandler: (() => void) | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -72,6 +74,34 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1;
         el.appendChild(renderer.domElement);
+
+        // WebGL context loss recovery (#57)
+        ctxLostHandler = (e: Event) => {
+          e.preventDefault();
+          cancelAnimationFrame(animId);
+          setStatus("error");
+          setErrorMsg(t("models_gpu_lost"));
+        };
+
+        ctxRestoredHandler = () => {
+          if (disposed) return;
+          ro?.disconnect();
+          ro = null;
+          if (renderer) {
+            if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
+            if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
+            renderer.dispose();
+            renderer.domElement.parentNode?.removeChild(renderer.domElement);
+            renderer = null;
+          }
+          ctxLostHandler = null;
+          ctxRestoredHandler = null;
+          setStatus("loading");
+          init();
+        };
+
+        renderer.domElement.addEventListener("webglcontextlost", ctxLostHandler);
+        renderer.domElement.addEventListener("webglcontextrestored", ctxRestoredHandler);
 
         try {
           const pmrem = new THREE.PMREMGenerator(renderer);
@@ -344,6 +374,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       cancelAnimationFrame(animId);
       ro?.disconnect();
       if (renderer) {
+        if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
+        if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
         renderer.dispose();
         renderer.domElement.parentNode?.removeChild(renderer.domElement);
       }
