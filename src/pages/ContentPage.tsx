@@ -25,7 +25,7 @@ export default function ContentPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const articleParam = searchParams.get("article");
-  const selectedIndex =
+  const articleId =
     articleParam !== null && /^\d+$/.test(articleParam)
       ? Number(articleParam)
       : null;
@@ -56,10 +56,8 @@ export default function ContentPage() {
     return posts;
   }, [data?.posts, filter, sort]);
 
-  // Extract selected post to a variable so TS can narrow the type
-  // (repeated array access is not narrowed by noUncheckedIndexedAccess)
   const selectedPost =
-    selectedIndex !== null ? data?.posts[selectedIndex] : undefined;
+    articleId !== null ? data?.posts.find((p) => p.id === articleId) : undefined;
 
   if (selectedPost) {
     return (
@@ -95,10 +93,7 @@ export default function ContentPage() {
         posts={filteredPosts}
         onSelectPost={(i) => {
           const post = filteredPosts[i];
-          if (post) {
-            const idx = data.posts.indexOf(post);
-            if (idx >= 0) setSearchParams({ article: String(idx) });
-          }
+          if (post) setSearchParams({ article: String(post.id) });
         }}
       />
       <Pagination
