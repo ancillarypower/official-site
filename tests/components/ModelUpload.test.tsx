@@ -3,7 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 import { ModelUpload } from "@/components/models/ModelUpload";
 
-const mockToastError = vi.fn();
+const { mockToastError } = vi.hoisted(() => ({
+  mockToastError: vi.fn(),
+}));
+
 vi.mock("sonner", () => ({
   toast: { error: mockToastError },
 }));
