@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type DragEvent } from "react";
+import { toast } from "sonner";
 import { useI18n } from "@/context/I18nContext";
-import { MODEL_EXTENSIONS } from "@/lib/constants";
+import { MODEL_EXTENSIONS, MAX_MODEL_SIZE } from "@/lib/constants";
 
 interface ModelUploadProps { onFilesSelected: (files: File[]) => void; }
 
@@ -13,10 +14,15 @@ export function ModelUpload({ onFilesSelected }: ModelUploadProps) {
     if (!fileList) return;
     const valid = [...fileList].filter((f) => {
       const ext = f.name.split(".").pop()?.toLowerCase();
-      return ext && MODEL_EXTENSIONS.includes(ext as (typeof MODEL_EXTENSIONS)[number]);
+      if (!ext || !MODEL_EXTENSIONS.includes(ext as (typeof MODEL_EXTENSIONS)[number])) return false;
+      if (f.size > MAX_MODEL_SIZE) {
+        toast.error(t("models_file_too_large", { name: f.name, limit: MAX_MODEL_SIZE / 1024 / 1024 }));
+        return false;
+      }
+      return true;
     });
     if (valid.length > 0) onFilesSelected(valid);
-  }, [onFilesSelected]);
+  }, [onFilesSelected, t]);
 
   const onDrop = useCallback((e: DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragover(false); handleFiles(e.dataTransfer.files); }, [handleFiles]);
 
