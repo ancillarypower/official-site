@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useSettingsStore } from "@/stores/settingsStore";
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function withProviders(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -37,36 +40,48 @@ describe("Sidebar", () => {
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
-  it("shows settings panel translated when active", () => {
+  it("shows settings panel with aria-modal when active", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
-    const settingsAside = container.querySelector("aside[aria-label='Settings']");
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    );
     expect(settingsAside).toBeInTheDocument();
-    expect(settingsAside).toHaveAttribute("aria-hidden", "false");
+    expect(settingsAside).toHaveAttribute("aria-modal", "true");
+    expect((settingsAside as HTMLElement).inert).toBe(false);
   });
 
-  it("hides settings panel when not active", () => {
+  it("marks settings panel inert when not active", () => {
     useSettingsStore.setState({ activePanel: null });
     const { container } = render(withProviders(<Sidebar />));
-    const settingsAside = container.querySelector("aside[aria-label='Settings']");
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    );
     expect(settingsAside).toBeInTheDocument();
-    expect(settingsAside).toHaveAttribute("aria-hidden", "true");
+    expect((settingsAside as HTMLElement).inert).toBe(true);
+    expect(settingsAside).not.toHaveAttribute("aria-modal");
   });
 
-  it("shows cart panel when active", () => {
+  it("shows cart panel with aria-modal when active", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     const { container } = render(withProviders(<Sidebar />));
-    const cartAside = container.querySelector("aside[aria-label='Shopping cart']");
+    const cartAside = container.querySelector(
+      "aside[aria-label='Shopping cart']",
+    );
     expect(cartAside).toBeInTheDocument();
-    expect(cartAside).toHaveAttribute("aria-hidden", "false");
+    expect(cartAside).toHaveAttribute("aria-modal", "true");
+    expect((cartAside as HTMLElement).inert).toBe(false);
   });
 
-  it("hides cart panel when settings is active", () => {
+  it("marks cart panel inert when settings is active", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
-    const cartAside = container.querySelector("aside[aria-label='Shopping cart']");
+    const cartAside = container.querySelector(
+      "aside[aria-label='Shopping cart']",
+    );
     expect(cartAside).toBeInTheDocument();
-    expect(cartAside).toHaveAttribute("aria-hidden", "true");
+    expect((cartAside as HTMLElement).inert).toBe(true);
+    expect(cartAside).not.toHaveAttribute("aria-modal");
   });
 
   it("overlay is visible when panel is active", () => {
@@ -74,5 +89,90 @@ describe("Sidebar", () => {
     const { container } = render(withProviders(<Sidebar />));
     const overlay = container.querySelector(".fixed.inset-0");
     expect(overlay).toBeInTheDocument();
+  });
+});
+
+describe("Sidebar focus trap", () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ activePanel: null, wooKey: "", wooSecret: "" });
+  });
+
+  it("moves focus into settings panel when opened", () => {
+    useSettingsStore.setState({ activePanel: "settings" });
+    const { container } = render(withProviders(<Sidebar />));
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    )!;
+    expect(settingsAside.contains(document.activeElement)).toBe(true);
+  });
+
+  it("closes panel on Escape key", () => {
+    useSettingsStore.setState({ activePanel: "settings" });
+    render(withProviders(<Sidebar />));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(useSettingsStore.getState().activePanel).toBeNull();
+  });
+
+  it("wraps focus from last to first element on Tab", () => {
+    useSettingsStore.setState({ activePanel: "settings" });
+    const { container } = render(withProviders(<Sidebar />));
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    )!;
+    const focusable =
+      settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    expect(focusable.length).toBeGreaterThan(0);
+    const last = focusable[focusable.length - 1];
+    last.focus();
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(document.activeElement).toBe(focusable[0]);
+  });
+
+  it("wraps focus from first to last element on Shift+Tab", () => {
+    useSettingsStore.setState({ activePanel: "settings" });
+    const { container } = render(withProviders(<Sidebar />));
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    )!;
+    const focusable =
+      settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    expect(focusable.length).toBeGreaterThan(0);
+    const first = focusable[0];
+    first.focus();
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(focusable[focusable.length - 1]);
+  });
+
+  it("restores focus to previously focused element on close", () => {
+    const { container } = render(
+      withProviders(
+        <>
+          <button data-testid="trigger">Trigger</button>
+          <Sidebar />
+        </>,
+      ),
+    );
+    const trigger = container.querySelector(
+      "[data-testid='trigger']",
+    ) as HTMLElement;
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    act(() => {
+      useSettingsStore.setState({ activePanel: "settings" });
+    });
+
+    const settingsAside = container.querySelector(
+      "aside[aria-label='Settings']",
+    )!;
+    expect(settingsAside.contains(document.activeElement)).toBe(true);
+
+    act(() => {
+      useSettingsStore.setState({ activePanel: null });
+    });
+
+    expect(document.activeElement).toBe(trigger);
   });
 });
