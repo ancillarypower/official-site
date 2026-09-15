@@ -27,6 +27,8 @@ export const zh = {
   models_delete_all: "全部刪除",
   models_delete_all_confirm: "確定要刪除全部 {n} 個模型嗎？此操作無法復原。",
   models_file_too_large: "{name} 超過 {limit}MB 大小限制",
+  models_db_error: "無法存取本機資料庫，3D 模型功能可能受限",
+  models_upload_error: "{name} 儲存失敗",
 
   store_title: "商店",
   store_products: "{n} 項商品",
