@@ -28,7 +28,7 @@ export default function StorePage() {
     if (wooData) {
       return wooData.products.map((p) => ({ id: p.id, name: p.name, desc: decodeHtml(p.short_description.replace(/<[^>]*>/g, "")), price: parseFloat(p.price) || 0, regularPrice: parseFloat(p.regular_price) || 0, salePrice: p.sale_price ? parseFloat(p.sale_price) : null, img: p.images[0]?.src ?? null, icon: null, stockStatus: p.stock_status }));
     }
-    return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as Parameters<typeof t>[0]), desc: t(`product_${sp.id}_desc` as Parameters<typeof t>[0]), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
+    return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as const), desc: t(`product_${sp.id}_desc` as const), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
   }, [wooData, t]);
 
   const filteredProducts = useMemo(() => {
@@ -51,7 +51,7 @@ export default function StorePage() {
       <div className="mb-4 flex items-baseline gap-3 border-b border-border-subtle pb-4">
         <h2 className="text-lg font-bold">{t("store_title")}</h2>
         <span className="text-xs text-tertiary">{t("store_products", { n: totalProducts })}</span>
-        {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">\uD83D\uDD17 WooCommerce</span>}
+        {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">🔗 WooCommerce</span>}
       </div>
       <ContentToolbar filterValue={filter} onFilterChange={setFilter} sortValue={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
       <ProductGrid products={filteredProducts} />
