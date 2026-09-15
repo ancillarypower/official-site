@@ -16,11 +16,11 @@ vi.mock("@/hooks/useWooCommerce", () => ({
 
 import StorePage from "@/pages/StorePage";
 
-function renderPage() {
+function renderPage(route = "/") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[route]}>
         <I18nProvider>
           <StorePage />
         </I18nProvider>
@@ -115,5 +115,27 @@ describe("StorePage", () => {
     expect(screen.getByText("Entity Product")).toBeInTheDocument();
     expect(screen.getByText(/Premium headphones & accessories/)).toBeInTheDocument();
     expect(screen.queryByText(/&amp;/)).not.toBeInTheDocument();
+  });
+
+  // --- Pagination URL sync regression tests ---
+
+  it("reads page from URL and passes to useWooProducts", () => {
+    renderPage("/?page=2");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2);
+  });
+
+  it("defaults to page 1 for non-numeric page param", () => {
+    renderPage("/?page=abc");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+  });
+
+  it("defaults to page 1 when page param is missing", () => {
+    renderPage("/");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+  });
+
+  it("clamps zero and negative page to 1", () => {
+    renderPage("/?page=-5");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
   });
 });
