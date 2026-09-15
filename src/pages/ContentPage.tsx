@@ -69,10 +69,10 @@ export default function ContentPage() {
   }
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <EmptyState icon="\u26a0\ufe0f" title={(error as Error).message} />;
-  if (!data?.posts.length) return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
+  if (error) return <EmptyState icon="⚠️" title={(error as Error).message} />;
+  if (!data?.posts.length) return <EmptyState icon="📭" title={t("no_results")} />;
 
-  const typeLabel = t(`type_${contentType}` as Parameters<typeof t>[0]);
+  const typeLabel = t(`type_${contentType}` as const);
 
   return (
     <div className="animate-fade-in">
