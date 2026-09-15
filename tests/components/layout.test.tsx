@@ -148,7 +148,8 @@ describe("ErrorBoundary", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     render(<ErrorBoundary><Bomb /></ErrorBoundary>);
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
-    expect(screen.getByText("Boom!")).toBeInTheDocument();
+    expect(screen.queryByText("Boom!")).not.toBeInTheDocument();
+    expect(screen.getByText(/unexpected error/i)).toBeInTheDocument();
     expect(screen.getByText("Reload Page")).toBeInTheDocument();
     spy.mockRestore();
   });
