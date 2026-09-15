@@ -100,4 +100,20 @@ describe("StorePage", () => {
     expect(screen.getByText(/WooCommerce/)).toBeInTheDocument();
     expect(screen.getByText("1/3")).toBeInTheDocument();
   });
+
+  it("decodes HTML entities in WooCommerce product descriptions", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: {
+        products: [
+          { id: 2, name: "Entity Product", short_description: "<p>Premium headphones &amp; accessories &#8217;best&#8217;</p>", price: "49.99", regular_price: "49.99", sale_price: "", images: [], stock_status: "instock" },
+        ],
+        totalProducts: 1,
+        totalPages: 1,
+      },
+    });
+    renderPage();
+    expect(screen.getByText("Entity Product")).toBeInTheDocument();
+    expect(screen.getByText(/Premium headphones & accessories/)).toBeInTheDocument();
+    expect(screen.queryByText(/&amp;/)).not.toBeInTheDocument();
+  });
 });
