@@ -164,3 +164,50 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     expect(cancelAnimationFrame).toHaveBeenCalled();
   });
 });
+
+describe("ModelViewer WebGL context loss recovery", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("shows GPU error and stops animation when WebGL context is lost", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { container } = render(
+      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    const event = new Event("webglcontextlost", { cancelable: true });
+    canvas.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText(/GPU/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not throw when context lost fires after unmount", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { container, unmount } = render(
+      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    unmount();
+
+    expect(() => {
+      canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
+    }).not.toThrow();
+  });
+});
