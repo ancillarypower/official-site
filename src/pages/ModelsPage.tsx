@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useI18n } from "@/context/I18nContext";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
@@ -13,14 +14,31 @@ export default function ModelsPage() {
   const [models, setModels] = useState<LoadedModelMeta[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  useEffect(() => { getAllModelMeta().then((records) => { setModels(records.filter((r): r is LoadedModelMeta => r.id != null)); }); }, []);
+  useEffect(() => {
+    getAllModelMeta()
+      .then((records) => {
+        setModels(records.filter((r): r is LoadedModelMeta => r.id != null));
+      })
+      .catch((err) => {
+        console.warn("[ModelsPage] IndexedDB unavailable:", err);
+        toast.error(t("models_db_error"));
+      });
+  }, [t]);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
     for (const file of files) {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      try { const ab = await file.arrayBuffer(); if (ab.byteLength === 0) continue; const id = await saveModel(file.name, file.size, ext, ab); setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]); } catch (err) { console.error("Failed to process:", file.name, err); }
+      try {
+        const ab = await file.arrayBuffer();
+        if (ab.byteLength === 0) continue;
+        const id = await saveModel(file.name, file.size, ext, ab);
+        setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]);
+      } catch (err) {
+        console.error("Failed to process:", file.name, err);
+        toast.error(t("models_upload_error", { name: file.name }));
+      }
     }
-  }, []);
+  }, [t]);
 
   const handleRemove = useCallback(async (id: number) => {
     await deleteModel(id);
