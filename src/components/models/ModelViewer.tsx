@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
+import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
 
@@ -59,11 +60,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let ctxLostHandler: ((e: Event) => void) | null = null;
     let ctxRestoredHandler: (() => void) | null = null;
     let scene: Scene | null = null;
-    let controls: {
-      update: () => void;
-      dispose: () => void;
-      target: { copy: (v: { x: number; y: number; z: number }) => void };
-    } | null = null;
+    let controls: OrbitControls | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -80,7 +77,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         }
 
         const THREE = await import("three");
-        const { OrbitControls } = await import(
+        const { OrbitControls: OC } = await import(
           "three/examples/jsm/controls/OrbitControls.js"
         );
         const { GLTFLoader } = await import(
@@ -157,15 +154,14 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           /* fallback to directional lights only */
         }
 
-        const oc = new OrbitControls(camera, renderer.domElement);
-        oc.enableDamping = true;
-        oc.dampingFactor = 0.08;
-        oc.autoRotate = true;
-        oc.autoRotateSpeed = 1.5;
+        controls = new OC(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.5;
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          oc.autoRotate = false;
+          controls.autoRotate = false;
         }
-        controls = oc;
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const dl = new THREE.DirectionalLight(0xffffff, 2.4);
