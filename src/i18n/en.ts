@@ -230,4 +230,8 @@ export const en: Record<TranslationKey, string> = {
     "The interpretation and application of these Terms of Service, and any disputes arising from the use of this website, shall be governed by the laws of the Republic of China. Both parties agree that the Taipei District Court of Taiwan shall be the court of first instance.",
 
   legal_footer_link: "Privacy & Terms",
+
+  // Route error boundary
+  route_load_error: "Failed to load this page",
+  route_load_retry: "Reload",
 };

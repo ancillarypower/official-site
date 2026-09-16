@@ -226,6 +226,10 @@ export const zh = {
     "本服務條款之解釋與適用，以及因使用本網站所生之相關爭議，均以中華民國法律為準據法。雙方同意以臺灣臺北地方法院為第一審管轄法院。",
 
   legal_footer_link: "隱私權政策與服務條款",
+
+  // Route error boundary
+  route_load_error: "此頁面載入失敗",
+  route_load_retry: "重新載入",
 } as const;
 
 export type TranslationKey = keyof typeof zh;
