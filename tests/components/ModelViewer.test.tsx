@@ -33,9 +33,15 @@ vi.mock("web-ifc", () => ({
   })),
 }));
 
+const mockTraverse = vi.fn();
+const mockControlsDispose = vi.fn();
+
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
-  Scene: vi.fn().mockImplementation(() => ({ background: null, environment: null, add: vi.fn() })),
+  Scene: vi.fn().mockImplementation(() => ({
+    background: null, environment: null, add: vi.fn(),
+    traverse: mockTraverse,
+  })),
   PerspectiveCamera: vi.fn().mockImplementation(() => ({
     position: { set: vi.fn() }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: vi.fn(),
   })),
@@ -67,7 +73,7 @@ vi.mock("three", async () => ({
 vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   OrbitControls: vi.fn().mockImplementation(() => ({
     enableDamping: false, dampingFactor: 0, autoRotate: false, autoRotateSpeed: 0,
-    target: { copy: vi.fn() }, update: vi.fn(),
+    target: { copy: vi.fn() }, update: vi.fn(), dispose: mockControlsDispose,
   })),
 }));
 vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
@@ -162,6 +168,42 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(cancelAnimationFrame).toHaveBeenCalled();
+  });
+});
+
+describe("ModelViewer GPU resource cleanup (#74)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("traverses scene to dispose GPU resources on unmount", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    unmount();
+    expect(mockTraverse).toHaveBeenCalled();
+  });
+
+  it("disposes OrbitControls on unmount", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    unmount();
+    expect(mockControlsDispose).toHaveBeenCalled();
   });
 });
 
