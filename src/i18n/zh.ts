@@ -103,6 +103,7 @@ export const zh = {
   checkout_country: "國家代碼",
   checkout_note: "點擊結帳將建立訂單並跳轉至付款頁面。",
   checkout_no_woo: "請先連接 WooCommerce 商店。",
+  checkout_required_fields: "請填寫姓名與 Email 地址",
   order_success_title: "✓ 訂單建立成功！",
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
