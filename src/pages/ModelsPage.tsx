@@ -41,10 +41,15 @@ export default function ModelsPage() {
   }, [t]);
 
   const handleRemove = useCallback(async (id: number) => {
-    await deleteModel(id);
-    setModels((prev) => prev.filter((m) => m.id !== id));
-    setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-  }, []);
+    try {
+      await deleteModel(id);
+      setModels((prev) => prev.filter((m) => m.id !== id));
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    } catch (err) {
+      console.error("Failed to delete model:", id, err);
+      toast.error(t("models_delete_failed"));
+    }
+  }, [t]);
 
   const toggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -66,18 +71,28 @@ export default function ModelsPage() {
     const confirmed = window.confirm(t("models_delete_selected_confirm", { n: selectedIds.size }));
     if (!confirmed) return;
     const ids = [...selectedIds];
-    await deleteMultipleModels(ids);
-    setModels((prev) => prev.filter((m) => !selectedIds.has(m.id)));
-    setSelectedIds(new Set());
+    try {
+      await deleteMultipleModels(ids);
+      setModels((prev) => prev.filter((m) => !selectedIds.has(m.id)));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Failed to delete selected models:", ids, err);
+      toast.error(t("models_delete_failed"));
+    }
   }, [selectedIds, t]);
 
   const handleDeleteAll = useCallback(async () => {
     if (models.length === 0) return;
     const confirmed = window.confirm(t("models_delete_all_confirm", { n: models.length }));
     if (!confirmed) return;
-    await deleteAllModels();
-    setModels([]);
-    setSelectedIds(new Set());
+    try {
+      await deleteAllModels();
+      setModels([]);
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Failed to delete all models:", err);
+      toast.error(t("models_delete_failed"));
+    }
   }, [models.length, t]);
 
   const allSelected = models.length > 0 && selectedIds.size === models.length;

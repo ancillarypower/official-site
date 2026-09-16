@@ -183,4 +183,56 @@ describe("ModelsPage", () => {
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  it("shows toast.error and keeps model in list when deleteModel fails", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    mockDeleteModel.mockRejectedValueOnce(new Error("IndexedDB delete failed"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    });
+
+    // Click the remove button for the first model (aria-label="Remove cube.glb")
+    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
+      );
+    });
+    // Model should still be in the list (UI not updated on failure)
+    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to delete model:",
+      1,
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("shows toast.error when deleteAllModels fails", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    mockDeleteAllModels.mockRejectedValueOnce(new Error("IndexedDB clear failed"));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText(/\u5168\u90E8\u522A\u9664/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText(/\u5168\u90E8\u522A\u9664/));
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
+      );
+    });
+    // Models should still be in the list
+    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to delete all models:",
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
 });
