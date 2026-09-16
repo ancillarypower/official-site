@@ -49,7 +49,7 @@ export function HeroBanner() {
     resize();
     window.addEventListener("resize", resize);
 
-    let animId: number;
+    let animId = 0;
 
     function draw() {
       if (!canvas || !ctx) return;
@@ -97,10 +97,33 @@ export function HeroBanner() {
       animId = requestAnimationFrame(draw);
     }
 
-    draw();
+    function startLoop() {
+      if (animId === 0) {
+        animId = requestAnimationFrame(draw);
+      }
+    }
+
+    function stopLoop() {
+      if (animId !== 0) {
+        cancelAnimationFrame(animId);
+        animId = 0;
+      }
+    }
+
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    });
+    io.observe(canvas);
+
+    startLoop();
 
     return () => {
-      cancelAnimationFrame(animId);
+      stopLoop();
+      io.disconnect();
       window.removeEventListener("resize", resize);
     };
   }, []);
