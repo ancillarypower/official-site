@@ -3,6 +3,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 
 describe("settingsStore deep tests", () => {
   beforeEach(() => {
+    localStorage.clear();
     useSettingsStore.setState({
       wpUrl: "https://test.example.com",
       wooKey: "",

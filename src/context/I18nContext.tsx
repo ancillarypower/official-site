@@ -21,11 +21,31 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 const translations: Record<Lang, Record<TranslationKey, string>> = { zh, en };
 
+const LANG_STORAGE_KEY = "ap-lang";
+
+function getInitialLang(): Lang {
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored === "zh" || stored === "en") return stored;
+  } catch {
+    // localStorage unavailable (e.g. security restrictions)
+  }
+  return "zh";
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("zh");
+  const [lang, setLang] = useState<Lang>(getInitialLang);
 
   const toggleLang = useCallback(() => {
-    setLang((prev) => (prev === "zh" ? "en" : "zh"));
+    setLang((prev) => {
+      const next = prev === "zh" ? "en" : "zh";
+      try {
+        localStorage.setItem(LANG_STORAGE_KEY, next);
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
   }, []);
 
   const t = useCallback(

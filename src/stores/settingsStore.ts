@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type Theme = "light" | "sepia" | "dark";
 
@@ -57,58 +58,108 @@ function applyTheme(theme: Theme) {
   }
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
-  wpUrl: import.meta.env.VITE_WP_URL || "https://www.ancillarypower.com",
-  setWpUrl: (url) => set({ wpUrl: url }),
+/** Current schema version for the persisted settings state. */
+export const SETTINGS_VERSION = 1;
 
-  wooKey: import.meta.env.VITE_WOO_KEY || "",
-  wooSecret: import.meta.env.VITE_WOO_SECRET || "",
-  wooUrl: "",
-  wooUseSameUrl: true,
-  setWooKey: (key) => set({ wooKey: key }),
-  setWooSecret: (secret) => set({ wooSecret: secret }),
-  setWooUrl: (url) => set({ wooUrl: url }),
-  setWooUseSameUrl: (use) => set({ wooUseSameUrl: use }),
+/**
+ * Migrate persisted settings data from older versions.
+ *
+ * Version 0 (implicit): No persisted settings existed before this change.
+ * Version 1: Initial persist schema. Preserves any existing data as-is.
+ */
+export function migrateSettings(
+  persisted: unknown,
+  version: number,
+): Partial<SettingsState> | Record<string, unknown> {
+  if (version === 0) {
+    return persisted as Record<string, unknown>;
+  }
+  return persisted as Partial<SettingsState>;
+}
 
-  useProxy: false,
-  setUseProxy: (use) => set({ useProxy: use }),
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set, get) => ({
+      wpUrl: import.meta.env.VITE_WP_URL || "https://www.ancillarypower.com",
+      setWpUrl: (url) => set({ wpUrl: url }),
 
-  contentType: "posts",
-  perPage: 20,
-  wooPerPage: 20,
-  setContentType: (type) => set({ contentType: type }),
-  setPerPage: (n) => set({ perPage: n }),
-  setWooPerPage: (n) => set({ wooPerPage: n }),
+      wooKey: import.meta.env.VITE_WOO_KEY || "",
+      wooSecret: import.meta.env.VITE_WOO_SECRET || "",
+      wooUrl: "",
+      wooUseSameUrl: true,
+      setWooKey: (key) => set({ wooKey: key }),
+      setWooSecret: (secret) => set({ wooSecret: secret }),
+      setWooUrl: (url) => set({ wooUrl: url }),
+      setWooUseSameUrl: (use) => set({ wooUseSameUrl: use }),
 
-  fontScale: 1,
-  setFontScale: (scale) => {
-    const clamped = Math.max(0.7, Math.min(1.5, scale));
-    document.documentElement.style.setProperty("--font-scale", String(clamped));
-    set({ fontScale: clamped });
-  },
+      useProxy: false,
+      setUseProxy: (use) => set({ useProxy: use }),
 
-  theme: "light",
-  setTheme: (theme) => {
-    applyTheme(theme);
-    set({ theme });
-  },
-  cycleTheme: () => {
-    const current = get().theme;
-    const idx = THEME_ORDER.indexOf(current);
-    const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length]!;
-    applyTheme(next);
-    set({ theme: next });
-  },
+      contentType: "posts",
+      perPage: 20,
+      wooPerPage: 20,
+      setContentType: (type) => set({ contentType: type }),
+      setPerPage: (n) => set({ perPage: n }),
+      setWooPerPage: (n) => set({ wooPerPage: n }),
 
-  activePanel: null,
-  openPanel: (panel) => set({ activePanel: panel }),
-  closePanel: () => set({ activePanel: null }),
+      fontScale: 1,
+      setFontScale: (scale) => {
+        const clamped = Math.max(0.7, Math.min(1.5, scale));
+        document.documentElement.style.setProperty("--font-scale", String(clamped));
+        set({ fontScale: clamped });
+      },
 
-  getWooBaseUrl: () => {
-    const state = get();
-    let url = state.wooUseSameUrl ? state.wpUrl : state.wooUrl;
-    url = url.trim().replace(/\/+$/, "");
-    if (url && !url.startsWith("http")) url = "https://" + url;
-    return url;
-  },
-}));
+      theme: "light",
+      setTheme: (theme) => {
+        applyTheme(theme);
+        set({ theme });
+      },
+      cycleTheme: () => {
+        const current = get().theme;
+        const idx = THEME_ORDER.indexOf(current);
+        const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length]!;
+        applyTheme(next);
+        set({ theme: next });
+      },
+
+      activePanel: null,
+      openPanel: (panel) => set({ activePanel: panel }),
+      closePanel: () => set({ activePanel: null }),
+
+      getWooBaseUrl: () => {
+        const state = get();
+        let url = state.wooUseSameUrl ? state.wpUrl : state.wooUrl;
+        url = url.trim().replace(/\/+$/, "");
+        if (url && !url.startsWith("http")) url = "https://" + url;
+        return url;
+      },
+    }),
+    {
+      name: "ap-settings",
+      version: SETTINGS_VERSION,
+      migrate: migrateSettings,
+      partialize: (state) => ({
+        fontScale: state.fontScale,
+        theme: state.theme,
+        wpUrl: state.wpUrl,
+        wooUrl: state.wooUrl,
+        wooUseSameUrl: state.wooUseSameUrl,
+        contentType: state.contentType,
+        perPage: state.perPage,
+        wooPerPage: state.wooPerPage,
+        useProxy: state.useProxy,
+      }),
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (state && !error) {
+            applyTheme(state.theme);
+            document.documentElement.style.setProperty(
+              "--font-scale",
+              String(state.fontScale),
+            );
+          }
+        };
+      },
+    },
+  ),
+);

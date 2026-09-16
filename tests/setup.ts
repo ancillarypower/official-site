@@ -28,3 +28,8 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 vi.stubEnv("VITE_WP_URL", "https://test.example.com");
 vi.stubEnv("VITE_WOO_KEY", "");
 vi.stubEnv("VITE_WOO_SECRET", "");
+
+// Clear localStorage between tests to prevent Zustand persist cross-test contamination
+afterEach(() => {
+  localStorage.clear();
+});
