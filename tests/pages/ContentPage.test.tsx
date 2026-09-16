@@ -37,6 +37,7 @@ function renderPage(route = "/") {
 
 describe("ContentPage", () => {
   beforeEach(() => {
+    mockUseWordPress.mockClear();
     useSettingsStore.setState({ contentType: "posts", perPage: 20 });
     mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },

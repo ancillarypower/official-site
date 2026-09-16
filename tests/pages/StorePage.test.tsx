@@ -32,6 +32,7 @@ function renderPage(route = "/") {
 
 describe("StorePage", () => {
   beforeEach(() => {
+    mockUseWooProducts.mockClear();
     useCartStore.setState({ items: [] });
     useSettingsStore.setState({ wooPerPage: 20 });
     mockUseWooProducts.mockReturnValue({ data: undefined });
