@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { I18nProvider, useI18n } from "@/context/I18nContext";
 
@@ -15,6 +15,10 @@ function TestConsumer() {
 }
 
 describe("I18nContext", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("defaults to Chinese", () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("lang").textContent).toBe("zh");
@@ -41,5 +45,27 @@ describe("I18nContext", () => {
 
   it("throws when used outside provider", () => {
     expect(() => render(<TestConsumer />)).toThrow("useI18n must be used within I18nProvider");
+  });
+
+  // --- localStorage persistence tests ---
+
+  it("reads initial language from localStorage", () => {
+    localStorage.setItem("ap-lang", "en");
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(screen.getByTestId("lang").textContent).toBe("en");
+    expect(screen.getByTestId("translated").textContent).toBe("Content");
+  });
+
+  it("persists language choice to localStorage on toggle", () => {
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(localStorage.getItem("ap-lang")).toBeNull();
+    fireEvent.click(screen.getByText("Toggle"));
+    expect(localStorage.getItem("ap-lang")).toBe("en");
+  });
+
+  it("falls back to zh when localStorage has invalid value", () => {
+    localStorage.setItem("ap-lang", "fr");
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(screen.getByTestId("lang").textContent).toBe("zh");
   });
 });

@@ -3,6 +3,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 
 describe("settingsStore", () => {
   beforeEach(() => {
+    localStorage.clear();
     document.documentElement.style.removeProperty("--font-scale");
     document.documentElement.removeAttribute("data-theme");
     useSettingsStore.setState({ wpUrl: "https://www.ancillarypower.com", wooKey: "", wooSecret: "", wooUrl: "", wooUseSameUrl: true, useProxy: false, contentType: "posts", perPage: 20, wooPerPage: 20, fontScale: 1, theme: "light", activePanel: null });
@@ -121,5 +122,79 @@ describe("settingsStore", () => {
     useSettingsStore.getState().cycleTheme();
     expect(useSettingsStore.getState().theme).toBe("light");
     expect(document.documentElement.getAttribute("data-theme")).toBeNull();
+  });
+
+  // --- Persist middleware tests ---
+
+  it("persists fontScale and theme to localStorage after state change", () => {
+    useSettingsStore.getState().setFontScale(1.3);
+    useSettingsStore.getState().setTheme("dark");
+    const stored = JSON.parse(localStorage.getItem("ap-settings") || "{}");
+    expect(stored.state.fontScale).toBe(1.3);
+    expect(stored.state.theme).toBe("dark");
+  });
+
+  it("restores fontScale and theme from localStorage on rehydrate", async () => {
+    localStorage.setItem(
+      "ap-settings",
+      JSON.stringify({
+        state: {
+          fontScale: 1.3,
+          theme: "dark",
+          wpUrl: "https://example.com",
+          wooUrl: "",
+          wooUseSameUrl: true,
+          contentType: "posts",
+          perPage: 20,
+          wooPerPage: 20,
+          useProxy: false,
+        },
+        version: 1,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    expect(useSettingsStore.getState().fontScale).toBe(1.3);
+    expect(useSettingsStore.getState().theme).toBe("dark");
+  });
+
+  it("does not persist wooKey or wooSecret to localStorage", () => {
+    useSettingsStore.getState().setWooKey("ck_secret_key");
+    useSettingsStore.getState().setWooSecret("cs_secret_value");
+    const stored = JSON.parse(localStorage.getItem("ap-settings") || "{}");
+    expect(stored.state).not.toHaveProperty("wooKey");
+    expect(stored.state).not.toHaveProperty("wooSecret");
+  });
+
+  it("does not persist activePanel to localStorage", () => {
+    useSettingsStore.getState().openPanel("settings");
+    const stored = JSON.parse(localStorage.getItem("ap-settings") || "{}");
+    expect(stored.state).not.toHaveProperty("activePanel");
+  });
+
+  it("onRehydrateStorage reapplies --font-scale and data-theme to DOM", async () => {
+    localStorage.setItem(
+      "ap-settings",
+      JSON.stringify({
+        state: {
+          fontScale: 1.4,
+          theme: "sepia",
+          wpUrl: "https://example.com",
+          wooUrl: "",
+          wooUseSameUrl: true,
+          contentType: "posts",
+          perPage: 20,
+          wooPerPage: 20,
+          useProxy: false,
+        },
+        version: 1,
+      }),
+    );
+    document.documentElement.style.removeProperty("--font-scale");
+    document.documentElement.removeAttribute("data-theme");
+    await useSettingsStore.persist.rehydrate();
+    expect(
+      document.documentElement.style.getPropertyValue("--font-scale"),
+    ).toBe("1.4");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("sepia");
   });
 });
