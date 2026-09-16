@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useI18n } from "@/context/I18nContext";
 import { ModelViewer } from "./ModelViewer";
 
 interface ModelCardProps {
@@ -11,12 +13,38 @@ interface ModelCardProps {
 }
 
 export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove }: ModelCardProps) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className={`animate-fade-in overflow-hidden rounded-xl border bg-surface-raised transition-colors ${
       selected ? "border-accent ring-2 ring-accent/30" : "border-border-subtle"
     }`}>
       <div className="relative">
-        <ModelViewer name={name} ext={ext} modelId={modelId} />
+        {expanded ? (
+          <>
+            <ModelViewer name={name} ext={ext} modelId={modelId} />
+            <button
+              onClick={() => setExpanded(false)}
+              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded bg-surface-raised/80 text-xs text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
+              aria-label={t("models_collapse_3d")}
+            >
+              ✕
+            </button>
+          </>
+        ) : (
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-[oklch(14%_0.008_250)]">
+            <span className="rounded bg-surface-raised/60 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-tertiary">
+              {ext.toUpperCase()}
+            </span>
+            <button
+              onClick={() => setExpanded(true)}
+              className="rounded-md bg-accent/80 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent"
+            >
+              {t("models_view_3d")}
+            </button>
+          </div>
+        )}
         {onToggleSelect && (
           <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-surface-raised/80 backdrop-blur-sm">
             <input

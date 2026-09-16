@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 
+vi.mock("@/context/I18nContext", () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}));
+
 vi.mock("@/components/models/ModelViewer", () => ({
   ModelViewer: (props: { name: string }) =>
     createElement("div", { "data-testid": "model-viewer", "data-name": props.name }),
@@ -45,8 +49,9 @@ describe("ModelCard", () => {
     expect(onRemove).toHaveBeenCalledOnce();
   });
 
-  it("passes name to ModelViewer", () => {
+  it("passes name to ModelViewer after expanding", () => {
     render(createElement(ModelCard, defaultProps));
+    fireEvent.click(screen.getByText("models_view_3d"));
     expect(screen.getByTestId("model-viewer")).toHaveAttribute("data-name", "robot.glb");
   });
 
@@ -90,5 +95,29 @@ describe("ModelCard", () => {
     const card = container.firstElementChild as HTMLElement;
     expect(card.className).toContain("border-border-subtle");
     expect(card.className).not.toContain("ring-2");
+  });
+
+  // Regression tests for click-to-activate (Issue #79)
+  it("does not render ModelViewer by default", () => {
+    render(createElement(ModelCard, defaultProps));
+    expect(screen.queryByTestId("model-viewer")).not.toBeInTheDocument();
+    expect(screen.getByText("models_view_3d")).toBeInTheDocument();
+    expect(screen.getByText("GLB")).toBeInTheDocument();
+  });
+
+  it("renders ModelViewer after clicking expand button", () => {
+    render(createElement(ModelCard, defaultProps));
+    expect(screen.queryByTestId("model-viewer")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("models_view_3d"));
+    expect(screen.getByTestId("model-viewer")).toBeInTheDocument();
+  });
+
+  it("removes ModelViewer after clicking collapse button", () => {
+    render(createElement(ModelCard, defaultProps));
+    fireEvent.click(screen.getByText("models_view_3d"));
+    expect(screen.getByTestId("model-viewer")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("models_collapse_3d"));
+    expect(screen.queryByTestId("model-viewer")).not.toBeInTheDocument();
+    expect(screen.getByText("models_view_3d")).toBeInTheDocument();
   });
 });

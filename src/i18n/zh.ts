@@ -31,6 +31,8 @@ export const zh = {
   models_upload_error: "{name} 儲存失敗",
   models_delete_failed: "刪除模型失敗",
   models_gpu_lost: "GPU 資源已回收，等待恢復中…",
+  models_view_3d: "檢視 3D 模型",
+  models_collapse_3d: "收合 3D 檢視器",
 
   store_title: "商店",
   store_products: "{n} 項商品",
