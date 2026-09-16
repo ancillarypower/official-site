@@ -83,8 +83,11 @@ export const useSettingsStore = create<SettingsState>()(
       wpUrl: import.meta.env.VITE_WP_URL || "https://www.ancillarypower.com",
       setWpUrl: (url) => set({ wpUrl: url }),
 
-      wooKey: import.meta.env.VITE_WOO_KEY || "",
-      wooSecret: import.meta.env.VITE_WOO_SECRET || "",
+      // Security: credentials must ONLY be entered via the UI Settings panel.
+      // Never use VITE_* env vars for secrets — Vite embeds them in the
+      // client bundle at build time.  See GitHub issue #247.
+      wooKey: "",
+      wooSecret: "",
       wooUrl: "",
       wooUseSameUrl: true,
       setWooKey: (key) => set({ wooKey: key }),

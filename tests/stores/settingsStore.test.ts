@@ -197,4 +197,45 @@ describe("settingsStore", () => {
     ).toBe("1.4");
     expect(document.documentElement.getAttribute("data-theme")).toBe("sepia");
   });
+
+  // --- Security regression: #247 ---
+
+  it("credentials default to empty strings, never from env vars (#247)", () => {
+    // Regression guard for GitHub issue #247 (CWE-200).
+    // wooKey / wooSecret must be hardcoded to "" — never initialised from
+    // VITE_* environment variables, which Vite embeds in the client bundle.
+    // The CI guard step also prevents adding VITE_*SECRET/KEY to .env.example.
+    const s = useSettingsStore.getState();
+    expect(s.wooKey).toBe("");
+    expect(s.wooSecret).toBe("");
+  });
+
+  it("credentials remain empty after rehydration from localStorage (#247)", async () => {
+    // Even if a previous version persisted credentials (it shouldn't),
+    // rehydration must not restore them because partialize excludes them.
+    localStorage.setItem(
+      "ap-settings",
+      JSON.stringify({
+        state: {
+          fontScale: 1,
+          theme: "light",
+          wpUrl: "https://www.ancillarypower.com",
+          wooUrl: "",
+          wooUseSameUrl: true,
+          contentType: "posts",
+          perPage: 20,
+          wooPerPage: 20,
+          useProxy: false,
+          wooKey: "ck_leaked",
+          wooSecret: "cs_leaked",
+        },
+        version: 1,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    // partialize excludes wooKey/wooSecret, so even if someone manually
+    // injected them into localStorage they should not overwrite state.
+    expect(useSettingsStore.getState().wooKey).toBe("");
+    expect(useSettingsStore.getState().wooSecret).toBe("");
+  });
 });

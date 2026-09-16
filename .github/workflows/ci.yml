@@ -12,6 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Guard against exposed secrets in VITE_ env vars
+        run: |
+          if grep -rE 'VITE_.*(SECRET|KEY|TOKEN|PASSWORD)' .env.example; then
+            echo "::error::Sensitive variables must not use VITE_ prefix — they are embedded in the client bundle"
+            exit 1
+          fi
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9

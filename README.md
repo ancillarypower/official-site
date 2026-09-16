@@ -72,7 +72,13 @@ src/
 
 ## Environment Variables
 
-See `.env.example`. All prefixed with `VITE_` for client-side access.
+See `.env.example`. Variables prefixed with `VITE_` are embedded in the client-side JavaScript bundle at build time.
+
+| Variable | Purpose |
+|----------|---------||
+| `VITE_WP_URL` | WordPress site URL (no trailing slash) |
+
+> **⚠️ WooCommerce credentials** (`consumer_key` / `consumer_secret`) must **not** be set via `VITE_` environment variables — they would be exposed in the client-side JavaScript bundle. Enter them through the in-app **Settings panel** at runtime instead.
 
 ## License
 
