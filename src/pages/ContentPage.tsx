@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
 import { useI18n } from "@/context/I18nContext";
@@ -26,6 +26,7 @@ function parsePageParam(value: string | null): number {
 export default function ContentPage() {
   const { t } = useI18n();
   const contentType = useSettingsStore((s) => s.contentType);
+  const perPage = useSettingsStore((s) => s.perPage);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
   const articleParam = searchParams.get("article");
@@ -35,6 +36,24 @@ export default function ContentPage() {
       : null;
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("date_desc");
+
+  // Reset page to 1 when contentType or perPage changes (not on mount).
+  // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
+  // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
+  const prevContentType = useRef(contentType);
+  const prevPerPage = useRef(perPage);
+
+  useEffect(() => {
+    if (prevContentType.current !== contentType || prevPerPage.current !== perPage) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete("page");
+        return next;
+      }, { replace: true });
+    }
+    prevContentType.current = contentType;
+    prevPerPage.current = perPage;
+  }, [contentType, perPage, setSearchParams]);
 
   const setPage = (p: number) => {
     setSearchParams(prev => {
@@ -86,8 +105,8 @@ export default function ContentPage() {
   }
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <EmptyState icon="⚠️" title={(error as Error).message} />;
-  if (!data?.posts.length) return <EmptyState icon="📭" title={t("no_results")} />;
+  if (error) return <EmptyState icon="\u26a0\ufe0f" title={(error as Error).message} />;
+  if (!data?.posts.length) return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
 
   const typeLabel = t(`type_${contentType}` as const);
 
