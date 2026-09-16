@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
-import type { WebGLRenderer, Object3D, BufferGeometry } from "three";
+import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
 
@@ -8,6 +8,39 @@ interface ModelViewerProps {
   name: string;
   ext: string;
   modelId: number;
+}
+
+/**
+ * Traverse a Three.js scene and dispose all GPU resources:
+ * geometries, materials, and textures attached to Mesh nodes,
+ * plus the scene environment texture.
+ */
+function disposeSceneResources(s: Scene | null): void {
+  if (!s) return;
+  s.traverse((obj: Object3D) => {
+    if ("isMesh" in obj && (obj as { isMesh: boolean }).isMesh) {
+      const mesh = obj as unknown as {
+        geometry?: { dispose: () => void };
+        material?: Material | Material[];
+      };
+      mesh.geometry?.dispose();
+      const mats: Material[] = Array.isArray(mesh.material)
+        ? mesh.material
+        : mesh.material
+          ? [mesh.material]
+          : [];
+      for (const mat of mats) {
+        if (!mat) continue;
+        for (const val of Object.values(mat)) {
+          if (val && typeof val === "object" && "isTexture" in val) {
+            (val as { dispose: () => void }).dispose();
+          }
+        }
+        mat.dispose();
+      }
+    }
+  });
+  (s.environment as { dispose?: () => void } | null)?.dispose?.();
 }
 
 export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
@@ -25,6 +58,12 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let ro: ResizeObserver | null = null;
     let ctxLostHandler: ((e: Event) => void) | null = null;
     let ctxRestoredHandler: (() => void) | null = null;
+    let scene: Scene | null = null;
+    let controls: {
+      update: () => void;
+      dispose: () => void;
+      target: { copy: (v: { x: number; y: number; z: number }) => void };
+    } | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -63,7 +102,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
         const w = el.clientWidth || 400;
         const h = el.clientHeight || 250;
-        const scene = new THREE.Scene();
+        scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e);
         const camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 1000);
         camera.position.set(2, 1.5, 2);
@@ -87,6 +126,10 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           if (disposed) return;
           ro?.disconnect();
           ro = null;
+          disposeSceneResources(scene);
+          controls?.dispose();
+          controls = null;
+          scene = null;
           if (renderer) {
             if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
             if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
@@ -114,14 +157,15 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           /* fallback to directional lights only */
         }
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.08;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 1.5;
+        const oc = new OrbitControls(camera, renderer.domElement);
+        oc.enableDamping = true;
+        oc.dampingFactor = 0.08;
+        oc.autoRotate = true;
+        oc.autoRotateSpeed = 1.5;
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          controls.autoRotate = false;
+          oc.autoRotate = false;
         }
+        controls = oc;
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const dl = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -135,8 +179,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         function animate() {
           if (disposed) return;
           animId = requestAnimationFrame(animate);
-          controls.update();
-          renderer?.render(scene, camera);
+          controls?.update();
+          renderer?.render(scene!, camera);
         }
         animate();
 
@@ -153,7 +197,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         ro.observe(el);
 
         function fitToView(object: Object3D) {
-          scene.add(object);
+          scene!.add(object);
           const box = new THREE.Box3().setFromObject(object);
           if (box.isEmpty()) throw new Error("No visible geometry");
           const center = box.getCenter(new THREE.Vector3());
@@ -168,8 +212,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           camera.near = maxDim * 0.001;
           camera.far = maxDim * 100;
           camera.updateProjectionMatrix();
-          controls.target.copy(center);
-          controls.update();
+          controls!.target.copy(center);
+          controls!.update();
           setStatus("ready");
         }
 
@@ -371,6 +415,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       disposed = true;
       cancelAnimationFrame(animId);
       ro?.disconnect();
+      disposeSceneResources(scene);
+      controls?.dispose();
       if (renderer) {
         if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
         if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
@@ -393,7 +439,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       )}
       {status === "error" && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-[oklch(14%_0.008_250)] p-4 text-center text-sm text-[oklch(65%_0.08_25)]">
-          <span>\u26A0\uFE0F</span>
+          <span>{"\u26A0\uFE0F"}</span>
           <span>
             {t("models_error")}: {errorMsg}
           </span>
