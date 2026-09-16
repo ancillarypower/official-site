@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { PostGrid } from "@/components/content/PostGrid";
@@ -37,6 +38,9 @@ export default function ContentPage() {
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("date_desc");
 
+  // Debounce search input before sending to WordPress REST API (300 ms).
+  const debouncedSearch = useDebouncedValue(filter, 300);
+
   // Reset page to 1 when contentType or perPage changes (not on mount).
   // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
   // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
@@ -64,13 +68,12 @@ export default function ContentPage() {
     }, { replace: true });
   };
 
-  const { data, isLoading, error } = useWordPress(page);
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useWordPress(page, debouncedSearch);
 
+  // Client-side sort only; search is delegated to WP REST API `search` param.
   const filteredPosts = useMemo(() => {
     if (!data?.posts) return [];
-    let posts = [...data.posts];
-    const q = filter.toLowerCase().trim();
-    if (q) posts = posts.filter((p) => getPostTitle(p).toLowerCase().includes(q));
+    const posts = [...data.posts];
     switch (sort) {
       case "date_desc":
         posts.sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
@@ -86,7 +89,7 @@ export default function ContentPage() {
         break;
     }
     return posts;
-  }, [data?.posts, filter, sort]);
+  }, [data?.posts, sort]);
 
   const selectedPost =
     articleId !== null ? data?.posts.find((p) => p.id === articleId) : undefined;
@@ -117,6 +120,9 @@ export default function ContentPage() {
         <span className="text-xs text-tertiary">
           {t("total_items", { n: data.totalPosts })}
         </span>
+        {isFetching && isPlaceholderData && (
+          <span className="text-xs text-tertiary animate-pulse">{t("loading")}</span>
+        )}
       </div>
       <ContentToolbar
         filterValue={filter}
@@ -131,17 +137,19 @@ export default function ContentPage() {
         }}
         sortOptions={SORT_OPTIONS}
       />
-      <PostGrid
-        posts={filteredPosts}
-        onSelectPost={(i) => {
-          const post = filteredPosts[i];
-          if (post) setSearchParams(prev => {
-            const next = new URLSearchParams(prev);
-            next.set("article", String(post.id));
-            return next;
-          });
-        }}
-      />
+      <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
+        <PostGrid
+          posts={filteredPosts}
+          onSelectPost={(i) => {
+            const post = filteredPosts[i];
+            if (post) setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              next.set("article", String(post.id));
+              return next;
+            });
+          }}
+        />
+      </div>
       <Pagination
         currentPage={page}
         totalPages={data.totalPages}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
@@ -42,6 +42,8 @@ describe("ContentPage", () => {
     mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
       isLoading: false,
+      isFetching: false,
+      isPlaceholderData: false,
       error: null,
     });
   });
@@ -54,22 +56,15 @@ describe("ContentPage", () => {
   });
 
   it("shows loading spinner", () => {
-    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: true, error: null });
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, isPlaceholderData: false, error: null });
     renderPage();
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("shows error state", () => {
-    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: false, error: new Error("API Error") });
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isPlaceholderData: false, error: new Error("API Error") });
     renderPage();
     expect(screen.getByText("API Error")).toBeInTheDocument();
-  });
-
-  it("filters posts by search", () => {
-    renderPage();
-    fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "gamma" } });
-    expect(screen.getByText("Gamma Article")).toBeInTheDocument();
-    expect(screen.queryByText("Post Alpha")).toBeNull();
   });
 
   it("renders pagination", () => {
@@ -124,6 +119,8 @@ describe("ContentPage", () => {
     mockUseWordPress.mockReturnValue({
       data: { posts: [], totalPages: 0, totalPosts: 0 },
       isLoading: false,
+      isFetching: false,
+      isPlaceholderData: false,
       error: null,
     });
     renderPage();
@@ -134,58 +131,102 @@ describe("ContentPage", () => {
 
   it("reads page from URL and passes to useWordPress", () => {
     renderPage("/?page=2");
-    expect(mockUseWordPress).toHaveBeenCalledWith(2);
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "");
   });
 
   it("defaults to page 1 when page param is missing", () => {
     renderPage("/");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "");
   });
 
   it("defaults to page 1 for non-numeric page param", () => {
     renderPage("/?page=abc");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "");
   });
 
   it("floors fractional page param", () => {
     renderPage("/?page=2.9");
-    expect(mockUseWordPress).toHaveBeenCalledWith(2);
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "");
   });
 
   it("clamps zero and negative page to 1", () => {
     renderPage("/?page=0");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "");
   });
 
   it("preserves page param when selecting an article", () => {
     renderPage("/?page=2");
     fireEvent.click(screen.getByText("Post Alpha"));
-    expect(mockUseWordPress).toHaveBeenCalledWith(2);
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "");
   });
 
   // --- Pagination reset on settings change regression tests ---
 
   it("resets page when contentType changes", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3);
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "");
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "");
   });
 
   it("resets page when perPage changes", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3);
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "");
     act(() => {
       useSettingsStore.setState({ perPage: 50 });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "");
   });
 
   it("does not reset page on initial mount", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3);
-    expect(mockUseWordPress).not.toHaveBeenCalledWith(1);
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "");
+    expect(mockUseWordPress).not.toHaveBeenCalledWith(1, "");
+  });
+
+  // --- Server-side search delegation tests ---
+
+  describe("search delegation", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("delegates search to WordPress REST API via debounced query", () => {
+      renderPage();
+      expect(mockUseWordPress).toHaveBeenCalledWith(1, "");
+      fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "gamma" } });
+      // Before debounce fires, still called with empty search
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "");
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "gamma");
+    });
+
+    it("does not pass search to API before debounce delay", () => {
+      renderPage();
+      fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "test" } });
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(mockUseWordPress).not.toHaveBeenCalledWith(expect.anything(), "test");
+    });
+
+    it("resets page to 1 when search input changes", () => {
+      renderPage("/?page=3");
+      expect(mockUseWordPress).toHaveBeenCalledWith(3, "");
+      fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "energy" } });
+      // onFilterChange calls setPage(1) immediately
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "energy");
+    });
   });
 });
