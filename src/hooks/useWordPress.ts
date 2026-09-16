@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchWithProxy, wpApiUrl } from "@/lib/api";
 import { wpPostArraySchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -29,14 +29,15 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
   };
 }
 
-export function useWordPress(page: number = 1) {
+export function useWordPress(page: number = 1, search: string = "") {
   const { wpUrl, contentType, perPage, useProxy } = useSettingsStore();
 
   return useQuery<WpQueryResult>({
-    queryKey: ["wp-content", wpUrl, contentType, perPage, page],
+    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search],
     queryFn: async () => {
       const api = wpApiUrl(wpUrl);
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed`;
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed${searchParam}`;
 
       const response = await fetchWithProxy(url, useProxy);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -67,5 +68,6 @@ export function useWordPress(page: number = 1) {
       return { posts: parsed.data, totalPages, totalPosts: totalPosts || parsed.data.length };
     },
     enabled: !!wpUrl,
+    placeholderData: keepPreviousData,
   });
 }
