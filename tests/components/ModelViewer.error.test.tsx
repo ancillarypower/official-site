@@ -35,7 +35,7 @@ vi.mock("web-ifc", () => ({
 
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
-  Scene: vi.fn().mockImplementation(() => ({ background: null, environment: null, add: vi.fn() })),
+  Scene: vi.fn().mockImplementation(() => ({ background: null, environment: null, add: vi.fn(), traverse: vi.fn() })),
   PerspectiveCamera: vi.fn().mockImplementation(() => ({
     position: { set: vi.fn() }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: vi.fn(),
   })),
@@ -67,7 +67,7 @@ vi.mock("three", async () => ({
 vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   OrbitControls: vi.fn().mockImplementation(() => ({
     enableDamping: false, dampingFactor: 0, autoRotate: false, autoRotateSpeed: 0,
-    target: { copy: vi.fn() }, update: vi.fn(),
+    target: { copy: vi.fn() }, update: vi.fn(), dispose: vi.fn(),
   })),
 }));
 // GLTFLoader delegates to gltfParseSpy so each test can set its behavior.
