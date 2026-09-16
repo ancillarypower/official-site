@@ -249,4 +249,21 @@ describe("CartPanel", () => {
 
     expect(mockCheckout).not.toHaveBeenCalled();
   });
+
+  /* ── Issue #75 Regression Test ── */
+
+  it("shows field validation error instead of WooCommerce error when billing is incomplete", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test" });
+    render(withProviders(<CartPanel />));
+
+    // Click checkout without filling billing fields
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    // Should show the correct validation message, not the WooCommerce connection message
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D\u8207 Email/)).toBeInTheDocument();
+    expect(screen.queryByText(/\u8ACB\u5148\u9023\u63A5 WooCommerce/)).not.toBeInTheDocument();
+  });
 });
