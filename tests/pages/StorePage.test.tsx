@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCartStore } from "@/stores/cartStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 const { mockUseWooProducts } = vi.hoisted(() => ({
   mockUseWooProducts: vi.fn(),
@@ -31,7 +32,9 @@ function renderPage(route = "/") {
 
 describe("StorePage", () => {
   beforeEach(() => {
+    mockUseWooProducts.mockClear();
     useCartStore.setState({ items: [] });
+    useSettingsStore.setState({ wooPerPage: 20 });
     mockUseWooProducts.mockReturnValue({ data: undefined });
   });
 
@@ -137,5 +140,16 @@ describe("StorePage", () => {
   it("clamps zero and negative page to 1", () => {
     renderPage("/?page=-5");
     expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+  });
+
+  // --- Pagination reset on settings change regression tests ---
+
+  it("resets page when wooPerPage changes", () => {
+    renderPage("/?page=2");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2);
+    act(() => {
+      useSettingsStore.setState({ wooPerPage: 50 });
+    });
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
   });
 });

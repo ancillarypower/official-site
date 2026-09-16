@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { useWooProducts } from "@/hooks/useWooCommerce";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { ProductGrid } from "@/components/store/ProductGrid";
 import { Pagination } from "@/components/ui/Pagination";
 import { ContentToolbar } from "@/components/ui/ContentToolbar";
@@ -24,12 +25,29 @@ function parsePageParam(value: string | null): number {
 
 export default function StorePage() {
   const { t } = useI18n();
+  const wooPerPage = useSettingsStore((s) => s.wooPerPage);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("default");
   const { data: wooData } = useWooProducts(page);
   const usingSamples = !wooData;
+
+  // Reset page to 1 when wooPerPage changes (not on mount).
+  // usePrevious ref pattern: mount -> ref === current -> skip; value change ->
+  // ref !== current -> reset page. StrictMode-safe.
+  const prevWooPerPage = useRef(wooPerPage);
+
+  useEffect(() => {
+    if (prevWooPerPage.current !== wooPerPage) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete("page");
+        return next;
+      }, { replace: true });
+    }
+    prevWooPerPage.current = wooPerPage;
+  }, [wooPerPage, setSearchParams]);
 
   const setPage = (p: number) => {
     setSearchParams(prev => {
@@ -67,7 +85,7 @@ export default function StorePage() {
       <div className="mb-4 flex items-baseline gap-3 border-b border-border-subtle pb-4">
         <h2 className="text-lg font-bold">{t("store_title")}</h2>
         <span className="text-xs text-tertiary">{t("store_products", { n: totalProducts })}</span>
-        {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">🔗 WooCommerce</span>}
+        {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">\ud83d\udd17 WooCommerce</span>}
       </div>
       <ContentToolbar filterValue={filter} onFilterChange={(v) => { setFilter(v); if (page !== 1) setPage(1); }} sortValue={sort} onSortChange={(v) => { setSort(v); if (page !== 1) setPage(1); }} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
       <ProductGrid products={filteredProducts} />

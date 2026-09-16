@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,7 +37,8 @@ function renderPage(route = "/") {
 
 describe("ContentPage", () => {
   beforeEach(() => {
-    useSettingsStore.setState({ contentType: "posts" });
+    mockUseWordPress.mockClear();
+    useSettingsStore.setState({ contentType: "posts", perPage: 20 });
     mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
       isLoading: false,
@@ -160,5 +161,31 @@ describe("ContentPage", () => {
     renderPage("/?page=2");
     fireEvent.click(screen.getByText("Post Alpha"));
     expect(mockUseWordPress).toHaveBeenCalledWith(2);
+  });
+
+  // --- Pagination reset on settings change regression tests ---
+
+  it("resets page when contentType changes", () => {
+    renderPage("/?page=3");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3);
+    act(() => {
+      useSettingsStore.setState({ contentType: "categories" });
+    });
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1);
+  });
+
+  it("resets page when perPage changes", () => {
+    renderPage("/?page=3");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3);
+    act(() => {
+      useSettingsStore.setState({ perPage: 50 });
+    });
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1);
+  });
+
+  it("does not reset page on initial mount", () => {
+    renderPage("/?page=3");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3);
+    expect(mockUseWordPress).not.toHaveBeenCalledWith(1);
   });
 });
