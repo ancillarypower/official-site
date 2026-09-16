@@ -152,6 +152,14 @@ export const useSettingsStore = create<SettingsState>()(
         wooPerPage: state.wooPerPage,
         useProxy: state.useProxy,
       }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<SettingsState>),
+        // Defense-in-depth: never restore credentials from storage,
+        // even if localStorage was tampered with.  See #247.
+        wooKey: "",
+        wooSecret: "",
+      }),
       onRehydrateStorage: () => {
         return (state, error) => {
           if (state && !error) {
