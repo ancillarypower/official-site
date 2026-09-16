@@ -193,9 +193,8 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     });
 
-    // Find and click the remove button for the first model
-    const removeButtons = screen.getAllByRole("button", { name: /remove|\u522A\u9664|\u00d7|\u2715/i });
-    fireEvent.click(removeButtons[0]);
+    // Click the remove button for the first model (aria-label="Remove cube.glb")
+    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith(
