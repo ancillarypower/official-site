@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D, BufferGeometry } from "three";
-import { IFC_WASM_CDN } from "@/lib/constants";
+import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
 
 interface ModelViewerProps {
@@ -308,9 +308,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         } else if (ext === "glb" || ext === "gltf") {
           const loader = new GLTFLoader();
           const draco = new DRACOLoader();
-          draco.setDecoderPath(
-            "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/",
-          );
+          draco.setDecoderPath(DRACO_CDN);
           loader.setDRACOLoader(draco);
           const payload =
             ext === "gltf"
