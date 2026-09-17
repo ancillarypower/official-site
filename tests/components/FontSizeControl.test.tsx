@@ -40,9 +40,6 @@ describe("FontSizeControl", () => {
   it("sets --font-scale on :root (consumed by #scalable-content zoom)", () => {
     render(<FontSizeControl />);
     fireEvent.click(screen.getByLabelText("Increase font size"));
-    // --font-scale is set on documentElement (:root); CSS applies it as
-    // zoom on #scalable-content (wrapping HeroBanner, main, and Footer),
-    // so the Navbar (including this control) stays at its original size.
     expect(
       document.documentElement.style.getPropertyValue("--font-scale")
     ).toBe("1.1");
@@ -51,10 +48,20 @@ describe("FontSizeControl", () => {
   it("does not apply inline font-size or zoom to the control container", () => {
     render(<FontSizeControl />);
     fireEvent.click(screen.getByLabelText("Increase font size"));
-    // The control lives in the Navbar (outside #scalable-content),
-    // so its own container must not carry any scaling styles.
     const container = screen.getByLabelText("Decrease font size").closest("div");
     expect(container?.style.fontSize).toBeFalsy();
     expect(container?.style.zoom).toBeFalsy();
+  });
+
+  it("renders reset button", () => {
+    render(<FontSizeControl />);
+    expect(screen.getByLabelText("Reset font size")).toBeInTheDocument();
+  });
+
+  it("resets font scale to 1 on reset click", () => {
+    useSettingsStore.setState({ fontScale: 1.3 });
+    render(<FontSizeControl />);
+    fireEvent.click(screen.getByLabelText("Reset font size"));
+    expect(useSettingsStore.getState().fontScale).toBeCloseTo(1, 1);
   });
 });

@@ -33,6 +33,13 @@ export function FontSizeControl() {
       <span className="min-w-7 text-center text-[0.65rem] tabular-nums text-tertiary">
         {Math.round(fontScale * 100)}%
       </span>
+      <button
+        onClick={() => setFontScale(1)}
+        className={`flex h-6 w-6 items-center justify-center rounded bg-surface-raised text-xs font-bold text-secondary transition-colors hover:bg-accent-subtle hover:text-accent${fontScale === 1 ? " opacity-30 cursor-default" : ""}`}
+        aria-label="Reset font size"
+      >
+        ↺
+      </button>
     </div>
   );
 }
