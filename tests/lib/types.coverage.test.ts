@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveRendered, getPostTitle, getPostImage, type WpPost } from "@/lib/types";
+import { resolveRendered, getPostTitle, getPostImage, wpPostSchema, type WpPost } from "@/lib/types";
 
 describe("resolveRendered", () => {
   it("returns string directly", () => {
@@ -80,5 +80,23 @@ describe("getPostImage", () => {
       _embedded: { "wp:featuredmedia": [] },
     } as WpPost;
     expect(getPostImage(post)).toBeNull();
+  });
+});
+
+describe("wpPostSchema", () => {
+  it("parses post with missing author name (Issue #323)", () => {
+    const raw = {
+      id: 1,
+      title: { rendered: "Test Post" },
+      date: "2026-01-01",
+      _embedded: {
+        author: [{}],
+      },
+    };
+    const result = wpPostSchema.safeParse(raw);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data._embedded?.author?.[0]?.name).toBe("");
+    }
   });
 });
