@@ -20,16 +20,6 @@ export function resolveEmbedded(raw: unknown): WpPost["_embedded"] {
 
   const author = Array.isArray(obj.author)
     ? obj.author
-        .filter(
-          (a): a is { name: string } =>
-            typeof a === "object" && a !== null && typeof (a as Record<string, unknown>).name === "string",
-        )
-        .map((a) => ({ name: a.name }))
-    : undefined;
-
-  // For author entries that are objects but missing name, default to ""
-  const authorWithDefaults = Array.isArray(obj.author)
-    ? obj.author
         .filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null)
         .map((a) => ({ name: typeof a.name === "string" ? a.name : "" }))
     : undefined;
@@ -57,7 +47,7 @@ export function resolveEmbedded(raw: unknown): WpPost["_embedded"] {
     : undefined;
 
   return {
-    author: authorWithDefaults,
+    author,
     "wp:featuredmedia": media,
     "wp:term": term,
   };
