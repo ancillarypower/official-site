@@ -187,6 +187,7 @@ describe("ModelsPage", () => {
   it("shows toast.error and keeps model in list when deleteModel fails", async () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     mockDeleteModel.mockRejectedValueOnce(new Error("IndexedDB delete failed"));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -209,6 +210,7 @@ describe("ModelsPage", () => {
       expect.any(Error)
     );
     errorSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   it("shows toast.error when deleteAllModels fails", async () => {
@@ -233,6 +235,40 @@ describe("ModelsPage", () => {
       expect.any(Error)
     );
     errorSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  // Regression tests for individual delete confirmation (Issue #328)
+  it("calls deleteModel on individual remove when confirmed", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+
+    await waitFor(() => {
+      expect(mockDeleteModel).toHaveBeenCalledWith(1);
+    });
+    vi.restoreAllMocks();
+  });
+
+  it("does not call deleteModel when individual remove confirm is cancelled", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+
+    // deleteModel should NOT have been called
+    expect(mockDeleteModel).not.toHaveBeenCalled();
+    // Model should still be in the list
+    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 });
