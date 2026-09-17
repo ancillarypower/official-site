@@ -216,12 +216,12 @@ describe("fetchWithProxy", () => {
     expect(callArgs[1]).not.toHaveProperty("headers");
   });
 
-  it("throws when all proxies fail", async () => {
+  it("throws when all proxies fail with diagnostic details", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
 
     await expect(
       fetchWithProxy("https://api.test.com/data", true),
-    ).rejects.toThrow("All CORS proxies failed");
+    ).rejects.toThrow(/All CORS proxies failed/);
   });
 
   it("returns 404 responses without trying next proxy", async () => {
@@ -352,5 +352,36 @@ describe("fetchWithProxy", () => {
     const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(callArgs[1].headers).toEqual({ Authorization: "Basic abc123" });
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  // --- Regression tests for Issue #87: proxy error diagnostics ---
+
+  it("includes per-proxy network error details when all proxies fail (regression #87)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    try {
+      await fetchWithProxy("https://api.test.com/data", true);
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      const msg = (err as Error).message;
+      expect(msg).toMatch(/All CORS proxies failed/);
+      expect(msg).toContain("corsproxy");
+      expect(msg).toContain("allorigins");
+      expect(msg).toContain("Network error");
+    }
+  });
+
+  it("includes HTTP status code when proxies return server errors (regression #87)", async () => {
+    const serverError = new Response("Error", { status: 500 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(serverError));
+
+    try {
+      await fetchWithProxy("https://api.test.com/data", true);
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      const msg = (err as Error).message;
+      expect(msg).toMatch(/All CORS proxies failed/);
+      expect(msg).toContain("HTTP 500");
+    }
   });
 });
