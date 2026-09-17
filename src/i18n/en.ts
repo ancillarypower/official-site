@@ -217,6 +217,7 @@ export const en: Record<TranslationKey, string> = {
   error_title: "Something went wrong",
   error_generic: "An unexpected error occurred. Please reload the page.",
   error_reload: "Reload Page",
+  error_unhandled: "An unexpected error occurred. Please try again later.",
 
   // Accessibility
   a11y_skip_to_content: "Skip to content",
