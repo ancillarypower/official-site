@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore, type Theme } from "@/stores/settingsStore";
 import { CONTENT_TYPES, PER_PAGE_OPTIONS } from "@/lib/constants";
 import { FontSizeControl } from "@/components/ui/FontSizeControl";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const THEME_OPTIONS: { value: Theme; icon: string }[] = [
   { value: "light", icon: "☀" },
@@ -9,9 +11,28 @@ const THEME_OPTIONS: { value: Theme; icon: string }[] = [
   { value: "dark", icon: "🌙" },
 ];
 
+/** Debounce delay (ms) for text inputs that feed into API query keys. */
+const INPUT_DEBOUNCE_MS = 500;
+
 export function SettingsPanel() {
   const { t } = useI18n();
   const s = useSettingsStore();
+
+  // --- Local state + debounce for text inputs that affect queryKeys ---
+  const [localWpUrl, setLocalWpUrl] = useState(s.wpUrl);
+  const [localWooKey, setLocalWooKey] = useState(s.wooKey);
+  const [localWooSecret, setLocalWooSecret] = useState(s.wooSecret);
+  const [localWooUrl, setLocalWooUrl] = useState(s.wooUrl);
+
+  const debouncedWpUrl = useDebouncedValue(localWpUrl, INPUT_DEBOUNCE_MS);
+  const debouncedWooKey = useDebouncedValue(localWooKey, INPUT_DEBOUNCE_MS);
+  const debouncedWooSecret = useDebouncedValue(localWooSecret, INPUT_DEBOUNCE_MS);
+  const debouncedWooUrl = useDebouncedValue(localWooUrl, INPUT_DEBOUNCE_MS);
+
+  useEffect(() => { s.setWpUrl(debouncedWpUrl); }, [debouncedWpUrl]);
+  useEffect(() => { s.setWooKey(debouncedWooKey); }, [debouncedWooKey]);
+  useEffect(() => { s.setWooSecret(debouncedWooSecret); }, [debouncedWooSecret]);
+  useEffect(() => { s.setWooUrl(debouncedWooUrl); }, [debouncedWooUrl]);
 
   return (
     <>
@@ -61,7 +82,7 @@ export function SettingsPanel() {
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("site_url_label")}</span>
-          <input type="url" value={s.wpUrl} onChange={(e) => s.setWpUrl(e.target.value)} className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+          <input type="url" value={localWpUrl} onChange={(e) => setLocalWpUrl(e.target.value)} className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
           <span className="text-[0.675rem] text-tertiary">{t("site_url_hint")}</span>
         </label>
 
@@ -96,18 +117,18 @@ export function SettingsPanel() {
         {!s.wooUseSameUrl && (
           <label className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-secondary">{t("woo_url")}</span>
-            <input type="url" value={s.wooUrl} onChange={(e) => s.setWooUrl(e.target.value)} className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+            <input type="url" value={localWooUrl} onChange={(e) => setLocalWooUrl(e.target.value)} className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
           </label>
         )}
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("woo_key")}</span>
-          <input type="text" value={s.wooKey} onChange={(e) => s.setWooKey(e.target.value)} placeholder="ck_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+          <input type="text" value={localWooKey} onChange={(e) => setLocalWooKey(e.target.value)} placeholder="ck_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
         </label>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("woo_secret")}</span>
-          <input type="password" value={s.wooSecret} onChange={(e) => s.setWooSecret(e.target.value)} placeholder="cs_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+          <input type="password" value={localWooSecret} onChange={(e) => setLocalWooSecret(e.target.value)} placeholder="cs_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
         </label>
 
         <label className="flex flex-col gap-1.5">
