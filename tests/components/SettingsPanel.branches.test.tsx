@@ -60,7 +60,7 @@ describe("SettingsPanel branch coverage", () => {
   it("renders sepia theme button as active when sepia is selected", () => {
     useSettingsStore.setState({ theme: "sepia" });
     render(withProviders(<SettingsPanel />));
-    const sepiaButton = screen.getByRole("radio", { name: /\u61F7\u820A/ });
+    const sepiaButton = screen.getByRole("radio", { name: /\u8B77\u773C/ });
     expect(sepiaButton).toHaveAttribute("aria-checked", "true");
   });
 
