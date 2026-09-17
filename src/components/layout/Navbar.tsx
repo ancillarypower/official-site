@@ -5,7 +5,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { FontSizeControl } from "@/components/ui/FontSizeControl";
 
 const NAV_ITEMS = [
-  { to: "/", labelKey: "nav_content" as const },
+  { to: "/news", labelKey: "nav_news" as const },
   { to: "/models", labelKey: "nav_models" as const },
   { to: "/store", labelKey: "nav_store" as const },
   { to: "/about", labelKey: "nav_about" as const },
@@ -53,7 +53,6 @@ export function Navbar() {
           <li key={to}>
             <NavLink
               to={to}
-              end={to === "/"}
               className={({ isActive }) =>
                 `block rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                   isActive

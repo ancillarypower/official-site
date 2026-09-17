@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nContext";
 import { createElement } from "react";
 
+vi.mock("@/pages/LandingPage", () => ({
+  default: () => createElement("div", { "data-testid": "landing-page" }, "Landing"),
+}));
 vi.mock("@/pages/ContentPage", () => ({
   default: () => createElement("div", { "data-testid": "content-page" }, "Content"),
 }));
@@ -42,8 +45,13 @@ function renderApp(route = "/") {
 }
 
 describe("App routing", () => {
-  it("renders ContentPage at /", async () => {
+  it("renders LandingPage at /", async () => {
     renderApp("/");
+    await waitFor(() => expect(screen.getByTestId("landing-page")).toBeInTheDocument());
+  });
+
+  it("renders ContentPage at /news", async () => {
+    renderApp("/news");
     await waitFor(() => expect(screen.getByTestId("content-page")).toBeInTheDocument());
   });
 
@@ -69,7 +77,7 @@ describe("App routing", () => {
 
   it("redirects unknown routes to /", async () => {
     renderApp("/nonexistent");
-    await waitFor(() => expect(screen.getByTestId("content-page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("landing-page")).toBeInTheDocument());
   });
 
   it("renders Navbar with navigation", () => {
