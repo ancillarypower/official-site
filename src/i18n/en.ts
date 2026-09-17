@@ -36,6 +36,7 @@ export const en: Record<TranslationKey, string> = {
   models_gpu_lost: "GPU resources reclaimed. Waiting for recovery\u2026",
   models_view_3d: "View 3D Model",
   models_collapse_3d: "Collapse 3D Viewer",
+  models_uploading: "Saving models...",
 
   store_title: "Store",
   store_products: "{n} products",

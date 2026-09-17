@@ -13,6 +13,9 @@ export default function ModelsPage() {
   const { t } = useI18n();
   const [models, setModels] = useState<LoadedModelMeta[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isUploading, setIsUploading] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   useEffect(() => {
     getAllModelMeta()
@@ -26,21 +29,27 @@ export default function ModelsPage() {
   }, [t]);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
-    for (const file of files) {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      try {
-        const ab = await file.arrayBuffer();
-        if (ab.byteLength === 0) continue;
-        const id = await saveModel(file.name, file.size, ext, ab);
-        setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]);
-      } catch (err) {
-        console.error("Failed to process:", file.name, err);
-        toast.error(t("models_upload_error", { name: file.name }));
+    setIsUploading(true);
+    try {
+      for (const file of files) {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        try {
+          const ab = await file.arrayBuffer();
+          if (ab.byteLength === 0) continue;
+          const id = await saveModel(file.name, file.size, ext, ab);
+          setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]);
+        } catch (err) {
+          console.error("Failed to process:", file.name, err);
+          toast.error(t("models_upload_error", { name: file.name }));
+        }
       }
+    } finally {
+      setIsUploading(false);
     }
   }, [t]);
 
   const handleRemove = useCallback(async (id: number) => {
+    setDeletingIds((prev) => { const next = new Set(prev); next.add(id); return next; });
     try {
       await deleteModel(id);
       setModels((prev) => prev.filter((m) => m.id !== id));
@@ -48,6 +57,8 @@ export default function ModelsPage() {
     } catch (err) {
       console.error("Failed to delete model:", id, err);
       toast.error(t("models_delete_failed"));
+    } finally {
+      setDeletingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
     }
   }, [t]);
 
@@ -71,6 +82,7 @@ export default function ModelsPage() {
     const confirmed = window.confirm(t("models_delete_selected_confirm", { n: selectedIds.size }));
     if (!confirmed) return;
     const ids = [...selectedIds];
+    setIsBulkDeleting(true);
     try {
       await deleteMultipleModels(ids);
       setModels((prev) => prev.filter((m) => !selectedIds.has(m.id)));
@@ -78,6 +90,8 @@ export default function ModelsPage() {
     } catch (err) {
       console.error("Failed to delete selected models:", ids, err);
       toast.error(t("models_delete_failed"));
+    } finally {
+      setIsBulkDeleting(false);
     }
   }, [selectedIds, t]);
 
@@ -85,6 +99,7 @@ export default function ModelsPage() {
     if (models.length === 0) return;
     const confirmed = window.confirm(t("models_delete_all_confirm", { n: models.length }));
     if (!confirmed) return;
+    setIsBulkDeleting(true);
     try {
       await deleteAllModels();
       setModels([]);
@@ -92,6 +107,8 @@ export default function ModelsPage() {
     } catch (err) {
       console.error("Failed to delete all models:", err);
       toast.error(t("models_delete_failed"));
+    } finally {
+      setIsBulkDeleting(false);
     }
   }, [models.length, t]);
 
@@ -103,33 +120,36 @@ export default function ModelsPage() {
         <h2 className="text-lg font-bold">{t("models_title")}</h2>
         <span className="text-xs text-tertiary">{t("models_loaded", { n: models.length })}</span>
       </div>
-      <ModelUpload onFilesSelected={handleFilesSelected} />
+      <ModelUpload onFilesSelected={handleFilesSelected} disabled={isUploading} />
       <StorageQuotaBar />
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            \uD83D\uDCBE {t("models_persisted")}
+            💾 {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               onClick={handleSelectAll}
-              className="rounded-md border border-border-subtle bg-surface-raised px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-sunken"
+              disabled={isBulkDeleting}
+              className={`rounded-md border border-border-subtle bg-surface-raised px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-sunken ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {allSelected ? t("models_deselect_all") : t("models_select_all")}
             </button>
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
-                className="rounded-md bg-[oklch(55%_0.15_25)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[oklch(45%_0.15_25)]"
+                disabled={isBulkDeleting}
+                className={`rounded-md bg-[oklch(55%_0.15_25)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[oklch(45%_0.15_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {t("models_delete_selected", { n: selectedIds.size })}
               </button>
             )}
             <button
               onClick={handleDeleteAll}
-              className="ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)]"
+              disabled={isBulkDeleting}
+              className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              \uD83D\uDDD1 {t("models_delete_all")}
+              🗑 {t("models_delete_all")}
             </button>
           </div>
         </>
@@ -145,6 +165,7 @@ export default function ModelsPage() {
             selected={selectedIds.has(model.id)}
             onToggleSelect={() => toggleSelect(model.id)}
             onRemove={() => handleRemove(model.id)}
+            isDeleting={deletingIds.has(model.id) || isBulkDeleting}
           />
         ))}
       </div>

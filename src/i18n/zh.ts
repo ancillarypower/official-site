@@ -33,6 +33,7 @@ export const zh = {
   models_gpu_lost: "GPU 資源已回收，等待恢復中…",
   models_view_3d: "檢視 3D 模型",
   models_collapse_3d: "收合 3D 檢視器",
+  models_uploading: "正在儲存模型...",
 
   store_title: "商店",
   store_products: "{n} 項商品",
