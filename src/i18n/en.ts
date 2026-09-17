@@ -215,6 +215,13 @@ export const en: Record<TranslationKey, string> = {
   error_generic: "An unexpected error occurred. Please reload the page.",
   error_reload: "Reload Page",
 
+  // Accessibility
+  a11y_skip_to_content: "Skip to content",
+  a11y_storage: "Storage",
+  a11y_settings_panel: "Settings",
+  a11y_cart_panel: "Shopping cart",
+  a11y_close: "Close",
+
   // Route error boundary
   route_load_error: "Failed to load this page",
   route_load_retry: "Reload",
