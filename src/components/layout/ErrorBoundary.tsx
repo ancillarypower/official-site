@@ -1,5 +1,5 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
-import { useI18n } from "@/context/I18nContext";
+import { Component, useContext, type ErrorInfo, type ReactNode } from "react";
+import { I18nContext } from "@/context/I18nContext";
 
 interface Props {
   children: ReactNode;
@@ -10,20 +10,16 @@ interface State {
   error: Error | null;
 }
 
-const FALLBACK_STRINGS: Record<string, string> = {
-  error_title: "Something went wrong",
-  error_generic: "An unexpected error occurred. Please reload the page.",
-  error_reload: "Reload Page",
-};
-
 function ErrorFallback() {
-  let t: (key: string) => string = (k) => FALLBACK_STRINGS[k] ?? k;
-  try {
-    const i18n = useI18n();
-    t = i18n.t;
-  } catch {
-    // Outside I18nProvider (e.g. tests): use English fallback
-  }
+  const ctx = useContext(I18nContext);
+  const t = ctx?.t ?? ((k: string) => {
+    const fallback: Record<string, string> = {
+      error_title: "Something went wrong",
+      error_generic: "An unexpected error occurred. Please reload the page.",
+      error_reload: "Reload Page",
+    };
+    return fallback[k] ?? k;
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-base p-8">
