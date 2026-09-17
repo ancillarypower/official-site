@@ -34,6 +34,8 @@ export const zh = {
   models_view_3d: "檢視 3D 模型",
   models_collapse_3d: "收合 3D 檢視器",
   models_uploading: "正在儲存模型...",
+  models_fullscreen: "全螢幕檢視",
+  models_exit_fullscreen: "離開全螢幕",
 
   store_title: "商店",
   store_products: "{n} 項商品",

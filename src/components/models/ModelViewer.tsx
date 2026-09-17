@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -45,10 +45,32 @@ function disposeSceneResources(s: Scene | null): void {
 }
 
 export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Track fullscreen state via Fullscreen API events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === wrapperRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!wrapperRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      wrapperRef.current.requestFullscreen();
+    }
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -423,7 +445,10 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   }, [ext, modelId]);
 
   return (
-    <div className="relative aspect-video w-full bg-[oklch(14%_0.008_250)]">
+    <div
+      ref={wrapperRef}
+      className={`relative w-full bg-[oklch(14%_0.008_250)] ${isFullscreen ? "h-screen" : "aspect-video"}`}
+    >
       <div ref={containerRef} className="h-full w-full" />
       {status === "loading" && (
         <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-[oklch(14%_0.008_250)] text-sm text-[oklch(70%_0.02_250)]">
@@ -440,6 +465,15 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
             {t("models_error")}: {errorMsg}
           </span>
         </div>
+      )}
+      {status === "ready" && (
+        <button
+          onClick={toggleFullscreen}
+          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
+          aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+        >
+          {isFullscreen ? "\u2715" : "\u26F6"}
+        </button>
       )}
     </div>
   );
