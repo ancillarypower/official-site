@@ -95,4 +95,31 @@ describe("CartPanel checkout success flow", () => {
       expect(screen.getByText("Checkout failed")).toBeInTheDocument();
     });
   });
+
+  it("clears validation error when user edits a billing field (regression #95)", () => {
+    const { container } = render(withProviders(<CartPanel />));
+    // Click checkout with empty fields to trigger validation error
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
+    // User starts editing first_name
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "J" } });
+    // Error should be cleared immediately
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
+  });
+
+  it("clears previous error at start of handleCheckout retry (regression #95)", () => {
+    const { container } = render(withProviders(<CartPanel />));
+    // First attempt: validation error
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
+    // Fill in required fields
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    // Second attempt: validation passes, error should not persist
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
+  });
 });
