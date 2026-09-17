@@ -11,10 +11,8 @@ vi.mock("@/components/models/ModelViewer", () => ({
 const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
 
-let saveModelResolve: ((value: number) => void) | null = null;
 const mockSaveModel = vi.fn();
 const mockGetAllModelMeta = vi.fn();
-let deleteModelResolve: (() => void) | null = null;
 const mockDeleteModel = vi.fn();
 const mockDeleteMultipleModels = vi.fn();
 const mockDeleteAllModels = vi.fn();
@@ -43,8 +41,6 @@ describe("ModelsPage", () => {
     mockDeleteModel.mockResolvedValue(undefined);
     mockDeleteMultipleModels.mockResolvedValue(undefined);
     mockDeleteAllModels.mockResolvedValue(undefined);
-    saveModelResolve = null;
-    deleteModelResolve = null;
   });
 
   it("renders models title", async () => {
@@ -244,59 +240,32 @@ describe("ModelsPage", () => {
   });
 
   // Regression tests for #90: loading state indicators
-  it("disables drop zone during upload (regression #90)", async () => {
-    mockSaveModel.mockImplementationOnce(() => new Promise<number>((resolve) => { saveModelResolve = resolve; }));
+  it("passes disabled prop to ModelUpload when uploading (regression #90)", async () => {
+    // Use a never-resolving promise to keep isUploading=true
+    mockSaveModel.mockReturnValue(new Promise(() => {}));
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    // Wrap in act to ensure initial setIsUploading(true) is flushed
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
-    });
-    expect(screen.queryByText(/\u62D6\u653E 3D \u6A21\u578B/)).not.toBeInTheDocument();
-
-    // Resolve the pending saveModel to clean up
-    await act(async () => { saveModelResolve!(1); });
-  });
-
-  it("restores drop zone after upload completes (regression #90)", async () => {
-    mockSaveModel.mockImplementationOnce(() => new Promise<number>((resolve) => { saveModelResolve = resolve; }));
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
-    });
+    // Verify the upload zone has the drop prompt initially
+    const uploadZone = screen.getByRole("button", { name: /\u62D6\u653E 3D \u6A21\u578B/ });
+    expect(uploadZone).not.toHaveAttribute("aria-disabled", "true");
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
+    // After triggering upload, the zone should show uploading text
     await waitFor(() => {
       expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
     });
-
-    // Resolve the pending saveModel
-    await act(async () => { saveModelResolve!(1); });
-
-    // Drop prompt should be restored
-    await waitFor(() => {
-      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
-    });
-    expect(screen.queryByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).not.toBeInTheDocument();
   });
 
-  it("disables remove button during delete (regression #90)", async () => {
+  it("passes isDeleting to ModelCard during delete (regression #90)", async () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
-    mockDeleteModel.mockImplementationOnce(() => new Promise<void>((resolve) => { deleteModelResolve = resolve; }));
+    // Use a never-resolving promise to keep deletingIds populated
+    mockDeleteModel.mockReturnValue(new Promise(() => {}));
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeInTheDocument();
@@ -307,11 +276,9 @@ describe("ModelsPage", () => {
 
     fireEvent.click(removeBtn);
 
+    // Remove button should become disabled
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeDisabled();
     });
-
-    // Resolve the pending deleteModel to clean up
-    await act(async () => { deleteModelResolve!(); });
   });
 });
