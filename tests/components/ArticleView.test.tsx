@@ -53,7 +53,7 @@ describe("ArticleView", () => {
 
   it("renders back button and calls onBack", () => {
     const handler = vi.fn();
-    render(withProviders(<ArticleView post={fullPost} onBack={handler} />));
+    render(withProviders(<ArticleView post={handler} onBack={handler} />));
     const btn = screen.getByText(/\u8fd4\u56de\u5217\u8868/);
     expect(btn).toBeInTheDocument();
     fireEvent.click(btn);
@@ -112,5 +112,15 @@ describe("ArticleView", () => {
     expect(articleBody!.innerHTML).not.toContain("onmouseover");
     expect(articleBody!.innerHTML).not.toContain("javascript:");
     expect(articleBody!.innerHTML).toContain("Normal paragraph");
+  });
+
+  it("decodes HTML entities in title (regression #83)", () => {
+    const entityPost: WpPost = {
+      id: 101,
+      title: "Q&amp;A Column &lt;Special&gt; &#8217;Quotes&#8217;",
+    };
+    render(withProviders(<ArticleView post={entityPost} onBack={vi.fn()} />));
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.textContent).toBe("Q&A Column <Special> \u2019Quotes\u2019");
   });
 });
