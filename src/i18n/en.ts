@@ -40,6 +40,8 @@ export const en: Record<TranslationKey, string> = {
   models_uploading: "Saving models...",
   models_fullscreen: "Fullscreen",
   models_exit_fullscreen: "Exit Fullscreen",
+  models_remove_label: "Remove \"{name}\"",
+  models_select_label: "Select \"{name}\"",
 
   store_title: "Store",
   store_products: "{n} products",
@@ -222,6 +224,17 @@ export const en: Record<TranslationKey, string> = {
   a11y_settings_panel: "Settings",
   a11y_cart_panel: "Shopping cart",
   a11y_close: "Close",
+  a11y_toggle_lang: "Toggle language",
+  a11y_decrease_font: "Decrease font size",
+  a11y_increase_font: "Increase font size",
+  a11y_reset_font: "Reset font size",
+  a11y_font_size: "Font size",
+  a11y_show_key: "Show key",
+  a11y_hide_key: "Hide key",
+  a11y_show_secret: "Show secret",
+  a11y_hide_secret: "Hide secret",
+  a11y_decrease_qty: "Decrease quantity",
+  a11y_increase_qty: "Increase quantity",
 
   // Route error boundary
   route_load_error: "Failed to load this page",
