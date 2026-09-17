@@ -12,12 +12,12 @@ const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
 
 let saveModelResolve: ((value: number) => void) | null = null;
-const mockSaveModel = vi.fn().mockResolvedValue(1);
-const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
+const mockSaveModel = vi.fn();
+const mockGetAllModelMeta = vi.fn();
 let deleteModelResolve: (() => void) | null = null;
-const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
-const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
-const mockDeleteAllModels = vi.fn().mockResolvedValue(undefined);
+const mockDeleteModel = vi.fn();
+const mockDeleteMultipleModels = vi.fn();
+const mockDeleteAllModels = vi.fn();
 
 vi.mock("@/hooks/useModelDB", () => ({
   saveModel: (...args: unknown[]) => mockSaveModel(...args),
@@ -38,7 +38,11 @@ const sampleModels = [
 describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaveModel.mockResolvedValue(1);
     mockGetAllModelMeta.mockResolvedValue([]);
+    mockDeleteModel.mockResolvedValue(undefined);
+    mockDeleteMultipleModels.mockResolvedValue(undefined);
+    mockDeleteAllModels.mockResolvedValue(undefined);
     saveModelResolve = null;
     deleteModelResolve = null;
   });
@@ -176,7 +180,9 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
@@ -197,7 +203,6 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     });
 
-    // Click the remove button for the first model (aria-label="Remove cube.glb")
     fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
 
     await waitFor(() => {
@@ -205,7 +210,6 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
-    // Model should still be in the list (UI not updated on failure)
     expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete model:",
@@ -230,7 +234,6 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
-    // Models should still be in the list
     expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete all models:",
@@ -242,7 +245,6 @@ describe("ModelsPage", () => {
 
   // Regression tests for #90: loading state indicators
   it("disables drop zone during upload (regression #90)", async () => {
-    // Make saveModel hang so isUploading stays true
     mockSaveModel.mockImplementationOnce(() => new Promise<number>((resolve) => { saveModelResolve = resolve; }));
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -251,19 +253,18 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    // Wrap in act to ensure initial setIsUploading(true) is flushed
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
 
-    // Upload zone should now show "Saving models..." text
     await waitFor(() => {
       expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
     });
-    // Drop prompt should be gone
     expect(screen.queryByText(/\u62D6\u653E 3D \u6A21\u578B/)).not.toBeInTheDocument();
 
     // Resolve the pending saveModel to clean up
-    if (saveModelResolve) {
-      await act(async () => { saveModelResolve!(1); });
-    }
+    await act(async () => { saveModelResolve!(1); });
   });
 
   it("restores drop zone after upload completes (regression #90)", async () => {
@@ -275,7 +276,9 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
@@ -293,7 +296,6 @@ describe("ModelsPage", () => {
 
   it("disables remove button during delete (regression #90)", async () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
-    // Make deleteModel hang so deletingIds stays populated
     mockDeleteModel.mockImplementationOnce(() => new Promise<void>((resolve) => { deleteModelResolve = resolve; }));
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
@@ -305,14 +307,11 @@ describe("ModelsPage", () => {
 
     fireEvent.click(removeBtn);
 
-    // Remove button should be disabled while delete is in progress
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeDisabled();
     });
 
     // Resolve the pending deleteModel to clean up
-    if (deleteModelResolve) {
-      await act(async () => { deleteModelResolve!(); });
-    }
+    await act(async () => { deleteModelResolve!(); });
   });
 });
