@@ -17,7 +17,10 @@ export function CartPanel() {
   const [orderStatus, setOrderStatus] = useState<"idle" | "success" | "error">("idle");
   const [orderError, setOrderError] = useState("");
 
-  const updateField = (field: string, value: string) => setBilling((prev) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: string) => {
+    setBilling((prev) => ({ ...prev, [field]: value }));
+    if (orderError) setOrderError("");
+  };
 
   function handleClearAll() {
     if (window.confirm(t("cart_clear_confirm"))) {
@@ -26,11 +29,11 @@ export function CartPanel() {
   }
 
   async function handleCheckout() {
+    setOrderError("");
     if (!billing.first_name || !billing.last_name || !billing.email) {
       setOrderError(t("checkout_required_fields"));
       return;
     }
-    setOrderError("");
     try {
       await checkout({ items, billing });
       setOrderStatus("success");
