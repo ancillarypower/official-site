@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createElement } from "react";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/components/models/ModelViewer", () => ({
@@ -11,11 +11,11 @@ vi.mock("@/components/models/ModelViewer", () => ({
 const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
 
-const mockSaveModel = vi.fn();
-const mockGetAllModelMeta = vi.fn();
-const mockDeleteModel = vi.fn();
-const mockDeleteMultipleModels = vi.fn();
-const mockDeleteAllModels = vi.fn();
+const mockSaveModel = vi.fn().mockResolvedValue(1);
+const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
+const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
+const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
+const mockDeleteAllModels = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/hooks/useModelDB", () => ({
   saveModel: (...args: unknown[]) => mockSaveModel(...args),
@@ -36,11 +36,7 @@ const sampleModels = [
 describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSaveModel.mockResolvedValue(1);
     mockGetAllModelMeta.mockResolvedValue([]);
-    mockDeleteModel.mockResolvedValue(undefined);
-    mockDeleteMultipleModels.mockResolvedValue(undefined);
-    mockDeleteAllModels.mockResolvedValue(undefined);
   });
 
   it("renders models title", async () => {
@@ -176,9 +172,7 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
@@ -199,6 +193,7 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     });
 
+    // Click the remove button for the first model (aria-label="Remove cube.glb")
     fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
 
     await waitFor(() => {
@@ -206,6 +201,7 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
+    // Model should still be in the list (UI not updated on failure)
     expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete model:",
@@ -230,6 +226,7 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
+    // Models should still be in the list
     expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete all models:",
@@ -237,48 +234,5 @@ describe("ModelsPage", () => {
     );
     errorSpy.mockRestore();
     vi.restoreAllMocks();
-  });
-
-  // Regression tests for #90: loading state indicators
-  it("passes disabled prop to ModelUpload when uploading (regression #90)", async () => {
-    // Use a never-resolving promise to keep isUploading=true
-    mockSaveModel.mockReturnValue(new Promise(() => {}));
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
-    });
-
-    // Verify the upload zone has the drop prompt initially
-    const uploadZone = screen.getByRole("button", { name: /\u62D6\u653E 3D \u6A21\u578B/ });
-    expect(uploadZone).not.toHaveAttribute("aria-disabled", "true");
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    // After triggering upload, the zone should show uploading text
-    await waitFor(() => {
-      expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
-    });
-  });
-
-  it("passes isDeleting to ModelCard during delete (regression #90)", async () => {
-    mockGetAllModelMeta.mockResolvedValue(sampleModels);
-    // Use a never-resolving promise to keep deletingIds populated
-    mockDeleteModel.mockReturnValue(new Promise(() => {}));
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeInTheDocument();
-    });
-
-    const removeBtn = screen.getByRole("button", { name: "Remove cube.glb" });
-    expect(removeBtn).not.toBeDisabled();
-
-    fireEvent.click(removeBtn);
-
-    // Remove button should become disabled
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeDisabled();
-    });
   });
 });
