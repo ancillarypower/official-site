@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { SettingsPanel } from "@/components/layout/SettingsPanel";
@@ -112,24 +112,75 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().wooUseSameUrl).toBe(false);
   });
 
-  it("updates site URL on input change", () => {
-    render(withProviders(<SettingsPanel />));
-    const urlInput = screen.getByDisplayValue("https://test.example.com");
-    fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
-    expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
-  });
+  // --- Debounced text input tests (regression #88) ---
 
-  it("updates WooCommerce key on input", () => {
-    render(withProviders(<SettingsPanel />));
-    const keyInput = screen.getByPlaceholderText("ck_xxx");
-    fireEvent.change(keyInput, { target: { value: "ck_test123" } });
-    expect(useSettingsStore.getState().wooKey).toBe("ck_test123");
-  });
+  describe("debounced text inputs", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
-  it("updates WooCommerce secret on input", () => {
-    render(withProviders(<SettingsPanel />));
-    const secretInput = screen.getByPlaceholderText("cs_xxx");
-    fireEvent.change(secretInput, { target: { value: "cs_secret456" } });
-    expect(useSettingsStore.getState().wooSecret).toBe("cs_secret456");
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("does not update store immediately on URL input (regression #88)", () => {
+      render(withProviders(<SettingsPanel />));
+      const urlInput = screen.getByDisplayValue("https://test.example.com");
+      fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
+      // Input should show new value immediately (local state)
+      expect(urlInput).toHaveValue("https://new.example.com");
+      // Store should NOT be updated yet (debounce pending)
+      expect(useSettingsStore.getState().wpUrl).toBe("https://test.example.com");
+    });
+
+    it("updates store after 500ms debounce delay", () => {
+      render(withProviders(<SettingsPanel />));
+      const urlInput = screen.getByDisplayValue("https://test.example.com");
+      fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
+    });
+
+    it("updates site URL on input change after debounce", () => {
+      render(withProviders(<SettingsPanel />));
+      const urlInput = screen.getByDisplayValue("https://test.example.com");
+      fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(useSettingsStore.getState().wpUrl).toBe("https://new.example.com");
+    });
+
+    it("updates WooCommerce key on input after debounce", () => {
+      render(withProviders(<SettingsPanel />));
+      const keyInput = screen.getByPlaceholderText("ck_xxx");
+      fireEvent.change(keyInput, { target: { value: "ck_test123" } });
+      // Not yet updated
+      expect(useSettingsStore.getState().wooKey).toBe("");
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(useSettingsStore.getState().wooKey).toBe("ck_test123");
+    });
+
+    it("updates WooCommerce secret on input after debounce", () => {
+      render(withProviders(<SettingsPanel />));
+      const secretInput = screen.getByPlaceholderText("cs_xxx");
+      fireEvent.change(secretInput, { target: { value: "cs_secret456" } });
+      // Not yet updated
+      expect(useSettingsStore.getState().wooSecret).toBe("");
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(useSettingsStore.getState().wooSecret).toBe("cs_secret456");
+    });
+
+    it("resets debounce timer on rapid typing", () => {
+      render(withProviders(<SettingsPanel />));
+      const urlInput = screen.getByDisplayValue("https://test.example.com");
+      fireEvent.change(urlInput, { target: { value: "https://a" } });
+      act(() => { vi.advanceTimersByTime(300); });
+      fireEvent.change(urlInput, { target: { value: "https://ab" } });
+      act(() => { vi.advanceTimersByTime(300); });
+      // 600ms total but only 300ms since last keystroke — not yet
+      expect(useSettingsStore.getState().wpUrl).toBe("https://test.example.com");
+      act(() => { vi.advanceTimersByTime(200); });
+      // 500ms since last keystroke — now updated
+      expect(useSettingsStore.getState().wpUrl).toBe("https://ab");
+    });
   });
 });
