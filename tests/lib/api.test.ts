@@ -37,6 +37,20 @@ describe("wpApiUrl", () => {
       "https://example.com/wp-json/wp/v2",
     );
   });
+
+  // --- Regression tests for Issue #86: /wp-json path duplication ---
+
+  it("strips existing /wp-json/wp/v2 path to prevent duplication (regression #86)", () => {
+    expect(wpApiUrl("https://example.com/wp-json/wp/v2")).toBe(
+      "https://example.com/wp-json/wp/v2",
+    );
+  });
+
+  it("strips existing /wp-json path to prevent duplication (regression #86)", () => {
+    expect(wpApiUrl("https://example.com/wp-json")).toBe(
+      "https://example.com/wp-json/wp/v2",
+    );
+  });
 });
 
 describe("wooApiUrl", () => {
@@ -88,6 +102,18 @@ describe("wooApiUrl", () => {
     expect(parsed.searchParams.get("consumer_key")).toBe("ck_key");
     expect(parsed.searchParams.get("consumer_secret")).toBe("cs_secret");
     expect(parsed.searchParams.get("per_page")).toBe("10");
+  });
+
+  // --- Regression tests for Issue #86: /wp-json path duplication ---
+
+  it("strips existing /wp-json/wc/v3 path to prevent duplication (regression #86)", () => {
+    const url = wooApiUrl("https://shop.com/wp-json/wc/v3", "products");
+    expect(new URL(url).pathname).toBe("/wp-json/wc/v3/products");
+  });
+
+  it("strips existing /wp-json path to prevent duplication (regression #86)", () => {
+    const url = wooApiUrl("https://shop.com/wp-json", "products");
+    expect(new URL(url).pathname).toBe("/wp-json/wc/v3/products");
   });
 });
 
