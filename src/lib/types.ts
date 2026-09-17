@@ -19,7 +19,7 @@ export const wpPostSchema = z.object({
   media_type: z.string().optional(),
   _embedded: z
     .object({
-      author: z.array(z.object({ name: z.string() })).optional(),
+      author: z.array(z.object({ name: z.string().default("") })).optional(),
       "wp:featuredmedia": z
         .array(z.object({ source_url: z.string() }))
         .optional(),
