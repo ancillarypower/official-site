@@ -1,10 +1,21 @@
+import { createContext } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 
-vi.mock("@/context/I18nContext", () => ({
-  useI18n: () => ({ t: (key: string) => key, lang: "zh", toggleLang: vi.fn() }),
-}));
+const mockT = (key: string) => key;
+
+vi.mock("@/context/I18nContext", () => {
+  const ctx = createContext({
+    t: (key: string) => key,
+    lang: "zh" as const,
+    toggleLang: () => {},
+  });
+  return {
+    I18nContext: ctx,
+    useI18n: () => ({ t: mockT, lang: "zh", toggleLang: vi.fn() }),
+  };
+});
 
 describe("ErrorBoundary", () => {
   it("renders children when no error", () => {
