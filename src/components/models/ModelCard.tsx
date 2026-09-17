@@ -29,6 +29,7 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
               onClick={() => setExpanded(false)}
               className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded bg-surface-raised/80 text-xs text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
               aria-label={t("models_collapse_3d")}
+              title={t("models_collapse_3d")}
             >
               ✕
             </button>
@@ -41,19 +42,20 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
             <button
               onClick={() => setExpanded(true)}
               className="rounded-md bg-accent/80 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent"
+              title={t("models_view_3d")}
             >
               {t("models_view_3d")}
             </button>
           </div>
         )}
         {onToggleSelect && (
-          <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-surface-raised/80 backdrop-blur-sm">
+          <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-surface-raised/80 backdrop-blur-sm" title={t("models_select_label", { name })}>
             <input
               type="checkbox"
               checked={selected}
               onChange={onToggleSelect}
               className="h-4 w-4 accent-accent"
-              aria-label={`Select ${name}`}
+              aria-label={t("models_select_label", { name })}
             />
           </label>
         )}
@@ -61,7 +63,7 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
       <div className="flex items-center gap-3 px-4 py-3">
         <span className="flex-1 truncate text-sm font-semibold">{name}</span>
         <span className="text-[0.7rem] text-tertiary">{(size / 1_048_576).toFixed(2)} MB</span>
-        <button onClick={onRemove} disabled={isDeleting} className={`flex h-7 w-7 items-center justify-center rounded bg-surface-sunken text-xs text-tertiary transition-colors hover:bg-[oklch(90%_0.04_25)] hover:text-[oklch(45%_0.12_25)] ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`} aria-label={`Remove ${name}`}>{isDeleting ? "⏳" : "✕"}</button>
+        <button onClick={onRemove} disabled={isDeleting} className={`flex h-7 w-7 items-center justify-center rounded bg-surface-sunken text-xs text-tertiary transition-colors hover:bg-[oklch(90%_0.04_25)] hover:text-[oklch(45%_0.12_25)] ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`} aria-label={t("models_remove_label", { name })} title={t("models_remove_label", { name })}>{isDeleting ? "⏳" : "✕"}</button>
       </div>
     </div>
   );
