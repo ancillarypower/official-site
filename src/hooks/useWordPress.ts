@@ -30,7 +30,10 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
 }
 
 export function useWordPress(page: number = 1, search: string = "") {
-  const { wpUrl, contentType, perPage, useProxy } = useSettingsStore();
+  const wpUrl = useSettingsStore((s) => s.wpUrl);
+  const contentType = useSettingsStore((s) => s.contentType);
+  const perPage = useSettingsStore((s) => s.perPage);
+  const useProxy = useSettingsStore((s) => s.useProxy);
 
   return useQuery<WpQueryResult>({
     queryKey: ["wp-content", wpUrl, contentType, perPage, page, search],

@@ -19,7 +19,9 @@ const THEME_ICONS: Record<string, string> = {
 
 export function Navbar() {
   const { lang, toggleLang, t } = useI18n();
-  const { openPanel, theme, cycleTheme } = useSettingsStore();
+  const openPanel = useSettingsStore((s) => s.openPanel);
+  const theme = useSettingsStore((s) => s.theme);
+  const cycleTheme = useSettingsStore((s) => s.cycleTheme);
   const totalItems = useCartStore((s) => s.totalItems());
   const location = useLocation();
 

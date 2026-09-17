@@ -40,9 +40,11 @@ interface WooQueryResult {
 }
 
 export function useWooProducts(page: number = 1) {
-  const { wooKey, wooSecret, wooPerPage, useProxy, getWooBaseUrl } =
-    useSettingsStore();
-  const baseUrl = getWooBaseUrl();
+  const wooKey = useSettingsStore((s) => s.wooKey);
+  const wooSecret = useSettingsStore((s) => s.wooSecret);
+  const wooPerPage = useSettingsStore((s) => s.wooPerPage);
+  const useProxy = useSettingsStore((s) => s.useProxy);
+  const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useQuery<WooQueryResult>({
     queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page],
@@ -114,8 +116,10 @@ interface CheckoutParams {
 }
 
 export function useCheckout() {
-  const { wooKey, wooSecret, useProxy, getWooBaseUrl } = useSettingsStore();
-  const baseUrl = getWooBaseUrl();
+  const wooKey = useSettingsStore((s) => s.wooKey);
+  const wooSecret = useSettingsStore((s) => s.wooSecret);
+  const useProxy = useSettingsStore((s) => s.useProxy);
+  const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {

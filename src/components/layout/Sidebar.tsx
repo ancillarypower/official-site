@@ -13,7 +13,8 @@ const FOCUSABLE_SELECTOR = [
 ].join(", ");
 
 export function Sidebar() {
-  const { activePanel, closePanel } = useSettingsStore();
+  const activePanel = useSettingsStore((s) => s.activePanel);
+  const closePanel = useSettingsStore((s) => s.closePanel);
   const settingsRef = useRef<HTMLElement>(null);
   const cartRef = useRef<HTMLElement>(null);
 

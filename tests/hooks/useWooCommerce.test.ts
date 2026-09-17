@@ -239,6 +239,35 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
+
+  it("refetches when wpUrl changes via getWooBaseUrl selector (Issue #89)", async () => {
+    const makeResponse = () =>
+      new Response(
+        JSON.stringify([
+          { id: 1, name: "A", price: "5", regular_price: "5", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+        ]),
+        { status: 200, headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" } },
+      );
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(makeResponse()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Change wpUrl — getWooBaseUrl() selector derives from wpUrl when
+    // wooUseSameUrl is true, so baseUrl changes and queryKey triggers refetch
+    act(() => {
+      useSettingsStore.setState({ wpUrl: "https://other.example.com" });
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const secondCallUrl = fetchMock.mock.calls[1]?.[0] as string;
+    expect(secondCallUrl).toContain("other.example.com");
+  });
 });
 
 describe("normalizeRawProduct", () => {

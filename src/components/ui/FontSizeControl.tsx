@@ -1,7 +1,8 @@
 import { useSettingsStore } from "@/stores/settingsStore";
 
 export function FontSizeControl() {
-  const { fontScale, setFontScale } = useSettingsStore();
+  const fontScale = useSettingsStore((s) => s.fontScale);
+  const setFontScale = useSettingsStore((s) => s.setFontScale);
 
   return (
     <div className="flex items-center gap-1.5 rounded-md bg-surface-sunken px-2 py-1">
