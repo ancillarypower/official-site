@@ -120,10 +120,10 @@ describe("ModelsPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByLabelText("Select cube.glb"));
-    fireEvent.click(screen.getByLabelText("Select sphere.obj"));
+    fireEvent.click(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/));
+    fireEvent.click(screen.getByLabelText(/\u9078\u53D6\u300Csphere\.obj\u300D/));
     await waitFor(() => {
       expect(screen.getByText(/\u522A\u9664\u9078\u53D6\uFF082\uFF09/)).toBeInTheDocument();
     });
@@ -138,9 +138,9 @@ describe("ModelsPage", () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
-      expect(screen.getByLabelText("Select sphere.obj")).toBeInTheDocument();
-      expect(screen.getByLabelText("Select plane.stl")).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Csphere\.obj\u300D/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Cplane\.stl\u300D/)).toBeInTheDocument();
     });
   });
 
@@ -191,11 +191,11 @@ describe("ModelsPage", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
 
-    // Click the remove button for the first model (aria-label="Remove cube.glb")
-    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+    // Click the remove button for the first model
+    fireEvent.click(screen.getByRole("button", { name: /\u79FB\u9664\u300Ccube\.glb\u300D/ }));
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith(
@@ -203,7 +203,7 @@ describe("ModelsPage", () => {
       );
     });
     // Model should still be in the list (UI not updated on failure)
-    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete model:",
       1,
@@ -229,7 +229,7 @@ describe("ModelsPage", () => {
       );
     });
     // Models should still be in the list
-    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete all models:",
       expect.any(Error)
@@ -244,10 +244,10 @@ describe("ModelsPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+    fireEvent.click(screen.getByRole("button", { name: /\u79FB\u9664\u300Ccube\.glb\u300D/ }));
 
     await waitFor(() => {
       expect(mockDeleteModel).toHaveBeenCalledWith(1);
@@ -260,15 +260,15 @@ describe("ModelsPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
+    fireEvent.click(screen.getByRole("button", { name: /\u79FB\u9664\u300Ccube\.glb\u300D/ }));
 
     // deleteModel should NOT have been called
     expect(mockDeleteModel).not.toHaveBeenCalled();
     // Model should still be in the list
-    expect(screen.getByLabelText("Select cube.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 });
