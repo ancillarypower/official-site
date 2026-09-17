@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -211,6 +211,33 @@ describe("useWooProducts", () => {
     expect(result.current.error?.message).toBe(
       "Unexpected API response: expected an array",
     );
+  });
+
+  it("refetches when wooSecret changes (Issue #82)", async () => {
+    const makeResponse = () =>
+      new Response(
+        JSON.stringify([
+          { id: 1, name: "A", price: "5", regular_price: "5", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+        ]),
+        { status: 200, headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" } },
+      );
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(makeResponse()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    // Wait for initial fetch
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Rotate secret — queryKey must include wooSecret so this triggers refetch
+    act(() => {
+      useSettingsStore.setState({ wooSecret: "cs_rotated" });
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });
 
