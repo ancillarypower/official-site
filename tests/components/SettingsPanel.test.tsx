@@ -112,6 +112,26 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().wooUseSameUrl).toBe(false);
   });
 
+  // --- Credential masking tests (regression #92) ---
+
+  it("masks wooKey input by default (regression #92)", () => {
+    render(withProviders(<SettingsPanel />));
+    const keyInput = screen.getByPlaceholderText("ck_xxx");
+    expect(keyInput).toHaveAttribute("type", "password");
+  });
+
+  it("toggles wooKey visibility on button click (regression #92)", () => {
+    render(withProviders(<SettingsPanel />));
+    const keyInput = screen.getByPlaceholderText("ck_xxx");
+    expect(keyInput).toHaveAttribute("type", "password");
+    const toggleBtn = screen.getByLabelText("Show key");
+    fireEvent.click(toggleBtn);
+    expect(keyInput).toHaveAttribute("type", "text");
+    const hideBtn = screen.getByLabelText("Hide key");
+    fireEvent.click(hideBtn);
+    expect(keyInput).toHaveAttribute("type", "password");
+  });
+
   // --- Debounced text input tests (regression #88) ---
 
   describe("debounced text inputs", () => {

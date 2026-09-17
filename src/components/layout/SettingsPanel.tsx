@@ -24,6 +24,10 @@ export function SettingsPanel() {
   const [localWooSecret, setLocalWooSecret] = useState(s.wooSecret);
   const [localWooUrl, setLocalWooUrl] = useState(s.wooUrl);
 
+  // --- Show/hide toggles for credential inputs ---
+  const [showKey, setShowKey] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+
   const debouncedWpUrl = useDebouncedValue(localWpUrl, INPUT_DEBOUNCE_MS);
   const debouncedWooKey = useDebouncedValue(localWooKey, INPUT_DEBOUNCE_MS);
   const debouncedWooSecret = useDebouncedValue(localWooSecret, INPUT_DEBOUNCE_MS);
@@ -121,15 +125,35 @@ export function SettingsPanel() {
           </label>
         )}
 
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("woo_key")}</span>
-          <input type="text" value={localWooKey} onChange={(e) => setLocalWooKey(e.target.value)} placeholder="ck_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-        </label>
+          <div className="relative">
+            <input type={showKey ? "text" : "password"} value={localWooKey} onChange={(e) => setLocalWooKey(e.target.value)} placeholder="ck_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 pr-9 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-tertiary hover:text-secondary"
+              aria-label={showKey ? "Hide key" : "Show key"}
+            >
+              {showKey ? "\uD83D\uDE48" : "\uD83D\uDC41"}
+            </button>
+          </div>
+        </div>
 
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("woo_secret")}</span>
-          <input type="password" value={localWooSecret} onChange={(e) => setLocalWooSecret(e.target.value)} placeholder="cs_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-        </label>
+          <div className="relative">
+            <input type={showSecret ? "text" : "password"} value={localWooSecret} onChange={(e) => setLocalWooSecret(e.target.value)} placeholder="cs_xxx" className="w-full rounded-md border border-border-default bg-surface-base px-3 py-2 pr-9 text-sm transition-colors focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+            <button
+              type="button"
+              onClick={() => setShowSecret(!showSecret)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-tertiary hover:text-secondary"
+              aria-label={showSecret ? "Hide secret" : "Show secret"}
+            >
+              {showSecret ? "\uD83D\uDE48" : "\uD83D\uDC41"}
+            </button>
+          </div>
+        </div>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-secondary">{t("woo_per_page")}</span>
