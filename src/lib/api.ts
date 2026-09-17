@@ -74,6 +74,8 @@ export async function fetchWithProxy(
     );
   }
 
+  const errors: string[] = [];
+
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     const idx = (proxyIndex + i) % CORS_PROXIES.length;
     const proxy = CORS_PROXIES[idx];
@@ -86,12 +88,15 @@ export async function fetchWithProxy(
         proxyIndex = idx;
         return response;
       }
-    } catch {
-      // Timeout or network error: try next proxy
+      errors.push(`${proxy}: HTTP ${response.status}`);
+    } catch (err) {
+      errors.push(
+        `${proxy}: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     }
   }
 
-  throw new Error("All CORS proxies failed");
+  throw new Error(`All CORS proxies failed:\n${errors.join("\n")}`);
 }
 
 /**
