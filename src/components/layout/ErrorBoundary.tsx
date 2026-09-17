@@ -10,8 +10,20 @@ interface State {
   error: Error | null;
 }
 
+const FALLBACK_STRINGS: Record<string, string> = {
+  error_title: "Something went wrong",
+  error_generic: "An unexpected error occurred. Please reload the page.",
+  error_reload: "Reload Page",
+};
+
 function ErrorFallback() {
-  const { t } = useI18n();
+  let t: (key: string) => string = (k) => FALLBACK_STRINGS[k] ?? k;
+  try {
+    const i18n = useI18n();
+    t = i18n.t;
+  } catch {
+    // Outside I18nProvider (e.g. tests): use English fallback
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-base p-8">
