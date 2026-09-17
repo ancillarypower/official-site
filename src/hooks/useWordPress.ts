@@ -36,7 +36,7 @@ export function useWordPress(page: number = 1, search: string = "") {
   const useProxy = useSettingsStore((s) => s.useProxy);
 
   return useQuery<WpQueryResult>({
-    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search],
+    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy],
     queryFn: async () => {
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";

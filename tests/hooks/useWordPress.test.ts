@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -273,5 +273,29 @@ describe("useWordPress hook", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.totalPages).toBe(7);
     expect(result.current.data?.totalPosts).toBe(35);
+  });
+
+  it("refetches when useProxy changes (Issue #93)", async () => {
+    const makeResponse = () =>
+      new Response(
+        JSON.stringify([{ id: 1, title: { rendered: "A" }, date: "2026-01-01" }]),
+        { status: 200, headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" } },
+      );
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(makeResponse()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Toggle proxy — queryKey must include useProxy so this triggers refetch
+    act(() => {
+      useSettingsStore.setState({ useProxy: true });
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });

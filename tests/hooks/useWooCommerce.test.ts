@@ -268,6 +268,32 @@ describe("useWooProducts", () => {
     const secondCallUrl = fetchMock.mock.calls[1]?.[0] as string;
     expect(secondCallUrl).toContain("other.example.com");
   });
+
+  it("refetches when useProxy changes (Issue #93)", async () => {
+    const makeResponse = () =>
+      new Response(
+        JSON.stringify([
+          { id: 1, name: "A", price: "5", regular_price: "5", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+        ]),
+        { status: 200, headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" } },
+      );
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(makeResponse()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Toggle proxy — queryKey must include useProxy so this triggers refetch
+    act(() => {
+      useSettingsStore.setState({ useProxy: true });
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
 });
 
 describe("normalizeRawProduct", () => {
