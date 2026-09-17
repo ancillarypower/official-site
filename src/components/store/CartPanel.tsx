@@ -53,7 +53,7 @@ export function CartPanel() {
               🗑 {t("cart_clear_all")}
             </button>
           )}
-          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label="Close">✕</button>
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")}>✕</button>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
