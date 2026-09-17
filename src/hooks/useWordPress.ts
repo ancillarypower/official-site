@@ -10,6 +10,50 @@ interface WpQueryResult {
 }
 
 /**
+ * Safely parse a raw `_embedded` value into the shape expected by WpPost.
+ * Unlike the previous `as WpPost["_embedded"]` type assertion, this validates
+ * each nested structure (author, wp:featuredmedia, wp:term) at runtime.
+ */
+export function resolveEmbedded(raw: unknown): WpPost["_embedded"] {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const obj = raw as Record<string, unknown>;
+
+  const author = Array.isArray(obj.author)
+    ? obj.author
+        .filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null)
+        .map((a) => ({ name: typeof a.name === "string" ? a.name : "" }))
+    : undefined;
+
+  const media = Array.isArray(obj["wp:featuredmedia"])
+    ? obj["wp:featuredmedia"].filter(
+        (m): m is { source_url: string } =>
+          typeof m === "object" &&
+          m !== null &&
+          typeof (m as Record<string, unknown>).source_url === "string",
+      )
+    : undefined;
+
+  const term = Array.isArray(obj["wp:term"])
+    ? obj["wp:term"]
+        .filter((group): group is unknown[] => Array.isArray(group))
+        .map((group) =>
+          group.filter(
+            (t): t is { name: string } =>
+              typeof t === "object" &&
+              t !== null &&
+              typeof (t as Record<string, unknown>).name === "string",
+          ),
+        )
+    : undefined;
+
+  return {
+    author,
+    "wp:featuredmedia": media,
+    "wp:term": term,
+  };
+}
+
+/**
  * Normalize a raw API response item into a shape that matches WpPost
  * when Zod safeParse fails and the transform step is skipped.
  */
@@ -25,7 +69,7 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
     name: typeof p.name === "string" ? p.name : undefined,
     source_url: typeof p.source_url === "string" ? p.source_url : undefined,
     media_type: typeof p.media_type === "string" ? p.media_type : undefined,
-    _embedded: p._embedded as WpPost["_embedded"],
+    _embedded: resolveEmbedded(p._embedded),
   };
 }
 
