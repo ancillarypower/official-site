@@ -79,7 +79,7 @@ describe("App routing", () => {
 
   it("renders SkipToContent link", () => {
     renderApp("/");
-    expect(screen.getByText("Skip to content")).toBeInTheDocument();
+    expect(screen.getByText("跳至主要內容")).toBeInTheDocument();
   });
 
   it("renders mocked Sidebar", () => {

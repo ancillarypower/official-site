@@ -17,8 +17,8 @@ function withProviders(ui: React.ReactElement) {
 
 describe("SkipToContent", () => {
   it("renders a skip link", () => {
-    render(<SkipToContent />);
-    const link = screen.getByText("Skip to content");
+    render(<I18nProvider><SkipToContent /></I18nProvider>);
+    const link = screen.getByText("跳至主要內容");
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "#main-content");
   });

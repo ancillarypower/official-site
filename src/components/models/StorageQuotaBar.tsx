@@ -1,4 +1,5 @@
 import { useStorageQuota } from "@/hooks/useStorageQuota";
+import { useI18n } from "@/context/I18nContext";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -9,11 +10,12 @@ function formatBytes(bytes: number): string {
 
 export function StorageQuotaBar() {
   const quota = useStorageQuota();
+  const { t } = useI18n();
   if (!quota) return null;
   return (
     <div className="mt-3 rounded-md bg-surface-sunken px-3 py-2">
       <div className="mb-1 flex items-center justify-between text-[0.7rem] text-tertiary">
-        <span>💾 Storage</span>
+        <span>💾 {t("a11y_storage")}</span>
         <span>{formatBytes(quota.used)} / {formatBytes(quota.total)}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-border-default">

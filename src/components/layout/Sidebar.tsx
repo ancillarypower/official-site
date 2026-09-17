@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { SettingsPanel } from "@/components/layout/SettingsPanel";
 import { CartPanel } from "@/components/store/CartPanel";
+import { useI18n } from "@/context/I18nContext";
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -15,6 +16,7 @@ const FOCUSABLE_SELECTOR = [
 export function Sidebar() {
   const activePanel = useSettingsStore((s) => s.activePanel);
   const closePanel = useSettingsStore((s) => s.closePanel);
+  const { t } = useI18n();
   const settingsRef = useRef<HTMLElement>(null);
   const cartRef = useRef<HTMLElement>(null);
 
@@ -100,7 +102,7 @@ export function Sidebar() {
           activePanel === "settings" ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
-        aria-label="Settings"
+        aria-label={t("a11y_settings_panel")}
         aria-modal={activePanel === "settings" ? "true" : undefined}
       >
         <SettingsPanel />
@@ -112,7 +114,7 @@ export function Sidebar() {
           activePanel === "cart" ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
-        aria-label="Shopping cart"
+        aria-label={t("a11y_cart_panel")}
         aria-modal={activePanel === "cart" ? "true" : undefined}
       >
         <CartPanel />
