@@ -44,7 +44,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     );
     expect(settingsAside).toBeInTheDocument();
     expect(settingsAside).toHaveAttribute("aria-modal", "true");
@@ -55,7 +55,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: null });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     );
     expect(settingsAside).toBeInTheDocument();
     expect((settingsAside as HTMLElement).inert).toBe(true);
@@ -66,7 +66,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     const { container } = render(withProviders(<Sidebar />));
     const cartAside = container.querySelector(
-      "aside[aria-label='Shopping cart']",
+      "aside[aria-label='購物車']",
     );
     expect(cartAside).toBeInTheDocument();
     expect(cartAside).toHaveAttribute("aria-modal", "true");
@@ -77,7 +77,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const cartAside = container.querySelector(
-      "aside[aria-label='Shopping cart']",
+      "aside[aria-label='購物車']",
     );
     expect(cartAside).toBeInTheDocument();
     expect((cartAside as HTMLElement).inert).toBe(true);
@@ -101,7 +101,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     )!;
     expect(settingsAside.contains(document.activeElement)).toBe(true);
   });
@@ -117,7 +117,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     )!;
     const focusable =
       settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -133,7 +133,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     )!;
     const focusable =
       settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -165,7 +165,7 @@ describe("Sidebar focus trap", () => {
     });
 
     const settingsAside = container.querySelector(
-      "aside[aria-label='Settings']",
+      "aside[aria-label='設定']",
     )!;
     expect(settingsAside.contains(document.activeElement)).toBe(true);
 
