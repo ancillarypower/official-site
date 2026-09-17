@@ -48,7 +48,9 @@ export default function ModelsPage() {
     }
   }, [t]);
 
-  const handleRemove = useCallback(async (id: number) => {
+  const handleRemove = useCallback(async (id: number, name: string) => {
+    const confirmed = window.confirm(t("models_delete_all_confirm", { n: name }));
+    if (!confirmed) return;
     setDeletingIds((prev) => { const next = new Set(prev); next.add(id); return next; });
     try {
       await deleteModel(id);
@@ -164,7 +166,7 @@ export default function ModelsPage() {
             modelId={model.id}
             selected={selectedIds.has(model.id)}
             onToggleSelect={() => toggleSelect(model.id)}
-            onRemove={() => handleRemove(model.id)}
+            onRemove={() => handleRemove(model.id, model.name)}
             isDeleting={deletingIds.has(model.id) || isBulkDeleting}
           />
         ))}
