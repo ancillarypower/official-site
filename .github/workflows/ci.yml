@@ -37,8 +37,21 @@ jobs:
       - name: Type check
         run: pnpm type-check
 
-      - name: Test
-        run: pnpm test -- --reporter=verbose
+      - name: Test with coverage
+        run: pnpm test:coverage
+
+      - name: Check coverage threshold
+        run: |
+          PCT=$(node --input-type=commonjs -e "
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            console.log(Math.round(summary.total.lines.pct));
+          ")
+          echo "Coverage: ${PCT}%"
+          if [ "$PCT" -lt 90 ]; then
+            echo "::error::Coverage ${PCT}% is below the 90% threshold"
+            exit 1
+          fi
 
       - name: Build
         run: pnpm build
