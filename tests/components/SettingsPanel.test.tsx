@@ -60,7 +60,7 @@ describe("SettingsPanel", () => {
 
   it("closes panel", () => {
     render(withProviders(<SettingsPanel />));
-    fireEvent.click(screen.getByLabelText("Close"));
+    fireEvent.click(screen.getByLabelText("關閉"));
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
@@ -147,9 +147,7 @@ describe("SettingsPanel", () => {
       render(withProviders(<SettingsPanel />));
       const urlInput = screen.getByDisplayValue("https://test.example.com");
       fireEvent.change(urlInput, { target: { value: "https://new.example.com" } });
-      // Input should show new value immediately (local state)
       expect(urlInput).toHaveValue("https://new.example.com");
-      // Store should NOT be updated yet (debounce pending)
       expect(useSettingsStore.getState().wpUrl).toBe("https://test.example.com");
     });
 
@@ -173,7 +171,6 @@ describe("SettingsPanel", () => {
       render(withProviders(<SettingsPanel />));
       const keyInput = screen.getByPlaceholderText("ck_xxx");
       fireEvent.change(keyInput, { target: { value: "ck_test123" } });
-      // Not yet updated
       expect(useSettingsStore.getState().wooKey).toBe("");
       act(() => { vi.advanceTimersByTime(500); });
       expect(useSettingsStore.getState().wooKey).toBe("ck_test123");
@@ -183,7 +180,6 @@ describe("SettingsPanel", () => {
       render(withProviders(<SettingsPanel />));
       const secretInput = screen.getByPlaceholderText("cs_xxx");
       fireEvent.change(secretInput, { target: { value: "cs_secret456" } });
-      // Not yet updated
       expect(useSettingsStore.getState().wooSecret).toBe("");
       act(() => { vi.advanceTimersByTime(500); });
       expect(useSettingsStore.getState().wooSecret).toBe("cs_secret456");
@@ -196,10 +192,8 @@ describe("SettingsPanel", () => {
       act(() => { vi.advanceTimersByTime(300); });
       fireEvent.change(urlInput, { target: { value: "https://ab" } });
       act(() => { vi.advanceTimersByTime(300); });
-      // 600ms total but only 300ms since last keystroke — not yet
       expect(useSettingsStore.getState().wpUrl).toBe("https://test.example.com");
       act(() => { vi.advanceTimersByTime(200); });
-      // 500ms since last keystroke — now updated
       expect(useSettingsStore.getState().wpUrl).toBe("https://ab");
     });
   });

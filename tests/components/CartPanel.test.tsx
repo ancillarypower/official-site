@@ -132,7 +132,7 @@ describe("CartPanel", () => {
   it("closes panel when close button is clicked", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText("Close"));
+    fireEvent.click(screen.getByLabelText("關閉"));
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
@@ -192,7 +192,6 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     const { container } = render(withProviders(<CartPanel />));
 
-    // Fill required billing fields (first_name, last_name, email)
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
     fireEvent.change(inputs[0]!, { target: { value: "John" } });
     fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
@@ -244,7 +243,6 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
 
-    // Click checkout without filling billing fields
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
     expect(mockCheckout).not.toHaveBeenCalled();
@@ -259,10 +257,8 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
 
-    // Click checkout without filling billing fields
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
-    // Should show the correct validation message, not the WooCommerce connection message
     expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D\u8207 Email/)).toBeInTheDocument();
     expect(screen.queryByText(/\u8ACB\u5148\u9023\u63A5 WooCommerce/)).not.toBeInTheDocument();
   });
