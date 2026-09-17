@@ -200,6 +200,27 @@ body {
 .article-body li {
   margin-bottom: 0.4em;
 }
+.article-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.4em 0;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+.article-body th,
+.article-body td {
+  border: 1px solid var(--color-border-default);
+  padding: 0.6em 0.8em;
+  text-align: left;
+}
+.article-body th {
+  background: var(--color-surface-sunken);
+  font-weight: 600;
+}
+.article-body tr:nth-child(even) {
+  background: var(--color-surface-sunken);
+}
 
 /* ── Animations ── */
 @keyframes fade-in {
