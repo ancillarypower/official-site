@@ -232,6 +232,11 @@ export const zh = {
 
   legal_footer_link: "隱私權政策與服務條款",
 
+  // Error boundary
+  error_title: "發生錯誤",
+  error_generic: "發生意外錯誤，請重新載入頁面。",
+  error_reload: "重新載入頁面",
+
   // Route error boundary
   route_load_error: "此頁面載入失敗",
   route_load_retry: "重新載入",

@@ -48,7 +48,6 @@ describe("CartPanel checkout success flow", () => {
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
-    // After success, a "clear cart" link should appear
     await waitFor(() => {
       const links = screen.getAllByText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/);
       expect(links.length).toBeGreaterThanOrEqual(1);
@@ -58,13 +57,11 @@ describe("CartPanel checkout success flow", () => {
   it("updates billing fields via form inputs", () => {
     const { container } = render(withProviders(<CartPanel />));
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    // phone, address, city, postcode, country fields
     fireEvent.change(inputs[3]!, { target: { value: "0912345678" } });
     fireEvent.change(inputs[4]!, { target: { value: "123 Main St" } });
     fireEvent.change(inputs[5]!, { target: { value: "Taipei" } });
     fireEvent.change(inputs[6]!, { target: { value: "100" } });
     fireEvent.change(inputs[7]!, { target: { value: "TW" } });
-    // Verify inputs reflect new values
     expect(inputs[3]).toHaveValue("0912345678");
     expect(inputs[4]).toHaveValue("123 Main St");
     expect(inputs[5]).toHaveValue("Taipei");
@@ -79,7 +76,6 @@ describe("CartPanel checkout success flow", () => {
 
   it("shows checkout note when wooKey is set", () => {
     render(withProviders(<CartPanel />));
-    // The note text differs when woo is connected vs not
     expect(screen.queryByText(/\u8ACB\u5148\u9023\u63A5 WooCommerce/)).not.toBeInTheDocument();
   });
 
@@ -94,5 +90,26 @@ describe("CartPanel checkout success flow", () => {
     await waitFor(() => {
       expect(screen.getByText("Checkout failed")).toBeInTheDocument();
     });
+  });
+
+  it("clears validation error when user edits a billing field (regression #95)", () => {
+    const { container } = render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "J" } });
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
+  });
+
+  it("clears previous error at start of handleCheckout retry (regression #95)", () => {
+    const { container } = render(withProviders(<CartPanel />));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
   });
 });

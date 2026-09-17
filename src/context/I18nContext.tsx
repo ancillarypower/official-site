@@ -17,7 +17,7 @@ interface I18nContextValue {
   t: (key: TranslationKey, replacements?: Record<string, string | number>) => string;
 }
 
-const I18nContext = createContext<I18nContextValue | null>(null);
+export const I18nContext = createContext<I18nContextValue | null>(null);
 
 const translations: Record<Lang, Record<TranslationKey, string>> = { zh, en };
 
