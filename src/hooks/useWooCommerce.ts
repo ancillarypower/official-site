@@ -47,7 +47,7 @@ export function useWooProducts(page: number = 1) {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useQuery<WooQueryResult>({
-    queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page],
+    queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page, useProxy],
     queryFn: async () => {
       const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
