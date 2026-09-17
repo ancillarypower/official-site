@@ -96,14 +96,23 @@ export async function fetchWithProxy(
 
 /**
  * Build the WP REST API base URL from a site URL.
+ *
+ * Strips any existing `/wp-json` path the user may have pasted
+ * (e.g. from the browser address bar) before appending the canonical
+ * API prefix, preventing path duplication (Issue #86).
  */
 export function wpApiUrl(siteUrl: string): string {
-  const base = siteUrl.trim().replace(/\/+$/, "");
-  return `${base.startsWith("http") ? base : "https://" + base}/wp-json/wp/v2`;
+  let base = siteUrl.trim().replace(/\/+$/, "");
+  base = base.startsWith("http") ? base : "https://" + base;
+  base = base.replace(/\/wp-json(\/.*)?$/, "");
+  return `${base}/wp-json/wp/v2`;
 }
 
 /**
  * Build a WooCommerce REST API URL.
+ *
+ * Strips any existing `/wp-json` path the user may have pasted
+ * before appending the canonical API prefix (Issue #86).
  *
  * Credentials are **not** included in the URL. Use {@link wooAuthHeaders}
  * for direct-mode authentication. Proxy mode does not support
@@ -114,7 +123,8 @@ export function wooApiUrl(
   endpoint: string,
   params: Record<string, string> = {},
 ): string {
-  const base = baseUrl.trim().replace(/\/+$/, "");
+  let base = baseUrl.trim().replace(/\/+$/, "");
+  base = base.replace(/\/wp-json(\/.*)?$/, "");
   const url = new URL(`${base}/wp-json/wc/v3/${endpoint}`);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
