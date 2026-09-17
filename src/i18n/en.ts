@@ -236,6 +236,11 @@ export const en: Record<TranslationKey, string> = {
 
   legal_footer_link: "Privacy & Terms",
 
+  // Error boundary
+  error_title: "Something went wrong",
+  error_generic: "An unexpected error occurred. Please reload the page.",
+  error_reload: "Reload Page",
+
   // Route error boundary
   route_load_error: "Failed to load this page",
   route_load_retry: "Reload",
