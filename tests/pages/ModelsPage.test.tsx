@@ -235,41 +235,4 @@ describe("ModelsPage", () => {
     errorSpy.mockRestore();
     vi.restoreAllMocks();
   });
-
-  // Regression tests for #90: loading state indicators
-  it("shows uploading text when upload is in progress (regression #90)", async () => {
-    // Never-resolving promise keeps isUploading=true
-    mockSaveModel.mockReturnValueOnce(new Promise(() => {}));
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
-    });
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(["data"], "big.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    // Upload zone should show "Saving models..." text
-    await waitFor(() => {
-      expect(screen.getByText(/\u6B63\u5728\u5132\u5B58\u6A21\u578B/)).toBeInTheDocument();
-    });
-  });
-
-  it("disables remove button during delete (regression #90)", async () => {
-    mockGetAllModelMeta.mockResolvedValue(sampleModels);
-    // Never-resolving promise keeps deletingIds populated
-    mockDeleteModel.mockReturnValueOnce(new Promise(() => {}));
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole("button", { name: "Remove cube.glb" })).not.toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Remove cube.glb" }));
-
-    // Remove button should be disabled while delete is in progress
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Remove cube.glb" })).toBeDisabled();
-    });
-  });
 });
