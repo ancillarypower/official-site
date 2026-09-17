@@ -471,6 +471,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           onClick={toggleFullscreen}
           className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
           aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+          title={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
         >
           {isFullscreen ? "\u2715" : "\u26F6"}
         </button>

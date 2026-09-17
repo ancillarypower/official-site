@@ -80,6 +80,7 @@ export function Navbar() {
           onClick={cycleTheme}
           className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
           aria-label={t("theme_toggle")}
+          title={t("theme_toggle")}
         >
           {THEME_ICONS[theme] ?? "☀"}
         </button>
@@ -87,7 +88,8 @@ export function Navbar() {
         <button
           onClick={toggleLang}
           className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
-          aria-label="Toggle language"
+          aria-label={t("a11y_toggle_lang")}
+          title={t("a11y_toggle_lang")}
         >
           {lang === "zh" ? "EN" : "中文"}
         </button>
@@ -96,6 +98,7 @@ export function Navbar() {
           onClick={() => openPanel("cart")}
           className="rounded-md bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-secondary transition-colors hover:bg-border-default hover:text-primary"
           aria-label={t("nav_cart")}
+          title={t("nav_cart")}
         >
           🛒 {t("nav_cart")}{" "}
           <span className="ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[0.6rem] font-bold text-white">
@@ -107,6 +110,7 @@ export function Navbar() {
           onClick={() => openPanel("settings")}
           className="rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover"
           aria-label={t("nav_settings")}
+          title={t("nav_settings")}
         >
           ⚙ {t("nav_settings")}
         </button>

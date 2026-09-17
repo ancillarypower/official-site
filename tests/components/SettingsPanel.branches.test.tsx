@@ -60,7 +60,7 @@ describe("SettingsPanel branch coverage", () => {
   it("renders sepia theme button as active when sepia is selected", () => {
     useSettingsStore.setState({ theme: "sepia" });
     render(withProviders(<SettingsPanel />));
-    const sepiaButton = screen.getByRole("radio", { name: /\u8B77\u773C/ });
+    const sepiaButton = screen.getByRole("radio", { name: /護眼/ });
     expect(sepiaButton).toHaveAttribute("aria-checked", "true");
   });
 
@@ -68,10 +68,10 @@ describe("SettingsPanel branch coverage", () => {
     render(withProviders(<SettingsPanel />));
     const secretInput = screen.getByPlaceholderText("cs_xxx");
     expect(secretInput).toHaveAttribute("type", "password");
-    const toggleBtn = screen.getByLabelText("Show secret");
+    const toggleBtn = screen.getByLabelText("顯示密鑰");
     fireEvent.click(toggleBtn);
     expect(secretInput).toHaveAttribute("type", "text");
-    const hideBtn = screen.getByLabelText("Hide secret");
+    const hideBtn = screen.getByLabelText("隱藏密鑰");
     fireEvent.click(hideBtn);
     expect(secretInput).toHaveAttribute("type", "password");
   });

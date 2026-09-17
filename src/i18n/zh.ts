@@ -37,6 +37,8 @@ export const zh = {
   models_uploading: "正在儲存模型...",
   models_fullscreen: "全螢幕檢視",
   models_exit_fullscreen: "離開全螢幕",
+  models_remove_label: "移除「{name}」",
+  models_select_label: "選取「{name}」",
 
   store_title: "商店",
   store_products: "{n} 項商品",
@@ -246,6 +248,17 @@ export const zh = {
   a11y_settings_panel: "設定",
   a11y_cart_panel: "購物車",
   a11y_close: "關閉",
+  a11y_toggle_lang: "切換語言",
+  a11y_decrease_font: "縮小字體",
+  a11y_increase_font: "放大字體",
+  a11y_reset_font: "重設字體大小",
+  a11y_font_size: "字體大小",
+  a11y_show_key: "顯示金鑰",
+  a11y_hide_key: "隱藏金鑰",
+  a11y_show_secret: "顯示密鑰",
+  a11y_hide_secret: "隱藏密鑰",
+  a11y_decrease_qty: "減少數量",
+  a11y_increase_qty: "增加數量",
 
   // Route error boundary
   route_load_error: "此頁面載入失敗",

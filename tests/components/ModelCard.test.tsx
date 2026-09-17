@@ -39,13 +39,13 @@ describe("ModelCard", () => {
 
   it("renders remove button with correct aria-label", () => {
     render(createElement(ModelCard, defaultProps));
-    expect(screen.getByLabelText("Remove robot.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText("models_remove_label")).toBeInTheDocument();
   });
 
   it("calls onRemove when remove button is clicked", () => {
     const onRemove = vi.fn();
     render(createElement(ModelCard, { ...defaultProps, onRemove }));
-    fireEvent.click(screen.getByLabelText("Remove robot.glb"));
+    fireEvent.click(screen.getByLabelText("models_remove_label"));
     expect(onRemove).toHaveBeenCalledOnce();
   });
 
@@ -57,29 +57,29 @@ describe("ModelCard", () => {
 
   it("renders remove button with \u2715 text", () => {
     render(createElement(ModelCard, defaultProps));
-    expect(screen.getByLabelText("Remove robot.glb")).toHaveTextContent("\u2715");
+    expect(screen.getByLabelText("models_remove_label")).toHaveTextContent("\u2715");
   });
 
   it("does not render checkbox when onToggleSelect is not provided", () => {
     render(createElement(ModelCard, defaultProps));
-    expect(screen.queryByLabelText(/Select/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/models_select_label/)).not.toBeInTheDocument();
   });
 
   it("renders checkbox when onToggleSelect is provided", () => {
     render(createElement(ModelCard, { ...defaultProps, onToggleSelect: vi.fn() }));
-    expect(screen.getByLabelText("Select robot.glb")).toBeInTheDocument();
+    expect(screen.getByLabelText("models_select_label")).toBeInTheDocument();
   });
 
   it("checkbox reflects selected prop", () => {
     render(createElement(ModelCard, { ...defaultProps, selected: true, onToggleSelect: vi.fn() }));
-    const checkbox = screen.getByLabelText("Select robot.glb") as HTMLInputElement;
+    const checkbox = screen.getByLabelText("models_select_label") as HTMLInputElement;
     expect(checkbox.checked).toBe(true);
   });
 
   it("calls onToggleSelect when checkbox is clicked", () => {
     const onToggleSelect = vi.fn();
     render(createElement(ModelCard, { ...defaultProps, onToggleSelect }));
-    fireEvent.click(screen.getByLabelText("Select robot.glb"));
+    fireEvent.click(screen.getByLabelText("models_select_label"));
     expect(onToggleSelect).toHaveBeenCalledOnce();
   });
 
