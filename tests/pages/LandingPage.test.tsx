@@ -5,21 +5,14 @@ import { I18nProvider } from "@/context/I18nContext";
 import LandingPage from "@/pages/LandingPage";
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <I18nProvider>
-        <LandingPage />
-      </I18nProvider>
-    </MemoryRouter>
-  );
+  return render(<MemoryRouter><I18nProvider><LandingPage /></I18nProvider></MemoryRouter>);
 }
 
 describe("LandingPage", () => {
   it("renders hero section with CTA links", () => {
     renderPage();
     expect(screen.getByText("打造智慧能源的未來")).toBeInTheDocument();
-    const aboutLink = screen.getByText("了解更多");
-    expect(aboutLink.closest("a")).toHaveAttribute("href", "/about");
+    expect(screen.getByText("了解更多").closest("a")).toHaveAttribute("href", "/about");
   });
 
   it("renders 3 metric cards", () => {
@@ -31,8 +24,7 @@ describe("LandingPage", () => {
 
   it("renders explore navigation cards with correct links", () => {
     renderPage();
-    const links = screen.getAllByRole("link");
-    const hrefs = links.map((a) => a.getAttribute("href"));
+    const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
     expect(hrefs).toContain("/news");
     expect(hrefs).toContain("/models");
     expect(hrefs).toContain("/store");
