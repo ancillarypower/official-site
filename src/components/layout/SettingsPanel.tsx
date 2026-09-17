@@ -46,6 +46,7 @@ export function SettingsPanel() {
           onClick={s.closePanel}
           className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default"
           aria-label={t("a11y_close")}
+          title={t("a11y_close")}
         >
           ✕
         </button>
@@ -133,7 +134,8 @@ export function SettingsPanel() {
               type="button"
               onClick={() => setShowKey(!showKey)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-tertiary hover:text-secondary"
-              aria-label={showKey ? "Hide key" : "Show key"}
+              aria-label={showKey ? t("a11y_hide_key") : t("a11y_show_key")}
+              title={showKey ? t("a11y_hide_key") : t("a11y_show_key")}
             >
               {showKey ? "🙈" : "👁"}
             </button>
@@ -148,7 +150,8 @@ export function SettingsPanel() {
               type="button"
               onClick={() => setShowSecret(!showSecret)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-tertiary hover:text-secondary"
-              aria-label={showSecret ? "Hide secret" : "Show secret"}
+              aria-label={showSecret ? t("a11y_hide_secret") : t("a11y_show_secret")}
+              title={showSecret ? t("a11y_hide_secret") : t("a11y_show_secret")}
             >
               {showSecret ? "🙈" : "👁"}
             </button>

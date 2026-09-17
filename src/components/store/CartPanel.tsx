@@ -53,7 +53,7 @@ export function CartPanel() {
               🗑 {t("cart_clear_all")}
             </button>
           )}
-          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")}>✕</button>
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>✕</button>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
@@ -69,9 +69,9 @@ export function CartPanel() {
                   <div className="text-[0.725rem] text-tertiary">${item.price.toFixed(2)}</div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label="Decrease">−</button>
+                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>−</button>
                   <span className="min-w-5 text-center text-sm font-semibold tabular-nums">{item.qty}</span>
-                  <button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label="Increase">+</button>
+                  <button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_increase_qty")} title={t("a11y_increase_qty")}>+</button>
                 </div>
               </div>
             ))}
