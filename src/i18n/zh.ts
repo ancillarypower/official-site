@@ -241,6 +241,7 @@ export const zh = {
   error_title: "發生錯誤",
   error_generic: "發生意外錯誤，請重新載入頁面。",
   error_reload: "重新載入頁面",
+  error_unhandled: "發生非預期錯誤，請稍後再試",
 
   // Accessibility
   a11y_skip_to_content: "跳至主要內容",
