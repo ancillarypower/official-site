@@ -100,6 +100,11 @@ describe("settingsStore", () => {
     expect(useSettingsStore.getState().getWooBaseUrl()).toBe("https://mysite.com");
   });
 
+  it("getWooBaseUrl upgrades http:// to https:// (regression #111)", () => {
+    useSettingsStore.getState().setWpUrl("http://mysite.com");
+    expect(useSettingsStore.getState().getWooBaseUrl()).toBe("https://mysite.com");
+  });
+
   it("setTheme to dark applies data-theme attribute", () => {
     useSettingsStore.getState().setTheme("dark");
     expect(useSettingsStore.getState().theme).toBe("dark");
