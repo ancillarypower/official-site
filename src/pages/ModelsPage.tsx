@@ -66,7 +66,11 @@ export default function ModelsPage() {
   const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
-      let currentModels = [...models];
+      // Read current models from IndexedDB (canonical source of truth)
+      // instead of React state to avoid stale closure issues
+      const dbRecords = await getAllModelMeta();
+      let currentModels = dbRecords.filter((r): r is LoadedModelMeta => r.id != null);
+
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
@@ -120,7 +124,7 @@ export default function ModelsPage() {
     } finally {
       setIsUploading(false);
     }
-  }, [models, t]);
+  }, [t]);
 
   const handleRemove = useCallback(async (id: number, name: string) => {
     const confirmed = window.confirm(t("models_delete_confirm", { name }));

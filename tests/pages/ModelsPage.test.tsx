@@ -395,13 +395,12 @@ describe("ModelsPage", () => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
 
-    // Flush pending microtasks to ensure React re-render fully committed
-    await new Promise((r) => setTimeout(r, 0));
-
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
+    // handleFilesSelected reads from IndexedDB (getAllModelMeta mock)
+    // so it will find the duplicate regardless of React state closure
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(
         expect.stringContaining("cube.glb")
@@ -420,9 +419,6 @@ describe("ModelsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
-
-    // Flush pending microtasks to ensure React re-render fully committed
-    await new Promise((r) => setTimeout(r, 0));
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
