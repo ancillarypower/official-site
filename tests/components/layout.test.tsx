@@ -190,3 +190,97 @@ describe("App scalable-content structure", () => {
     expect(scalable!.contains(nav!)).toBe(false);
   });
 });
+
+describe("HeroBanner", () => {
+  it("uses ResizeObserver instead of window resize for canvas sizing (regression #129)", () => {
+    // Mock canvas 2D context (jsdom does not implement it)
+    const mockCtx = {
+      clearRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillRect: vi.fn(),
+      setTransform: vi.fn(),
+      createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+      strokeStyle: "",
+      fillStyle: "",
+      lineWidth: 1,
+    };
+    const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(mockCtx as unknown as CanvasRenderingContext2D);
+
+    // Mock IntersectionObserver (jsdom does not implement it;
+    // with getContext mocked the useEffect now reaches IO code)
+    const MockIntersectionObserver = vi.fn((_cb: IntersectionObserverCallback) => ({
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+      root: null,
+      rootMargin: "",
+      thresholds: [0],
+      takeRecords: vi.fn(() => []),
+    }));
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
+    const observedElements: Element[] = [];
+    let resizeCallback: ResizeObserverCallback | null = null;
+    const roDisconnectSpy = vi.fn();
+
+    const MockResizeObserver = vi.fn((cb: ResizeObserverCallback) => {
+      resizeCallback = cb;
+      return {
+        observe: vi.fn((el: Element) => { observedElements.push(el); }),
+        unobserve: vi.fn(),
+        disconnect: roDisconnectSpy,
+      };
+    });
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
+
+    const addEventSpy = vi.spyOn(window, "addEventListener");
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container, unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    const canvas = container.querySelector("canvas");
+    expect(canvas).toBeInTheDocument();
+
+    // ResizeObserver should observe the canvas element
+    expect(observedElements).toContain(canvas);
+
+    // window resize listener should NOT be registered for HeroBanner
+    const resizeCalls = addEventSpy.mock.calls.filter(([evt]) => evt === "resize");
+    expect(resizeCalls).toHaveLength(0);
+
+    // Simulate ResizeObserver firing with new dimensions
+    expect(resizeCallback).not.toBeNull();
+    if (resizeCallback && canvas) {
+      Object.defineProperty(canvas, "offsetWidth", { value: 800, configurable: true });
+      Object.defineProperty(canvas, "offsetHeight", { value: 200, configurable: true });
+      resizeCallback(
+        [{ target: canvas, contentRect: { width: 800, height: 200 } } as unknown as ResizeObserverEntry],
+        MockResizeObserver.mock.results[0]!.value as ResizeObserver,
+      );
+      expect(canvas.width).toBe(800 * devicePixelRatio);
+      expect(canvas.height).toBe(200 * devicePixelRatio);
+    }
+
+    // Cleanup disconnects ResizeObserver
+    unmount();
+    expect(roDisconnectSpy).toHaveBeenCalled();
+
+    addEventSpy.mockRestore();
+    getContextSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
