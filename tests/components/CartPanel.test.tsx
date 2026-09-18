@@ -262,4 +262,36 @@ describe("CartPanel", () => {
     expect(screen.getByText(/請填寫姓名與 Email/)).toBeInTheDocument();
     expect(screen.queryByText(/請先連接 WooCommerce/)).not.toBeInTheDocument();
   });
+
+  /* ── Issue #104 Regression Test ── */
+
+  it("all checkout inputs have name and autocomplete attributes", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    const { container } = render(withProviders(<CartPanel />));
+
+    const expected: Array<{ name: string; autocomplete: string }> = [
+      { name: "given-name", autocomplete: "given-name" },
+      { name: "family-name", autocomplete: "family-name" },
+      { name: "email", autocomplete: "email" },
+      { name: "tel", autocomplete: "tel" },
+      { name: "street-address", autocomplete: "street-address" },
+      { name: "address-level2", autocomplete: "address-level2" },
+      { name: "postal-code", autocomplete: "postal-code" },
+      { name: "country", autocomplete: "country" },
+    ];
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    expect(inputs.length).toBe(expected.length);
+
+    expected.forEach((spec, i) => {
+      expect(inputs[i]).toHaveAttribute("name", spec.name);
+      expect(inputs[i]).toHaveAttribute("autocomplete", spec.autocomplete);
+    });
+
+    // phone input should also have type="tel"
+    const phoneInput = container.querySelector<HTMLInputElement>("input[name='tel']");
+    expect(phoneInput).toHaveAttribute("type", "tel");
+  });
 });
