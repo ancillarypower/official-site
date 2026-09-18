@@ -12,6 +12,25 @@ export const zh = {
   empty_no_content: "尚未載入消息",
   back_to_list: "返回列表",
 
+  // Landing
+  landing_hero_title: "打造智慧能源的未來",
+  landing_hero_text:
+    "安瑟樂威是臺灣首家民間合格電力交易商暨可再生能源售電服務業者，透過自主研發的 AIoT 平台，將企業儲能、需量反應與智慧充電等分散式資源整合為可調度的電網資產。",
+  landing_cta_about: "了解更多",
+  landing_cta_news: "最新消息",
+  landing_metrics_title: "關鍵數據",
+  landing_metric_vpp_value: "300+ MW",
+  landing_metric_vpp_label: "虛擬電廠聚合量",
+  landing_metric_dispatch_value: "100%+",
+  landing_metric_dispatch_label: "平均執行率",
+  landing_metric_energy_value: "近 3 億度",
+  landing_metric_energy_label: "年綠電轉供與銷售",
+  landing_explore_title: "探索",
+  landing_explore_news_desc: "瀏覽最新消息",
+  landing_explore_models_desc: "上傳並檢視 3D 模型",
+  landing_explore_store_desc: "瀏覽商品與結帳",
+  landing_explore_about_desc: "了解我們的使命與服務",
+
   models_title: "3D 模型",
   models_drop: "拖放 3D 模型至此處或點擊瀏覽",
   models_formats: "支援 .glb、.gltf、.obj、.stl、.ifc（儲存於本機 IndexedDB）",
