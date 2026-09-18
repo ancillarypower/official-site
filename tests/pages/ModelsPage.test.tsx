@@ -358,4 +358,32 @@ describe("ModelsPage", () => {
     });
     expect(mockRenameModel).not.toHaveBeenCalled();
   });
+
+  // Toggle all expand/collapse tests (Issue #330)
+  it("shows expand/collapse all button when models exist", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("全部展開")).toBeInTheDocument();
+    });
+  });
+
+  it("toggles all model viewers on expand all click", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("全部展開")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("全部展開"));
+    await waitFor(() => {
+      expect(screen.getAllByTestId("model-viewer")).toHaveLength(3);
+    });
+    expect(screen.getByText("全部收合")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("全部收合"));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId("model-viewer")).toHaveLength(0);
+    });
+    expect(screen.getByText("全部展開")).toBeInTheDocument();
+  });
+
 });

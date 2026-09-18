@@ -62,6 +62,8 @@ export const zh = {
   models_drag_hint: "拖曳卡片可重新排序",
   models_rename_hint: "點擊名稱可重新命名",
   models_rename_failed: "重新命名失敗",
+  models_expand_all: "全部展開",
+  models_collapse_all: "全部收合",
 
   store_title: "商店",
   store_products: "{n} 項商品",
