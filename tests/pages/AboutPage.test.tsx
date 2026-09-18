@@ -78,4 +78,14 @@ describe("AboutPage", () => {
       screen.getByText(/台北市中正區新生南路一段/),
     ).toBeInTheDocument();
   });
+
+  it("phone numbers are tel: links (regression #113)", () => {
+    render(withProviders(<AboutPage />));
+    const phone1 = screen.getByText("02-2727-2988");
+    expect(phone1.tagName).toBe("A");
+    expect(phone1).toHaveAttribute("href", "tel:0227272988");
+    const phone2 = screen.getByText("02-7755-5030");
+    expect(phone2.tagName).toBe("A");
+    expect(phone2).toHaveAttribute("href", "tel:0277555030");
+  });
 });
