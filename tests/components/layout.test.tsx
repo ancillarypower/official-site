@@ -190,3 +190,63 @@ describe("App scalable-content structure", () => {
     expect(scalable!.contains(nav!)).toBe(false);
   });
 });
+
+describe("HeroBanner", () => {
+  it("uses ResizeObserver instead of window resize for canvas sizing (regression #129)", () => {
+    const observedElements: Element[] = [];
+    let resizeCallback: ResizeObserverCallback | null = null;
+    const disconnectSpy = vi.fn();
+
+    const MockResizeObserver = vi.fn((cb: ResizeObserverCallback) => {
+      resizeCallback = cb;
+      return {
+        observe: vi.fn((el: Element) => { observedElements.push(el); }),
+        unobserve: vi.fn(),
+        disconnect: disconnectSpy,
+      };
+    });
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
+
+    const addEventSpy = vi.spyOn(window, "addEventListener");
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container, unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    const canvas = container.querySelector("canvas");
+    expect(canvas).toBeInTheDocument();
+
+    // ResizeObserver should observe the canvas element
+    expect(observedElements).toContain(canvas);
+
+    // window resize listener should NOT be registered for HeroBanner
+    const resizeCalls = addEventSpy.mock.calls.filter(([evt]) => evt === "resize");
+    expect(resizeCalls).toHaveLength(0);
+
+    // Simulate ResizeObserver firing with new dimensions
+    if (resizeCallback && canvas) {
+      Object.defineProperty(canvas, "offsetWidth", { value: 800, configurable: true });
+      Object.defineProperty(canvas, "offsetHeight", { value: 200, configurable: true });
+      resizeCallback(
+        [{ target: canvas, contentRect: { width: 800, height: 200 } } as unknown as ResizeObserverEntry],
+        MockResizeObserver.mock.results[0]!.value as ResizeObserver,
+      );
+      expect(canvas.width).toBe(800 * devicePixelRatio);
+      expect(canvas.height).toBe(200 * devicePixelRatio);
+    }
+
+    // Cleanup disconnects ResizeObserver
+    unmount();
+    expect(disconnectSpy).toHaveBeenCalled();
+
+    addEventSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
