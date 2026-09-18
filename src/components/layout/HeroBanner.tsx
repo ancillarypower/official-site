@@ -47,7 +47,10 @@ export function HeroBanner() {
     }
 
     resize();
-    window.addEventListener("resize", resize);
+    const ro = new ResizeObserver(() => {
+      resize();
+    });
+    ro.observe(canvas);
 
     let animId = 0;
 
@@ -124,7 +127,7 @@ export function HeroBanner() {
     return () => {
       stopLoop();
       io.disconnect();
-      window.removeEventListener("resize", resize);
+      ro.disconnect();
     };
   }, []);
 
