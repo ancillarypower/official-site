@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -38,14 +38,37 @@ export default function ContentPage() {
     articleParam !== null && /^\d+$/.test(articleParam)
       ? Number(articleParam)
       : null;
-  const [filter, setFilter] = useState("");
-  const [sort, setSort] = useState("date_desc");
+
+  // Sync filter and sort to URL search params so they survive navigation
+  // and browser refresh (#127). Default values are omitted from URL.
+  const filter = searchParams.get("q") ?? "";
+  const sort = searchParams.get("sort") ?? "date_desc";
+
+  const setFilter = useCallback((value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set("q", value);
+      else next.delete("q");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setSort = useCallback((value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value && value !== "date_desc") next.set("sort", value);
+      else next.delete("sort");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Debounce search input before sending to WordPress REST API (300 ms).
   const debouncedSearch = useDebouncedValue(filter, 300);
 
   // Reset page to 1 when contentType or perPage changes (not on mount).
-  // Also reset filter and sort when contentType changes (#123).
+  // Also reset filter and sort when contentType changes (#123, #127).
   // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
   // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
   const prevContentType = useRef(contentType);
@@ -58,12 +81,12 @@ export default function ContentPage() {
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
         next.delete("page");
+        if (contentTypeChanged) {
+          next.delete("q");
+          next.delete("sort");
+        }
         return next;
       }, { replace: true });
-    }
-    if (contentTypeChanged) {
-      setFilter("");
-      setSort("date_desc");
     }
     prevContentType.current = contentType;
     prevPerPage.current = perPage;
@@ -136,15 +159,9 @@ export default function ContentPage() {
       </div>
       <ContentToolbar
         filterValue={filter}
-        onFilterChange={(v) => {
-          setFilter(v);
-          if (page !== 1) setPage(1);
-        }}
+        onFilterChange={setFilter}
         sortValue={sort}
-        onSortChange={(v) => {
-          setSort(v);
-          if (page !== 1) setPage(1);
-        }}
+        onSortChange={setSort}
         sortOptions={SORT_OPTIONS}
       />
       <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
