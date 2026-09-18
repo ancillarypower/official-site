@@ -1,4 +1,5 @@
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const HIGHLIGHTS = [
   { icon: "\ud83c\udf1f", key: "about_highlight_vpp" },
@@ -29,6 +30,7 @@ const SERVICES = [
 
 export default function AboutPage() {
   const { t } = useI18n();
+  useDocumentTitle(t("nav_about"));
 
   return (
     <div className="animate-fade-in mx-auto max-w-3xl space-y-12">

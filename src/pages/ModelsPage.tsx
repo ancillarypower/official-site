@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
@@ -37,6 +38,7 @@ function persistOrder(models: LoadedModelMeta[]): void {
 
 export default function ModelsPage() {
   const { t } = useI18n();
+  useDocumentTitle(t("nav_models"));
   const [models, setModels] = useState<LoadedModelMeta[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());

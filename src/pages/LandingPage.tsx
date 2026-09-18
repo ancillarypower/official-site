@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import type { TranslationKey } from "@/i18n/zh";
 
 const METRICS: ReadonlyArray<{ valueKey: TranslationKey; labelKey: TranslationKey; icon: string }> = [
@@ -23,6 +24,7 @@ const EXPLORE_ITEMS: ReadonlyArray<{ to: string; labelKey: TranslationKey; descK
 
 export default function LandingPage() {
   const { t } = useI18n();
+  useDocumentTitle("");
 
   return (
     <div className="animate-fade-in mx-auto max-w-4xl space-y-16">

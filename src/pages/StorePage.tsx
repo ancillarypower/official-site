@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useWooProducts } from "@/hooks/useWooCommerce";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { ProductGrid } from "@/components/store/ProductGrid";
@@ -25,6 +26,7 @@ function parsePageParam(value: string | null): number {
 
 export default function StorePage() {
   const { t } = useI18n();
+  useDocumentTitle(t("nav_store"));
   const wooPerPage = useSettingsStore((s) => s.wooPerPage);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));

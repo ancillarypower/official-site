@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useWordPress } from "@/hooks/useWordPress";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { PostGrid } from "@/components/content/PostGrid";
 import { ArticleView } from "@/components/content/ArticleView";
@@ -27,6 +28,7 @@ function parsePageParam(value: string | null): number {
 
 export default function ContentPage() {
   const { t } = useI18n();
+  useDocumentTitle(t("nav_content"));
   const contentType = useSettingsStore((s) => s.contentType);
   const perPage = useSettingsStore((s) => s.perPage);
   const [searchParams, setSearchParams] = useSearchParams();
