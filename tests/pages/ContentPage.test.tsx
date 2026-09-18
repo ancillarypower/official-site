@@ -190,6 +190,45 @@ describe("ContentPage", () => {
     expect(mockUseWordPress).not.toHaveBeenCalledWith(1, "");
   });
 
+  // --- Filter/sort reset on contentType change regression tests (#123) ---
+
+  it("resets filter when contentType changes (regression #123)", () => {
+    renderPage();
+    const searchInput = screen.getByPlaceholderText("\u641C\u5C0B...");
+    fireEvent.change(searchInput, { target: { value: "WordPress" } });
+    expect(searchInput).toHaveValue("WordPress");
+    act(() => {
+      useSettingsStore.setState({ contentType: "categories" });
+    });
+    expect(searchInput).toHaveValue("");
+  });
+
+  it("resets sort when contentType changes (regression #123)", () => {
+    renderPage();
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    fireEvent.change(sortSelect, { target: { value: "title_asc" } });
+    expect(sortSelect).toHaveValue("title_asc");
+    act(() => {
+      useSettingsStore.setState({ contentType: "categories" });
+    });
+    expect(sortSelect).toHaveValue("date_desc");
+  });
+
+  it("does not reset filter/sort when perPage changes (regression #123)", () => {
+    renderPage();
+    const searchInput = screen.getByPlaceholderText("\u641C\u5C0B...");
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    fireEvent.change(searchInput, { target: { value: "energy" } });
+    fireEvent.change(sortSelect, { target: { value: "title_desc" } });
+    expect(searchInput).toHaveValue("energy");
+    expect(sortSelect).toHaveValue("title_desc");
+    act(() => {
+      useSettingsStore.setState({ perPage: 50 });
+    });
+    expect(searchInput).toHaveValue("energy");
+    expect(sortSelect).toHaveValue("title_desc");
+  });
+
   // --- Server-side search delegation tests ---
 
   describe("search delegation", () => {
