@@ -67,6 +67,7 @@ export const en: Record<TranslationKey, string> = {
   models_rename_failed: "Rename failed",
   models_expand_all: "Expand All",
   models_collapse_all: "Collapse All",
+  models_replace_confirm: "\"{name}\" already exists. Replace it?",
 
   store_title: "Store",
   store_products: "{n} products",

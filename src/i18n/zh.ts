@@ -64,6 +64,7 @@ export const zh = {
   models_rename_failed: "重新命名失敗",
   models_expand_all: "全部展開",
   models_collapse_all: "全部收合",
+  models_replace_confirm: "「{name}」已存在，確定要取代嗎？",
 
   store_title: "商店",
   store_products: "{n} 項商品",

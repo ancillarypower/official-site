@@ -66,14 +66,36 @@ export default function ModelsPage() {
   const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
+      let currentModels = [...models];
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        const existing = currentModels.find((m) => m.name === file.name);
+        if (existing) {
+          if (!window.confirm(t("models_replace_confirm", { name: file.name }))) continue;
+          try {
+            await deleteModel(existing.id);
+            currentModels = currentModels.filter((m) => m.id !== existing.id);
+            setModels((prev) => {
+              const updated = prev.filter((m) => m.id !== existing.id);
+              persistOrder(updated);
+              return updated;
+            });
+            setSelectedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+            setExpandedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+          } catch (err) {
+            console.error("Failed to delete existing model:", existing.id, err);
+            toast.error(t("models_delete_failed"));
+            continue;
+          }
+        }
         try {
           const ab = await file.arrayBuffer();
           if (ab.byteLength === 0) continue;
           const id = await saveModel(file.name, file.size, ext, ab);
+          const newModel = { id, name: file.name, size: file.size, ext, timestamp: Date.now() };
+          currentModels = [...currentModels, newModel];
           setModels((prev) => {
-            const updated = [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }];
+            const updated = [...prev, newModel];
             persistOrder(updated);
             return updated;
           });
@@ -85,7 +107,7 @@ export default function ModelsPage() {
     } finally {
       setIsUploading(false);
     }
-  }, [t]);
+  }, [models, t]);
 
   const handleRemove = useCallback(async (id: number, name: string) => {
     const confirmed = window.confirm(t("models_delete_confirm", { name }));
@@ -244,7 +266,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            💾 {t("models_persisted")}
+            \uD83D\uDCBE {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -275,7 +297,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              🗑 {t("models_delete_all")}
+              \uD83D\uDDD1 {t("models_delete_all")}
             </button>
           </div>
           <div className="mt-1 text-center text-[0.65rem] text-tertiary">
