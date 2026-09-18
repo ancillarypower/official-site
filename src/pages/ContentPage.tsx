@@ -45,18 +45,25 @@ export default function ContentPage() {
   const debouncedSearch = useDebouncedValue(filter, 300);
 
   // Reset page to 1 when contentType or perPage changes (not on mount).
+  // Also reset filter and sort when contentType changes (#123).
   // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
   // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
   const prevContentType = useRef(contentType);
   const prevPerPage = useRef(perPage);
 
   useEffect(() => {
-    if (prevContentType.current !== contentType || prevPerPage.current !== perPage) {
+    const contentTypeChanged = prevContentType.current !== contentType;
+    const perPageChanged = prevPerPage.current !== perPage;
+    if (contentTypeChanged || perPageChanged) {
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
         next.delete("page");
         return next;
       }, { replace: true });
+    }
+    if (contentTypeChanged) {
+      setFilter("");
+      setSort("date_desc");
     }
     prevContentType.current = contentType;
     prevPerPage.current = perPage;
