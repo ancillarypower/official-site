@@ -8,6 +8,27 @@ vi.mock("@/components/models/ModelViewer", () => ({
     createElement("div", { "data-testid": "model-viewer" }, props.name),
 }));
 
+// Capture onFilesSelected callback from ModelUpload props
+let capturedOnFilesSelected: ((files: File[]) => void) | null = null;
+vi.mock("@/components/models/ModelUpload", () => ({
+  ModelUpload: (props: { onFilesSelected: (files: File[]) => void; disabled?: boolean }) => {
+    capturedOnFilesSelected = props.onFilesSelected;
+    return createElement("div", { "data-testid": "model-upload" },
+      createElement("input", {
+        type: "file",
+        multiple: true,
+        onChange: (e: { target: { files: FileList | null } }) => {
+          const fileList = e.target.files;
+          if (fileList && !props.disabled) {
+            props.onFilesSelected([...fileList]);
+          }
+        },
+      }),
+      props.disabled ? "\u6B63\u5728\u5132\u5B58\u6A21\u578B..." : "\u62D6\u653E 3D \u6A21\u578B\u81F3\u6B64\u8655\u6216\u9EDE\u64CA\u700F\u89BD"
+    );
+  },
+}));
+
 const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
 
@@ -39,6 +60,7 @@ describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
+    capturedOnFilesSelected = null;
     localStorage.removeItem("model_sort_order");
   });
 
@@ -173,9 +195,9 @@ describe("ModelsPage", () => {
       expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Call captured onFilesSelected directly
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    capturedOnFilesSelected!([file]);
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
@@ -395,12 +417,10 @@ describe("ModelsPage", () => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Invoke handleFilesSelected directly via captured callback
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    capturedOnFilesSelected!([file]);
 
-    // handleFilesSelected reads from IndexedDB (getAllModelMeta mock)
-    // so it will find the duplicate regardless of React state closure
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(
         expect.stringContaining("cube.glb")
@@ -420,9 +440,9 @@ describe("ModelsPage", () => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Invoke handleFilesSelected directly via captured callback
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    capturedOnFilesSelected!([file]);
 
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(
