@@ -3,9 +3,10 @@ import { useI18n } from "@/context/I18nContext";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
+import { formatPrice } from "@/lib/formatPrice";
 
 export function CartPanel() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { items, updateQty, totalPrice, clearCart } = useCartStore();
   const closePanel = useSettingsStore((s) => s.closePanel);
   const wooKey = useSettingsStore((s) => s.wooKey);
@@ -50,10 +51,10 @@ export function CartPanel() {
         <div className="flex items-center gap-2">
           {items.length > 0 && (
             <button onClick={handleClearAll} className="rounded-md px-2 py-1 text-xs text-secondary transition-colors hover:bg-surface-sunken hover:text-danger" aria-label={t("cart_clear_all")}>
-              🗑 {t("cart_clear_all")}
+              \uD83D\uDDD1 {t("cart_clear_all")}
             </button>
           )}
-          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>✕</button>
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>\u2715</button>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
@@ -62,21 +63,21 @@ export function CartPanel() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 border-b border-border-subtle pb-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-surface-sunken text-lg">
-                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "📦"}
+                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "\uD83D\uDCE6"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{item.name}</div>
-                  <div className="text-[0.725rem] text-tertiary">${item.price.toFixed(2)}</div>
+                  <div className="text-[0.725rem] text-tertiary">{formatPrice(item.price, lang)}</div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>−</button>
+                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>\u2212</button>
                   <span className="min-w-5 text-center text-sm font-semibold tabular-nums">{item.qty}</span>
                   <button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_increase_qty")} title={t("a11y_increase_qty")}>+</button>
                 </div>
               </div>
             ))}
             <div className="mt-2 flex items-center justify-between border-t border-border-default pt-4 text-sm font-bold">
-              <span>{t("cart_total")}</span><span>${totalPrice().toFixed(2)}</span>
+              <span>{t("cart_total")}</span><span>{formatPrice(totalPrice(), lang)}</span>
             </div>
             <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
               <div className="text-[0.725rem] font-semibold tracking-wide text-tertiary uppercase">{t("checkout_billing")}</div>
