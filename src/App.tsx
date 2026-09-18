@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroBanner } from "@/components/layout/HeroBanner";
@@ -15,6 +15,7 @@ const ModelsPage = lazy(() => import("@/pages/ModelsPage"));
 const StorePage = lazy(() => import("@/pages/StorePage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 export default function App() {
   const location = useLocation();
@@ -36,7 +37,7 @@ export default function App() {
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/legal" element={<LegalPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </RouteErrorBoundary>
             </Suspense>
