@@ -45,6 +45,7 @@ describe("ContentPage", () => {
       isFetching: false,
       isPlaceholderData: false,
       error: null,
+      refetch: vi.fn(),
     });
   });
 
@@ -56,15 +57,17 @@ describe("ContentPage", () => {
   });
 
   it("shows loading spinner", () => {
-    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, isPlaceholderData: false, error: null });
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, isPlaceholderData: false, error: null, refetch: vi.fn() });
     renderPage();
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
-  it("shows error state", () => {
-    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isPlaceholderData: false, error: new Error("API Error") });
+  it("shows friendly error state instead of raw error message", () => {
+    mockUseWordPress.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isPlaceholderData: false, error: new Error("HTTP 500"), refetch: vi.fn() });
     renderPage();
-    expect(screen.getByText("API Error")).toBeInTheDocument();
+    // FetchErrorState renders friendly HTTP error message instead of raw "HTTP 500"
+    expect(screen.getByText("\u4f3a\u670d\u5668\u56de\u61c9\u932f\u8aa4\uff08HTTP 500\uff09")).toBeInTheDocument();
+    expect(screen.getByText("\u91cd\u8a66")).toBeInTheDocument();
   });
 
   it("renders pagination", () => {
@@ -122,6 +125,7 @@ describe("ContentPage", () => {
       isFetching: false,
       isPlaceholderData: false,
       error: null,
+      refetch: vi.fn(),
     });
     renderPage();
     expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
