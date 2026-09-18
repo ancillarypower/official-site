@@ -295,6 +295,11 @@ export const zh = {
   // Route error boundary
   route_load_error: "此頁面載入失敗",
   route_load_retry: "重新載入",
+
+  // 404 Not Found
+  not_found_title: "找不到頁面",
+  not_found_text: "您要找的頁面不存在或已被移動。",
+  not_found_home: "回到首頁",
 } as const;
 
 export type TranslationKey = keyof typeof zh;
