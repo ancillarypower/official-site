@@ -14,6 +14,25 @@ export const en: Record<TranslationKey, string> = {
   empty_no_content: "No news loaded",
   back_to_list: "Back to list",
 
+  // Landing
+  landing_hero_title: "Building the Future of Smart Energy",
+  landing_hero_text:
+    "Ancillary Power is Taiwan's first qualified private electricity trader and renewable energy retailer, leveraging our proprietary AIoT platform to aggregate distributed energy resources into dispatchable grid assets.",
+  landing_cta_about: "Learn More",
+  landing_cta_news: "Latest News",
+  landing_metrics_title: "Key Metrics",
+  landing_metric_vpp_value: "300+ MW",
+  landing_metric_vpp_label: "VPP Aggregation Capacity",
+  landing_metric_dispatch_value: "100%+",
+  landing_metric_dispatch_label: "Average Dispatch Rate",
+  landing_metric_energy_value: "~300M kWh",
+  landing_metric_energy_label: "Annual Green Energy Traded",
+  landing_explore_title: "Explore",
+  landing_explore_news_desc: "Browse latest news",
+  landing_explore_models_desc: "Upload and view 3D models",
+  landing_explore_store_desc: "Browse products and checkout",
+  landing_explore_about_desc: "Learn about our mission and services",
+
   models_title: "3D Models",
   models_drop: "Drop 3D models here or click to browse",
   models_formats:

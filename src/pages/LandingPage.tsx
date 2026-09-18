@@ -1,46 +1,46 @@
 import { Link } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
+import type { TranslationKey } from "@/i18n/zh";
 
-const METRICS = [
-  { value: "300+ MW", labelZh: "虛擬電廠聚合量", labelEn: "VPP Aggregation Capacity", icon: "⚡" },
-  { value: "100%+", labelZh: "平均執行率", labelEn: "Average Dispatch Rate", icon: "✅" },
-  { value: "近 3 億度", labelZh: "年綠電轉供與銷售", labelEn: "Annual Green Energy Traded", icon: "🌿" },
-] as const;
+const METRICS: ReadonlyArray<{ valueKey: TranslationKey; labelKey: TranslationKey; icon: string }> = [
+  { valueKey: "landing_metric_vpp_value", labelKey: "landing_metric_vpp_label", icon: "\u26A1" },
+  { valueKey: "landing_metric_dispatch_value", labelKey: "landing_metric_dispatch_label", icon: "\u2705" },
+  { valueKey: "landing_metric_energy_value", labelKey: "landing_metric_energy_label", icon: "\uD83C\uDF3F" },
+];
 
-const SERVICES = [
-  { icon: "⚡", titleKey: "about_service_content", descKey: "about_service_content_desc" },
-  { icon: "🌿", titleKey: "about_service_3d", descKey: "about_service_3d_desc" },
-  { icon: "🔋", titleKey: "about_service_store", descKey: "about_service_store_desc" },
-] as const;
+const SERVICES: ReadonlyArray<{ icon: string; titleKey: TranslationKey; descKey: TranslationKey }> = [
+  { icon: "\u26A1", titleKey: "about_service_content", descKey: "about_service_content_desc" },
+  { icon: "\uD83C\uDF3F", titleKey: "about_service_3d", descKey: "about_service_3d_desc" },
+  { icon: "\uD83D\uDD0B", titleKey: "about_service_store", descKey: "about_service_store_desc" },
+];
 
-const EXPLORE_ITEMS = [
-  { to: "/news", labelKey: "nav_content", descZh: "瀏覽最新消息", descEn: "Browse latest news", icon: "📰" },
-  { to: "/models", labelKey: "nav_models", descZh: "上傳並檢視 3D 模型", descEn: "Upload and view 3D models", icon: "🧶" },
-  { to: "/store", labelKey: "nav_store", descZh: "瀏覽商品與結帳", descEn: "Browse products and checkout", icon: "🛒" },
-  { to: "/about", labelKey: "nav_about", descZh: "了解我們的使命與服務", descEn: "Learn about our mission and services", icon: "💡" },
-] as const;
+const EXPLORE_ITEMS: ReadonlyArray<{ to: string; labelKey: TranslationKey; descKey: TranslationKey; icon: string }> = [
+  { to: "/news", labelKey: "nav_content", descKey: "landing_explore_news_desc", icon: "\uD83D\uDCF0" },
+  { to: "/models", labelKey: "nav_models", descKey: "landing_explore_models_desc", icon: "\uD83E\uDDF6" },
+  { to: "/store", labelKey: "nav_store", descKey: "landing_explore_store_desc", icon: "\uD83D\uDED2" },
+  { to: "/about", labelKey: "nav_about", descKey: "landing_explore_about_desc", icon: "\uD83D\uDCA1" },
+];
 
 export default function LandingPage() {
-  const { lang, t } = useI18n();
-  const isZh = lang === "zh";
+  const { t } = useI18n();
 
   return (
     <div className="animate-fade-in mx-auto max-w-4xl space-y-16">
       <section className="space-y-6 text-center">
-        <h1 className="text-2xl font-bold md:text-3xl">{isZh ? "打造智慧能源的未來" : "Building the Future of Smart Energy"}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t("landing_hero_title")}</h1>
         <p className="mx-auto max-w-2xl text-sm leading-relaxed text-secondary">
-          {isZh ? "安瑟樂威是臺灣首家民間合格電力交易商暨可再生能源售電服務業者，透過自主研發的 AIoT 平台，將企業儲能、需量反應與智慧充電等分散式資源整合為可調度的電網資產。" : "Ancillary Power is Taiwan's first qualified private electricity trader and renewable energy retailer, leveraging our proprietary AIoT platform to aggregate distributed energy resources into dispatchable grid assets."}
+          {t("landing_hero_text")}
         </p>
         <div className="flex justify-center gap-3">
-          <Link to="/about" className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover">{isZh ? "了解更多" : "Learn More"}</Link>
-          <Link to="/news" className="rounded-lg border border-border-default bg-surface-raised px-5 py-2.5 text-sm font-semibold text-secondary transition-colors hover:border-accent hover:text-accent">{isZh ? "最新消息" : "Latest News"}</Link>
+          <Link to="/about" className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover">{t("landing_cta_about")}</Link>
+          <Link to="/news" className="rounded-lg border border-border-default bg-surface-raised px-5 py-2.5 text-sm font-semibold text-secondary transition-colors hover:border-accent hover:text-accent">{t("landing_cta_news")}</Link>
         </div>
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-center text-lg font-semibold">{isZh ? "關鍵數據" : "Key Metrics"}</h2>
+        <h2 className="text-center text-lg font-semibold">{t("landing_metrics_title")}</h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          {METRICS.map(({ value, labelZh, labelEn, icon }) => <div key={value} className="rounded-lg border border-border-default bg-surface-raised p-6 text-center"><span className="text-2xl" aria-hidden="true">{icon}</span><p className="mt-2 text-xl font-bold text-accent">{value}</p><p className="mt-1 text-xs text-secondary">{isZh ? labelZh : labelEn}</p></div>)}
+          {METRICS.map(({ valueKey, labelKey, icon }) => <div key={valueKey} className="rounded-lg border border-border-default bg-surface-raised p-6 text-center"><span className="text-2xl" aria-hidden="true">{icon}</span><p className="mt-2 text-xl font-bold text-accent">{t(valueKey)}</p><p className="mt-1 text-xs text-secondary">{t(labelKey)}</p></div>)}
         </div>
       </section>
 
@@ -52,9 +52,9 @@ export default function LandingPage() {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-center text-lg font-semibold">{isZh ? "探索" : "Explore"}</h2>
+        <h2 className="text-center text-lg font-semibold">{t("landing_explore_title")}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {EXPLORE_ITEMS.map(({ to, labelKey, descZh, descEn, icon }) => <Link key={to} to={to} className="group rounded-lg border border-border-default bg-surface-raised p-5 transition-colors hover:border-accent"><span className="text-2xl" aria-hidden="true">{icon}</span><h3 className="mt-2 text-sm font-semibold group-hover:text-accent">{t(labelKey)}</h3><p className="mt-1 text-xs text-secondary">{isZh ? descZh : descEn}</p></Link>)}
+          {EXPLORE_ITEMS.map(({ to, labelKey, descKey, icon }) => <Link key={to} to={to} className="group rounded-lg border border-border-default bg-surface-raised p-5 transition-colors hover:border-accent"><span className="text-2xl" aria-hidden="true">{icon}</span><h3 className="mt-2 text-sm font-semibold group-hover:text-accent">{t(labelKey)}</h3><p className="mt-1 text-xs text-secondary">{t(descKey)}</p></Link>)}
         </div>
       </section>
     </div>
