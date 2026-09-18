@@ -63,9 +63,7 @@ export default function ModelsPage() {
       });
   }, [t]);
 
-  // Not wrapped in useCallback: needs fresh `models` closure on every render
-  // for accurate duplicate detection. Re-creation cost is negligible.
-  const handleFilesSelected = async (files: File[]) => {
+  const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
       let currentModels = [...models];
@@ -122,7 +120,7 @@ export default function ModelsPage() {
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [models, t]);
 
   const handleRemove = useCallback(async (id: number, name: string) => {
     const confirmed = window.confirm(t("models_delete_confirm", { name }));
