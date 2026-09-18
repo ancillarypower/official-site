@@ -44,6 +44,8 @@ export const en: Record<TranslationKey, string> = {
   models_remove_label: "Remove \"{name}\"",
   models_select_label: "Select \"{name}\"",
   models_drag_hint: "Drag cards to reorder",
+  models_rename_hint: "Click name to rename",
+  models_rename_failed: "Rename failed",
 
   store_title: "Store",
   store_products: "{n} products",

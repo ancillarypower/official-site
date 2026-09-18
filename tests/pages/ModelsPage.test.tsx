@@ -16,6 +16,7 @@ const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
 const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
 const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
 const mockDeleteAllModels = vi.fn().mockResolvedValue(undefined);
+const mockRenameModel = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/hooks/useModelDB", () => ({
   saveModel: (...args: unknown[]) => mockSaveModel(...args),
@@ -23,6 +24,7 @@ vi.mock("@/hooks/useModelDB", () => ({
   deleteModel: (...args: unknown[]) => mockDeleteModel(...args),
   deleteMultipleModels: (...args: unknown[]) => mockDeleteMultipleModels(...args),
   deleteAllModels: (...args: unknown[]) => mockDeleteAllModels(...args),
+  renameModel: (...args: unknown[]) => mockRenameModel(...args),
 }));
 
 import ModelsPage from "@/pages/ModelsPage";
@@ -285,12 +287,10 @@ describe("ModelsPage", () => {
     });
 
     const cards = document.querySelectorAll("[draggable='true']");
-    // Drag cube.glb (id=1, index 0) onto plane.stl (id=3, index 2)
     fireEvent.dragStart(cards[0]);
     fireEvent.dragEnter(cards[2]);
     fireEvent.dragEnd(cards[0]);
 
-    // After reorder: sphere.obj, plane.stl, cube.glb
     await waitFor(() => {
       const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
       const order = removeButtons.map((btn) => {
@@ -313,5 +313,49 @@ describe("ModelsPage", () => {
       });
       expect(order).toEqual(["plane.stl", "cube.glb", "sphere.obj"]);
     });
+  });
+
+  // Rename tests (Issue #335)
+  it("enters edit mode when model name is clicked", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("cube.glb")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("cube.glb"));
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("cube.glb")).toBeInTheDocument();
+    });
+  });
+
+  it("saves renamed model on Enter", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("cube.glb")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("cube.glb"));
+    const input = screen.getByDisplayValue("cube.glb");
+    fireEvent.change(input, { target: { value: "renamed-model.glb" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => {
+      expect(mockRenameModel).toHaveBeenCalledWith(1, "renamed-model.glb");
+    });
+  });
+
+  it("cancels rename on Escape without saving", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("cube.glb")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("cube.glb"));
+    const input = screen.getByDisplayValue("cube.glb");
+    fireEvent.change(input, { target: { value: "new-name.glb" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    await waitFor(() => {
+      expect(screen.getByText("cube.glb")).toBeInTheDocument();
+    });
+    expect(mockRenameModel).not.toHaveBeenCalled();
   });
 });

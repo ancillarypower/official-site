@@ -4,7 +4,7 @@ import { useI18n } from "@/context/I18nContext";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
-import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels } from "@/hooks/useModelDB";
+import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
 import type { ModelMeta } from "@/lib/types";
 
 interface LoadedModelMeta extends ModelMeta { id: number; }
@@ -99,6 +99,16 @@ export default function ModelsPage() {
       toast.error(t("models_delete_failed"));
     } finally {
       setDeletingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  }, [t]);
+
+  const handleRename = useCallback(async (id: number, newName: string) => {
+    try {
+      await renameModel(id, newName);
+      setModels((prev) => prev.map((m) => m.id === id ? { ...m, name: newName } : m));
+    } catch (err) {
+      console.error("Failed to rename model:", id, err);
+      toast.error(t("models_rename_failed"));
     }
   }, [t]);
 
@@ -207,7 +217,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            \uD83D\uDCBE {t("models_persisted")}
+            {"\uD83D\uDCBE"} {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -231,7 +241,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              \uD83D\uDDD1 {t("models_delete_all")}
+              {"\uD83D\uDDD1"} {t("models_delete_all")}
             </button>
           </div>
           <div className="mt-1 text-center text-[0.65rem] text-tertiary">
@@ -256,6 +266,7 @@ export default function ModelsPage() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             isDragTarget={dragTargetId === model.id}
+            onRename={(newName) => handleRename(model.id, newName)}
           />
         ))}
       </div>
