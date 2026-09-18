@@ -39,6 +39,7 @@ const mockCameraPositionSet = vi.fn();
 const mockControlsTargetCopy = vi.fn();
 const mockUpdateProjectionMatrix = vi.fn();
 const mockControlsUpdate = vi.fn();
+const mockDracoDispose = vi.fn();
 
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
@@ -89,7 +90,7 @@ vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
   })),
 }));
 vi.mock("three/examples/jsm/loaders/DRACOLoader.js", () => ({
-  DRACOLoader: vi.fn().mockImplementation(() => ({ setDecoderPath: vi.fn() })),
+  DRACOLoader: vi.fn().mockImplementation(() => ({ setDecoderPath: vi.fn(), dispose: mockDracoDispose })),
 }));
 vi.mock("three/examples/jsm/loaders/OBJLoader.js", () => ({
   OBJLoader: vi.fn().mockImplementation(() => ({
@@ -208,6 +209,29 @@ describe("ModelViewer GPU resource cleanup (#74)", () => {
 
     unmount();
     expect(mockControlsDispose).toHaveBeenCalled();
+  });
+});
+
+describe("ModelViewer DRACOLoader cleanup (#105)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("disposes DRACOLoader on unmount when loading GLB", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    unmount();
+    expect(mockDracoDispose).toHaveBeenCalled();
   });
 });
 

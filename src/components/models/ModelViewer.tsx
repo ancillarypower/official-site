@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/context/I18nContext";
 import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import type { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
 
@@ -88,6 +89,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let ctxRestoredHandler: (() => void) | null = null;
     let scene: Scene | null = null;
     let controls: OrbitControls | null = null;
+    let dracoLoader: DRACOLoader | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -108,7 +110,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         const { GLTFLoader } = await import(
           "three/examples/jsm/loaders/GLTFLoader.js"
         );
-        const { DRACOLoader } = await import(
+        const { DRACOLoader: DRACOLoaderClass } = await import(
           "three/examples/jsm/loaders/DRACOLoader.js"
         );
         const { OBJLoader } = await import(
@@ -150,6 +152,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           disposeSceneResources(scene);
           controls?.dispose();
           controls = null;
+          dracoLoader?.dispose();
+          dracoLoader = null;
           scene = null;
           if (renderer) {
             if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
@@ -375,9 +379,9 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           fitToView(group);
         } else if (ext === "glb" || ext === "gltf") {
           const loader = new GLTFLoader();
-          const draco = new DRACOLoader();
-          draco.setDecoderPath(DRACO_CDN);
-          loader.setDRACOLoader(draco);
+          dracoLoader = new DRACOLoaderClass();
+          dracoLoader.setDecoderPath(DRACO_CDN);
+          loader.setDRACOLoader(dracoLoader);
           const payload =
             ext === "gltf"
               ? new TextDecoder().decode(new Uint8Array(buf))
@@ -440,6 +444,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       cancelAnimationFrame(animId);
       ro?.disconnect();
       disposeSceneResources(scene);
+      dracoLoader?.dispose();
       controls?.dispose();
       resetViewpointRef.current = null;
       if (renderer) {
