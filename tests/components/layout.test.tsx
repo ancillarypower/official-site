@@ -136,6 +136,13 @@ describe("Footer", () => {
     expect(emailLink).toHaveAttribute("href", "mailto:contact@ancillarypower.com");
   });
 
+  it("email href stays in sync with i18n value (regression #120)", () => {
+    render(withProviders(<Footer />));
+    const emailLink = screen.getByText("contact@ancillarypower.com");
+    const displayText = emailLink.textContent!;
+    expect(emailLink).toHaveAttribute("href", `mailto:${displayText}`);
+  });
+
   it("does not render developer documentation links", () => {
     render(withProviders(<Footer />));
     expect(screen.queryByText("WooCommerce API")).not.toBeInTheDocument();

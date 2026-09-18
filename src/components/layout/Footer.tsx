@@ -29,7 +29,7 @@ export function Footer() {
           </li>
           <li>
             <a
-              href="mailto:contact@ancillarypower.com"
+              href={`mailto:${t("about_email_value")}`}
               className="text-[0.725rem] text-tertiary transition-colors hover:text-primary"
             >
               {t("about_email_value")}
