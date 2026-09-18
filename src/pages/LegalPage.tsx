@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/context/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function Section({
   title,
@@ -20,6 +21,7 @@ function Section({
 
 export default function LegalPage() {
   const { t } = useI18n();
+  useDocumentTitle(t("legal_privacy_title"));
 
   return (
     <div className="mx-auto max-w-3xl space-y-12">
