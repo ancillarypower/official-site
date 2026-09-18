@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
@@ -57,5 +57,16 @@ describe("ProductCard", () => {
     useCartStore.setState({ items: [{ id: 1, name: "Test", price: 99.99, icon: null, img: null, qty: 2 }] });
     render(withProviders(<ProductCard product={product} />));
     expect(screen.getByText(/\u5728\u8CFC\u7269\u8ECA/)).toBeInTheDocument();
+  });
+
+  it("clears justAdded timer on unmount without errors", () => {
+    vi.useFakeTimers();
+    const { unmount } = render(withProviders(<ProductCard product={product} />));
+    fireEvent.click(screen.getByText("\u52A0\u5165\u8CFC\u7269\u8ECA"));
+    // Unmount before the 1s timer fires
+    unmount();
+    // Advance past the timer — should not throw or warn
+    expect(() => vi.advanceTimersByTime(1500)).not.toThrow();
+    vi.useRealTimers();
   });
 });
