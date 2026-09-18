@@ -10,6 +10,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { ContentToolbar } from "@/components/ui/ContentToolbar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FetchErrorState } from "@/components/ui/FetchErrorState";
 import { getPostTitle } from "@/lib/types";
 
 const SORT_OPTIONS = [
@@ -68,7 +69,7 @@ export default function ContentPage() {
     }, { replace: true });
   };
 
-  const { data, isLoading, isFetching, isPlaceholderData, error } = useWordPress(page, debouncedSearch);
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useWordPress(page, debouncedSearch);
 
   // Client-side sort only; search is delegated to WP REST API `search` param.
   const filteredPosts = useMemo(() => {
@@ -108,7 +109,7 @@ export default function ContentPage() {
   }
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <EmptyState icon="\u26a0\ufe0f" title={(error as Error).message} />;
+  if (error) return <FetchErrorState error={error} onRetry={refetch} />;
   if (!data?.posts.length) return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
 
   const typeLabel = t(`type_${contentType}` as const);
