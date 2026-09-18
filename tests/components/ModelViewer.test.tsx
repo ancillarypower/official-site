@@ -40,6 +40,7 @@ const mockControlsTargetCopy = vi.fn();
 const mockUpdateProjectionMatrix = vi.fn();
 const mockControlsUpdate = vi.fn();
 const mockDracoDispose = vi.fn();
+const mockRendererSetSize = vi.fn();
 
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
@@ -53,7 +54,7 @@ vi.mock("three", async () => ({
   WebGLRenderer: vi.fn().mockImplementation(() => {
     const canvas = document.createElement("canvas");
     return {
-      setSize: vi.fn(), setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
+      setSize: mockRendererSetSize, setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
       domElement: canvas, render: vi.fn(), dispose: vi.fn(),
     };
   }),
@@ -311,5 +312,33 @@ describe("ModelViewer viewpoint reset (#336)", () => {
     const resetBtn = screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/);
     resetBtn.click();
     expect(mockCameraPositionSet.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+});
+
+describe("ModelViewer font scale resize (#110)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("resizes renderer on fontscalechange event", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    // Clear call history from init setSize calls
+    mockRendererSetSize.mockClear();
+    mockUpdateProjectionMatrix.mockClear();
+
+    // Dispatch fontscalechange event
+    window.dispatchEvent(new CustomEvent("fontscalechange"));
+
+    expect(mockRendererSetSize).toHaveBeenCalledTimes(1);
+    expect(mockUpdateProjectionMatrix).toHaveBeenCalledTimes(1);
   });
 });
