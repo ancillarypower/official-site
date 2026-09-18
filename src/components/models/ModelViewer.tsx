@@ -89,6 +89,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let scene: Scene | null = null;
     let controls: OrbitControls | null = null;
     let dracoLoader: { dispose(): void } | null = null;
+    let fontScaleHandler: (() => void) | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -148,6 +149,10 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           if (disposed) return;
           ro?.disconnect();
           ro = null;
+          if (fontScaleHandler) {
+            window.removeEventListener("fontscalechange", fontScaleHandler);
+            fontScaleHandler = null;
+          }
           disposeSceneResources(scene);
           controls?.dispose();
           controls = null;
@@ -218,6 +223,19 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           }
         });
         ro.observe(el);
+
+        // Re-sync WebGL viewport when CSS zoom changes (#110).
+        // CSS `zoom` does not trigger ResizeObserver, so we listen for a
+        // custom event dispatched by settingsStore.setFontScale().
+        fontScaleHandler = () => {
+          if (!el || disposed) return;
+          const fw = el.clientWidth || 400;
+          const fh = el.clientHeight || 250;
+          camera.aspect = fw / fh;
+          camera.updateProjectionMatrix();
+          renderer?.setSize(fw, fh);
+        };
+        window.addEventListener("fontscalechange", fontScaleHandler);
 
         function fitToView(object: Object3D) {
           scene!.add(object);
@@ -443,6 +461,9 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       disposed = true;
       cancelAnimationFrame(animId);
       ro?.disconnect();
+      if (fontScaleHandler) {
+        window.removeEventListener("fontscalechange", fontScaleHandler);
+      }
       disposeSceneResources(scene);
       dracoLoader?.dispose();
       controls?.dispose();
