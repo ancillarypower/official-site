@@ -223,6 +223,12 @@ export const en: Record<TranslationKey, string> = {
   error_reload: "Reload Page",
   error_unhandled: "An unexpected error occurred. Please try again later.",
 
+  // Fetch error
+  error_fetch_network: "Unable to connect to WordPress",
+  error_fetch_network_desc: "Try enabling CORS proxy in Settings, or verify the site URL",
+  error_fetch_http: "Server error (HTTP {status})",
+  error_fetch_retry: "Retry",
+
   // Accessibility
   a11y_skip_to_content: "Skip to content",
   a11y_storage: "Storage",
