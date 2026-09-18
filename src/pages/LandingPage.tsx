@@ -14,8 +14,8 @@ const SERVICES = [
 ] as const;
 
 const EXPLORE_ITEMS = [
-  { to: "/news", labelKey: "nav_content", descZh: "最新文章與公司消息", descEn: "Latest articles and company updates", icon: "📰" },
-  { to: "/models", labelKey: "nav_models", descZh: "上傳並檢視 3D 模型", descEn: "Upload and view 3D models", icon: "🧊" },
+  { to: "/news", labelKey: "nav_content", descZh: "瀏覽最新消息", descEn: "Browse latest news", icon: "📰" },
+  { to: "/models", labelKey: "nav_models", descZh: "上傳並檢視 3D 模型", descEn: "Upload and view 3D models", icon: "🧶" },
   { to: "/store", labelKey: "nav_store", descZh: "瀏覽商品與結帳", descEn: "Browse products and checkout", icon: "🛒" },
   { to: "/about", labelKey: "nav_about", descZh: "了解我們的使命與服務", descEn: "Learn about our mission and services", icon: "💡" },
 ] as const;
