@@ -229,6 +229,41 @@ describe("ContentPage", () => {
     expect(sortSelect).toHaveValue("title_desc");
   });
 
+  // --- Filter/sort URL sync regression tests (#127) ---
+
+  it("reads filter and sort from URL search params on mount (regression #127)", () => {
+    renderPage("/?q=energy&sort=title_asc");
+    const searchInput = screen.getByPlaceholderText("\u641C\u5C0B...");
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    expect(searchInput).toHaveValue("energy");
+    expect(sortSelect).toHaveValue("title_asc");
+  });
+
+  it("preserves filter/sort in URL when navigating to article and back (regression #127)", () => {
+    renderPage("/?q=Post&sort=title_asc");
+    expect(screen.getByPlaceholderText("\u641C\u5C0B...")).toHaveValue("Post");
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("title_asc");
+    // Navigate to article view
+    fireEvent.click(screen.getByText("Post Alpha"));
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+    // Navigate back to list
+    fireEvent.click(screen.getByText(/\u2190/));
+    // Filter and sort are preserved from URL
+    expect(screen.getByPlaceholderText("\u641C\u5C0B...")).toHaveValue("Post");
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("title_asc");
+  });
+
+  it("filter and sort survive remount via URL params (regression #127)", () => {
+    const { unmount } = renderPage("/?q=energy&sort=title_asc");
+    expect(screen.getByPlaceholderText("\u641C\u5C0B...")).toHaveValue("energy");
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("title_asc");
+    unmount();
+    // Simulate browser refresh by re-rendering with same URL
+    renderPage("/?q=energy&sort=title_asc");
+    expect(screen.getByPlaceholderText("\u641C\u5C0B...")).toHaveValue("energy");
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("title_asc");
+  });
+
   // --- Server-side search delegation tests ---
 
   describe("search delegation", () => {
