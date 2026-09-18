@@ -5,9 +5,7 @@
 export async function computeFileHash(ab: ArrayBuffer): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", ab);
   const bytes = new Uint8Array(hashBuffer);
-  const hex: string[] = [];
-  for (let i = 0; i < bytes.length; i++) {
-    hex.push(bytes[i].toString(16).padStart(2, "0"));
-  }
-  return hex.join("");
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
