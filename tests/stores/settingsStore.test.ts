@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 describe("settingsStore", () => {
@@ -53,6 +53,18 @@ describe("settingsStore", () => {
     expect(
       document.documentElement.style.getPropertyValue("--font-scale")
     ).toBe("1.2");
+  });
+
+  it("dispatches fontscalechange event on setFontScale (#110)", () => {
+    const spy = vi.fn();
+    window.addEventListener("fontscalechange", spy);
+    try {
+      useSettingsStore.getState().setFontScale(1.2);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0]![0]).toBeInstanceOf(CustomEvent);
+    } finally {
+      window.removeEventListener("fontscalechange", spy);
+    }
   });
 
   it("opens and closes panels", () => {
@@ -202,7 +214,7 @@ describe("settingsStore", () => {
 
   it("credentials default to empty strings, never from env vars (#247)", () => {
     // Regression guard for GitHub issue #247 (CWE-200).
-    // wooKey / wooSecret must be hardcoded to "" — never initialised from
+    // wooKey / wooSecret must be hardcoded to \"\" \u2014 never initialised from
     // VITE_* environment variables, which Vite embeds in the client bundle.
     // The CI guard step also prevents adding VITE_*SECRET/KEY to .env.example.
     const s = useSettingsStore.getState();
@@ -211,7 +223,7 @@ describe("settingsStore", () => {
   });
 
   it("credentials remain empty after rehydration from localStorage (#247)", async () => {
-    // Even if a previous version persisted credentials (it shouldn't),
+    // Even if a previous version persisted credentials (it shouldn\u2019t),
     // rehydration must not restore them because partialize excludes them.
     localStorage.setItem(
       "ap-settings",
