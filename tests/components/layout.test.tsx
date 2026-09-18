@@ -86,6 +86,14 @@ describe("Navbar", () => {
     expect(langButton).toHaveTextContent("中文");
   });
 
+  it("hides cart badge when cart is empty", () => {
+    useCartStore.setState({ items: [] });
+    render(withProviders(<Navbar />));
+    const cartButton = screen.getByLabelText("購物車");
+    const badge = cartButton.querySelector("span.rounded-full");
+    expect(badge).not.toBeInTheDocument();
+  });
+
   it("displays cart item count in badge", () => {
     useCartStore.setState({
       items: [
