@@ -21,4 +21,32 @@ describe("decodeHtml", () => {
   it("returns empty string for empty input", () => {
     expect(decodeHtml("")).toBe("");
   });
+
+  it("handles hex numeric entities (regression #125)", () => {
+    expect(decodeHtml("&#x00A9;")).toBe("\u00A9");
+    expect(decodeHtml("&#x2019;")).toBe("\u2019");
+    expect(decodeHtml("emoji &#x1F4A9; here")).toBe("emoji \uD83D\uDCA9 here");
+  });
+
+  it("works without document (SSR-safe, regression #125)", () => {
+    const originalDocument = globalThis.document;
+    try {
+      // @ts-expect-error — intentionally removing document to simulate SSR
+      delete globalThis.document;
+      expect(decodeHtml("&amp; &lt; &#8217;")).toBe("& < \u2019");
+    } finally {
+      globalThis.document = originalDocument;
+    }
+  });
+
+  it("preserves unknown named entities as-is", () => {
+    expect(decodeHtml("&unknownentity;")).toBe("&unknownentity;");
+  });
+
+  it("decodes additional common entities", () => {
+    expect(decodeHtml("&hellip;")).toBe("\u2026");
+    expect(decodeHtml("&lsquo;word&rsquo;")).toBe("\u2018word\u2019");
+    expect(decodeHtml("&ldquo;word&rdquo;")).toBe("\u201Cword\u201D");
+    expect(decodeHtml("&nbsp;")).toBe("\u00A0");
+  });
 });
