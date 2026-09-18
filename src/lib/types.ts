@@ -21,7 +21,12 @@ export const wpPostSchema = z.object({
     .object({
       author: z.array(z.object({ name: z.string().default("") })).optional(),
       "wp:featuredmedia": z
-        .array(z.object({ source_url: z.string() }))
+        .array(
+          z.object({
+            source_url: z.string(),
+            alt_text: z.string().optional(),
+          }),
+        )
         .optional(),
       "wp:term": z
         .array(z.array(z.object({ name: z.string() })))
@@ -62,10 +67,28 @@ export function getPostTitle(post: WpPost): string {
   return post.title || post.name || `#${post.id}`;
 }
 
-/** Extract the best available image URL from a WpPost. */
-export function getPostImage(post: WpPost): string | null {
-  if (post.source_url && post.media_type === "image") return post.source_url;
-  return post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
+/**
+ * Extract the best available image URL and descriptive alt text from a WpPost.
+ *
+ * Returns `{ url, alt }` so callers can set a meaningful `alt` attribute
+ * on `<img>` elements (WCAG 1.1.1 compliance, Issue #118).
+ *
+ * Alt text priority:
+ * 1. `alt_text` from `wp:featuredmedia` (WordPress media library field)
+ * 2. Post title as fallback (always non-empty)
+ */
+export function getPostImage(
+  post: WpPost,
+): { url: string; alt: string } | null {
+  if (post.source_url && post.media_type === "image") {
+    return { url: post.source_url, alt: getPostTitle(post) };
+  }
+  const media = post._embedded?.["wp:featuredmedia"]?.[0];
+  if (!media) return null;
+  return {
+    url: media.source_url,
+    alt: media.alt_text || getPostTitle(post),
+  };
 }
 
 /* ── WooCommerce REST API schemas ── */
