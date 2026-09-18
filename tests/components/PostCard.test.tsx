@@ -91,4 +91,13 @@ describe("PostCard", () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("alt", "Fallback Alt Title");
   });
+
+  it("preserves article landmark while providing button interaction (regression #126)", () => {
+    const { container } = render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
+    const article = container.querySelector("article");
+    expect(article).toBeInTheDocument();
+    expect(article).not.toHaveAttribute("role");
+    const button = screen.getByRole("button");
+    expect(article!.contains(button)).toBe(true);
+  });
 });
