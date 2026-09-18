@@ -15,7 +15,7 @@ const basePost: WpPost = {
   date: "2026-01-15T10:00:00",
   _embedded: {
     author: [{ name: "Author Name" }],
-    "wp:featuredmedia": [{ source_url: "https://example.com/img.jpg" }],
+    "wp:featuredmedia": [{ source_url: "https://example.com/img.jpg", alt_text: "A scenic landscape" }],
   },
 };
 
@@ -26,11 +26,12 @@ describe("PostCard", () => {
     expect(screen.getByText("Author Name")).toBeInTheDocument();
   });
 
-  it("renders featured image when available", () => {
+  it("renders featured image with alt text when available", () => {
     const { container } = render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
     const img = container.querySelector("img");
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
+    expect(img).toHaveAttribute("alt", "A scenic landscape");
   });
 
   it("renders placeholder when no image", () => {
@@ -75,5 +76,19 @@ describe("PostCard", () => {
     const noDatePost: WpPost = { id: 4, title: "No Date" };
     render(withProviders(<PostCard post={noDatePost} onClick={vi.fn()} />));
     expect(screen.getByText("No Date")).toBeInTheDocument();
+  });
+
+  it("uses post title as alt fallback when alt_text is missing (regression #118)", () => {
+    const noAltPost: WpPost = {
+      id: 5,
+      title: "Fallback Alt Title",
+      _embedded: {
+        "wp:featuredmedia": [{ source_url: "https://example.com/no-alt.jpg" }],
+      },
+    };
+    const { container } = render(withProviders(<PostCard post={noAltPost} onClick={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("alt", "Fallback Alt Title");
   });
 });
