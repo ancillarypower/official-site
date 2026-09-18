@@ -22,7 +22,7 @@ export function Navbar() {
   const location = useLocation();
   return (
     <nav className="sticky top-0 z-50 flex min-h-14 flex-wrap items-center gap-3 border-b border-border-default bg-surface-raised px-5" role="navigation" aria-label="Main navigation">
-      <Link to="/" className="flex items-center gap-2 text-inherit no-underline"><img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="h-7 w-auto" aria-hidden="true" /><span className="text-sm font-bold whitespace-nowrap">{t("nav_brand_name")}</span></Link>
+      <Link to="/" className="flex items-center gap-2 text-inherit no-underline"><img src={`${import.meta.env.BASE_URL}logo.svg`} alt={t("nav_brand_name")} className="h-8 w-auto" /></Link>
       <div className="h-6 w-px bg-border-default" aria-hidden="true" />
       <ul className="flex list-none gap-1">{NAV_ITEMS.map(({ to, labelKey }) => <li key={to}><NavLink to={to} className={({ isActive }) => `block rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${isActive ? "bg-accent-subtle text-accent" : "text-secondary hover:bg-surface-sunken hover:text-primary"}`} aria-current={location.pathname === to ? "page" : undefined}>{t(labelKey)}</NavLink></li>)}</ul>
       <div className="hidden h-6 w-px bg-border-default md:block" aria-hidden="true" />
