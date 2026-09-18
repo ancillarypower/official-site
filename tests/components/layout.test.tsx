@@ -30,15 +30,13 @@ describe("Navbar", () => {
     useCartStore.setState({ items: [] });
   });
 
-  it("renders company logo and brand name linking to home", () => {
+  it("renders company logo linking to home with accessible alt text", () => {
     render(withProviders(<Navbar />));
-    const brandText = screen.getByText("安瑟樂威");
-    expect(brandText).toBeInTheDocument();
-    const brandLink = brandText.closest("a");
-    expect(brandLink).toHaveAttribute("href", "/");
-    const logo = brandLink!.querySelector("img");
+    const logo = screen.getByAltText("安瑟樂威");
     expect(logo).toBeInTheDocument();
     expect(logo).toHaveAttribute("src", expect.stringContaining("logo.svg"));
+    const brandLink = logo.closest("a");
+    expect(brandLink).toHaveAttribute("href", "/");
   });
 
   it("renders navigation with links", () => {
