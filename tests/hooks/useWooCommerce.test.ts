@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useWooProducts, useCheckout, normalizeRawProduct } from "@/hooks/useWooCommerce";
 
-function createWrapper() {
-  const qc = new QueryClient({
+function createWrapper(queryClient?: QueryClient) {
+  const qc = queryClient ?? new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -442,5 +442,34 @@ describe("useCheckout", () => {
     ).rejects.toThrow("Checkout is not available in proxy mode");
     // No network request should have been made
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("invalidates woo-products query cache on successful checkout (regression #124)", async () => {
+    const orderResponse = { id: 200, order_key: "wc_order_xyz", payment_url: "https://shop.example.com/pay" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(orderResponse), { status: 200 }),
+    ));
+
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(qc),
+    });
+
+    await result.current.mutateAsync({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      billing: {
+        first_name: "Jane", last_name: "Doe", email: "jane@example.com",
+        phone: "5678", address_1: "456 Ave", city: "Taipei", postcode: "100", country: "TW",
+      },
+    });
+
+    // onSuccess must invalidate woo-products cache so stock status refreshes
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ["woo-products"] }),
+    );
   });
 });
