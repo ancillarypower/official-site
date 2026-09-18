@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createElement } from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/components/models/ModelViewer", () => ({
@@ -8,22 +8,12 @@ vi.mock("@/components/models/ModelViewer", () => ({
     createElement("div", { "data-testid": "model-viewer" }, props.name),
 }));
 
-// Capture onFilesSelected callback from ModelUpload props
-let capturedOnFilesSelected: ((files: File[]) => void) | null = null;
+// Capture the latest onFilesSelected callback from ModelUpload
+let latestOnFilesSelected: ((files: File[]) => void) | null = null;
 vi.mock("@/components/models/ModelUpload", () => ({
   ModelUpload: (props: { onFilesSelected: (files: File[]) => void; disabled?: boolean }) => {
-    capturedOnFilesSelected = props.onFilesSelected;
+    latestOnFilesSelected = props.onFilesSelected;
     return createElement("div", { "data-testid": "model-upload" },
-      createElement("input", {
-        type: "file",
-        multiple: true,
-        onChange: (e: { target: { files: FileList | null } }) => {
-          const fileList = e.target.files;
-          if (fileList && !props.disabled) {
-            props.onFilesSelected([...fileList]);
-          }
-        },
-      }),
       props.disabled ? "\u6B63\u5728\u5132\u5B58\u6A21\u578B..." : "\u62D6\u653E 3D \u6A21\u578B\u81F3\u6B64\u8655\u6216\u9EDE\u64CA\u700F\u89BD"
     );
   },
@@ -60,7 +50,7 @@ describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
-    capturedOnFilesSelected = null;
+    latestOnFilesSelected = null;
     localStorage.removeItem("model_sort_order");
   });
 
@@ -195,9 +185,10 @@ describe("ModelsPage", () => {
       expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
     });
 
-    // Call captured onFilesSelected directly
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
-    capturedOnFilesSelected!([file]);
+    await act(async () => {
+      latestOnFilesSelected!([file]);
+    });
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
@@ -417,9 +408,10 @@ describe("ModelsPage", () => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
 
-    // Invoke handleFilesSelected directly via captured callback
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    capturedOnFilesSelected!([file]);
+    await act(async () => {
+      latestOnFilesSelected!([file]);
+    });
 
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(
@@ -440,9 +432,10 @@ describe("ModelsPage", () => {
       expect(screen.getByText("3 \u500B\u5DF2\u8F09\u5165")).toBeInTheDocument();
     });
 
-    // Invoke handleFilesSelected directly via captured callback
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    capturedOnFilesSelected!([file]);
+    await act(async () => {
+      latestOnFilesSelected!([file]);
+    });
 
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(
