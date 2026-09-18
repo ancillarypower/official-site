@@ -47,6 +47,7 @@ function disposeSceneResources(s: Scene | null): void {
 export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resetViewpointRef = useRef<(() => void) | null>(null);
   const { t } = useI18n();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -72,6 +73,10 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     }
   }, []);
 
+  const handleResetViewpoint = useCallback(() => {
+    resetViewpointRef.current?.();
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -88,8 +93,6 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       if (!el || disposed) return;
 
       try {
-        // Load model data on demand from IndexedDB.
-        // IndexedDB returns a structured clone, so no extra .slice() needed.
         const data = await getModelData(modelId);
         if (disposed) return;
         if (!data) {
@@ -133,7 +136,6 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         renderer.toneMappingExposure = 1;
         el.appendChild(renderer.domElement);
 
-        // WebGL context loss recovery (#57)
         ctxLostHandler = (e: Event) => {
           e.preventDefault();
           cancelAnimationFrame(animId);
@@ -222,22 +224,33 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
           const d = maxDim * 2;
-          camera.position.set(
-            center.x + d * 0.6,
-            center.y + d * 0.4,
-            center.z + d * 0.6,
-          );
-          camera.near = maxDim * 0.001;
-          camera.far = maxDim * 100;
+          const posX = center.x + d * 0.6;
+          const posY = center.y + d * 0.4;
+          const posZ = center.z + d * 0.6;
+          const nearVal = maxDim * 0.001;
+          const farVal = maxDim * 100;
+          camera.position.set(posX, posY, posZ);
+          camera.near = nearVal;
+          camera.far = farVal;
           camera.updateProjectionMatrix();
           controls!.target.copy(center);
           controls!.update();
+
+          // Save initial viewpoint for reset button (#336)
+          resetViewpointRef.current = () => {
+            camera.position.set(posX, posY, posZ);
+            camera.near = nearVal;
+            camera.far = farVal;
+            camera.updateProjectionMatrix();
+            controls!.target.copy(center);
+            controls!.update();
+          };
+
           setStatus("ready");
         }
 
         const buf = data;
         if (ext === "ifc") {
-          // IFC loading branch: web-ifc WASM parser + three.js geometry pipeline
           const WebIFC = await import("web-ifc");
           const { mergeGeometries } = await import(
             "three/examples/jsm/utils/BufferGeometryUtils.js"
@@ -275,13 +288,11 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
                 geometry.GetIndexDataSize(),
               );
 
-              // De-interleave vertex data: web-ifc returns [x,y,z,nx,ny,nz] per vertex
               const vertexCount = vertexData.length / 6;
               const positions = new Float32Array(vertexCount * 3);
               const normals = new Float32Array(vertexCount * 3);
               const colors = new Float32Array(vertexCount * 4);
 
-              // sRGB -> linear color space conversion
               tmpColor.setRGB(pg.color.x, pg.color.y, pg.color.z, THREE.SRGBColorSpace);
 
               for (let v = 0; v < vertexCount; v++) {
@@ -289,7 +300,6 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
                 const dst3 = v * 3;
                 const dst4 = v * 4;
 
-                // Indices are guaranteed within bounds (vertexCount = vertexData.length / 6)
                 positions[dst3] = vertexData[src]!;
                 positions[dst3 + 1] = vertexData[src + 1]!;
                 positions[dst3 + 2] = vertexData[src + 2]!;
@@ -310,23 +320,19 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
               bufGeom.setAttribute("color", new THREE.BufferAttribute(colors, 4));
               bufGeom.setIndex(new THREE.BufferAttribute(indexData, 1));
 
-              // Apply placement transform
               const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
               bufGeom.applyMatrix4(matrix);
 
-              // Separate opaque vs transparent
               if (pg.color.w !== 1) {
                 transparentGeometries.push(bufGeom);
               } else {
                 opaqueGeometries.push(bufGeom);
               }
 
-              // Release WASM heap memory
               (geometry as unknown as { delete: () => void }).delete();
             }
           });
 
-          // Close the model to free WASM memory
           ifcApi.CloseModel(modelID);
 
           const group = new THREE.Group();
@@ -435,6 +441,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       ro?.disconnect();
       disposeSceneResources(scene);
       controls?.dispose();
+      resetViewpointRef.current = null;
       if (renderer) {
         if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
         if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
@@ -467,14 +474,24 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         </div>
       )}
       {status === "ready" && (
-        <button
-          onClick={toggleFullscreen}
-          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
-          aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
-          title={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
-        >
-          {isFullscreen ? "\u2715" : "\u26F6"}
-        </button>
+        <>
+          <button
+            onClick={handleResetViewpoint}
+            className="absolute bottom-2 right-12 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
+            aria-label={t("models_reset_viewpoint")}
+            title={t("models_reset_viewpoint")}
+          >
+            {"\u21BA"}
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
+            aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+            title={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+          >
+            {isFullscreen ? "\u2715" : "\u26F6"}
+          </button>
+        </>
       )}
     </div>
   );

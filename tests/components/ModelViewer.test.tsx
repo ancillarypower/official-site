@@ -35,6 +35,10 @@ vi.mock("web-ifc", () => ({
 
 const mockTraverse = vi.fn();
 const mockControlsDispose = vi.fn();
+const mockCameraPositionSet = vi.fn();
+const mockControlsTargetCopy = vi.fn();
+const mockUpdateProjectionMatrix = vi.fn();
+const mockControlsUpdate = vi.fn();
 
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
@@ -43,7 +47,7 @@ vi.mock("three", async () => ({
     traverse: mockTraverse,
   })),
   PerspectiveCamera: vi.fn().mockImplementation(() => ({
-    position: { set: vi.fn() }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: vi.fn(),
+    position: { set: mockCameraPositionSet }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: mockUpdateProjectionMatrix,
   })),
   WebGLRenderer: vi.fn().mockImplementation(() => {
     const canvas = document.createElement("canvas");
@@ -73,7 +77,7 @@ vi.mock("three", async () => ({
 vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   OrbitControls: vi.fn().mockImplementation(() => ({
     enableDamping: false, dampingFactor: 0, autoRotate: false, autoRotateSpeed: 0,
-    target: { copy: vi.fn() }, update: vi.fn(), dispose: mockControlsDispose,
+    target: { copy: mockControlsTargetCopy }, update: mockControlsUpdate, dispose: mockControlsDispose,
   })),
 }));
 vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
@@ -251,5 +255,37 @@ describe("ModelViewer WebGL context loss recovery", () => {
     expect(() => {
       canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
     }).not.toThrow();
+  });
+});
+
+describe("ModelViewer viewpoint reset (#336)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("renders reset viewpoint button when model is ready", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/)).toBeInTheDocument();
+  });
+
+  it("calls camera.position.set again on reset button click", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    const callsBefore = mockCameraPositionSet.mock.calls.length;
+    const resetBtn = screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/);
+    resetBtn.click();
+    expect(mockCameraPositionSet.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });
