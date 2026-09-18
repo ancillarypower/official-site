@@ -26,7 +26,7 @@ describe("PostGrid", () => {
   it("calls onSelectPost with correct index", () => {
     const handler = vi.fn();
     render(withProviders(<PostGrid posts={posts} onSelectPost={handler} />));
-    fireEvent.click(screen.getByText("Second Post").closest("[role=button]")!);
+    fireEvent.click(screen.getByText("Second Post").closest("button")!);
     expect(handler).toHaveBeenCalledWith(1);
   });
 
