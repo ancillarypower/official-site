@@ -37,6 +37,7 @@ describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
+    localStorage.removeItem("model_sort_order");
   });
 
   it("renders models title", async () => {
@@ -194,7 +195,6 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
 
-    // Click the remove button for the first model
     fireEvent.click(screen.getByRole("button", { name: /\u79FB\u9664\u300Ccube\.glb\u300D/ }));
 
     await waitFor(() => {
@@ -202,7 +202,6 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
-    // Model should still be in the list (UI not updated on failure)
     expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete model:",
@@ -228,7 +227,6 @@ describe("ModelsPage", () => {
         expect.stringContaining("\u522A\u9664\u6A21\u578B\u5931\u6557")
       );
     });
-    // Models should still be in the list
     expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to delete all models:",
@@ -265,10 +263,55 @@ describe("ModelsPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /\u79FB\u9664\u300Ccube\.glb\u300D/ }));
 
-    // deleteModel should NOT have been called
     expect(mockDeleteModel).not.toHaveBeenCalled();
-    // Model should still be in the list
     expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     vi.restoreAllMocks();
+  });
+
+  // Drag-and-drop reorder tests (Issue #338)
+  it("shows drag hint when models exist", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText("\u62D6\u66F3\u5361\u7247\u53EF\u91CD\u65B0\u6392\u5E8F")).toBeInTheDocument();
+    });
+  });
+
+  it("reorders models on drag and drop", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    const cards = document.querySelectorAll("[draggable='true']");
+    // Drag cube.glb (id=1, index 0) onto plane.stl (id=3, index 2)
+    fireEvent.dragStart(cards[0]);
+    fireEvent.dragEnter(cards[2]);
+    fireEvent.dragEnd(cards[0]);
+
+    // After reorder: sphere.obj, plane.stl, cube.glb
+    await waitFor(() => {
+      const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
+      const order = removeButtons.map((btn) => {
+        const match = btn.getAttribute("aria-label")?.match(/\u300C(.+?)\u300D/);
+        return match ? match[1] : "";
+      });
+      expect(order).toEqual(["sphere.obj", "plane.stl", "cube.glb"]);
+    });
+  });
+
+  it("restores saved order from localStorage on mount", async () => {
+    localStorage.setItem("model_sort_order", JSON.stringify([3, 1, 2]));
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
+      const order = removeButtons.map((btn) => {
+        const match = btn.getAttribute("aria-label")?.match(/\u300C(.+?)\u300D/);
+        return match ? match[1] : "";
+      });
+      expect(order).toEqual(["plane.stl", "cube.glb", "sphere.obj"]);
+    });
   });
 });

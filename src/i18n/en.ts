@@ -42,6 +42,7 @@ export const en: Record<TranslationKey, string> = {
   models_exit_fullscreen: "Exit Fullscreen",
   models_remove_label: "Remove \"{name}\"",
   models_select_label: "Select \"{name}\"",
+  models_drag_hint: "Drag cards to reorder",
 
   store_title: "Store",
   store_products: "{n} products",

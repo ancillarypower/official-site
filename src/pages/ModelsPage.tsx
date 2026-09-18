@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/context/I18nContext";
 import { ModelUpload } from "@/components/models/ModelUpload";
@@ -9,6 +9,32 @@ import type { ModelMeta } from "@/lib/types";
 
 interface LoadedModelMeta extends ModelMeta { id: number; }
 
+const SORT_ORDER_KEY = "model_sort_order";
+
+function applyStoredOrder(models: LoadedModelMeta[]): LoadedModelMeta[] {
+  try {
+    const raw = localStorage.getItem(SORT_ORDER_KEY);
+    if (!raw) return models;
+    const order: number[] = JSON.parse(raw);
+    const map = new Map(models.map((m) => [m.id, m]));
+    const sorted: LoadedModelMeta[] = [];
+    for (const id of order) {
+      const m = map.get(id);
+      if (m) { sorted.push(m); map.delete(id); }
+    }
+    for (const m of map.values()) sorted.push(m);
+    return sorted;
+  } catch {
+    return models;
+  }
+}
+
+function persistOrder(models: LoadedModelMeta[]): void {
+  try {
+    localStorage.setItem(SORT_ORDER_KEY, JSON.stringify(models.map((m) => m.id)));
+  } catch { /* localStorage unavailable */ }
+}
+
 export default function ModelsPage() {
   const { t } = useI18n();
   const [models, setModels] = useState<LoadedModelMeta[]>([]);
@@ -16,11 +42,15 @@ export default function ModelsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [dragTargetId, setDragTargetId] = useState<number | null>(null);
+  const dragSourceRef = useRef<number | null>(null);
+  const dragTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
     getAllModelMeta()
       .then((records) => {
-        setModels(records.filter((r): r is LoadedModelMeta => r.id != null));
+        const loaded = records.filter((r): r is LoadedModelMeta => r.id != null);
+        setModels(applyStoredOrder(loaded));
       })
       .catch((err) => {
         console.warn("[ModelsPage] IndexedDB unavailable:", err);
@@ -37,7 +67,11 @@ export default function ModelsPage() {
           const ab = await file.arrayBuffer();
           if (ab.byteLength === 0) continue;
           const id = await saveModel(file.name, file.size, ext, ab);
-          setModels((prev) => [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }]);
+          setModels((prev) => {
+            const updated = [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }];
+            persistOrder(updated);
+            return updated;
+          });
         } catch (err) {
           console.error("Failed to process:", file.name, err);
           toast.error(t("models_upload_error", { name: file.name }));
@@ -54,7 +88,11 @@ export default function ModelsPage() {
     setDeletingIds((prev) => { const next = new Set(prev); next.add(id); return next; });
     try {
       await deleteModel(id);
-      setModels((prev) => prev.filter((m) => m.id !== id));
+      setModels((prev) => {
+        const updated = prev.filter((m) => m.id !== id);
+        persistOrder(updated);
+        return updated;
+      });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
     } catch (err) {
       console.error("Failed to delete model:", id, err);
@@ -87,7 +125,11 @@ export default function ModelsPage() {
     setIsBulkDeleting(true);
     try {
       await deleteMultipleModels(ids);
-      setModels((prev) => prev.filter((m) => !selectedIds.has(m.id)));
+      setModels((prev) => {
+        const updated = prev.filter((m) => !selectedIds.has(m.id));
+        persistOrder(updated);
+        return updated;
+      });
       setSelectedIds(new Set());
     } catch (err) {
       console.error("Failed to delete selected models:", ids, err);
@@ -106,6 +148,7 @@ export default function ModelsPage() {
       await deleteAllModels();
       setModels([]);
       setSelectedIds(new Set());
+      persistOrder([]);
     } catch (err) {
       console.error("Failed to delete all models:", err);
       toast.error(t("models_delete_failed"));
@@ -113,6 +156,44 @@ export default function ModelsPage() {
       setIsBulkDeleting(false);
     }
   }, [models.length, t]);
+
+  const handleDragStart = useCallback((id: number) => {
+    dragSourceRef.current = id;
+  }, []);
+
+  const handleDragEnter = useCallback((id: number) => {
+    if (dragSourceRef.current !== null && dragSourceRef.current !== id) {
+      dragTargetRef.current = id;
+      setDragTargetId(id);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    const sourceId = dragSourceRef.current;
+    const targetId = dragTargetRef.current;
+    dragSourceRef.current = null;
+    dragTargetRef.current = null;
+    setDragTargetId(null);
+
+    if (sourceId == null || targetId == null || sourceId === targetId) return;
+
+    setModels((prev) => {
+      const arr = [...prev];
+      const srcIdx = arr.findIndex((m) => m.id === sourceId);
+      const tgtIdx = arr.findIndex((m) => m.id === targetId);
+      if (srcIdx === -1 || tgtIdx === -1) return prev;
+      const removed = arr.splice(srcIdx, 1);
+      const moved = removed[0];
+      if (!moved) return prev;
+      arr.splice(tgtIdx, 0, moved);
+      persistOrder(arr);
+      return arr;
+    });
+  }, []);
 
   const allSelected = models.length > 0 && selectedIds.size === models.length;
 
@@ -127,7 +208,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            \ud83d\udcbe {t("models_persisted")}
+            \uD83D\uDCBE {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -151,8 +232,11 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              \ud83d\uddd1 {t("models_delete_all")}
+              \uD83D\uDDD1 {t("models_delete_all")}
             </button>
+          </div>
+          <div className="mt-1 text-center text-[0.65rem] text-tertiary">
+            {t("models_drag_hint")}
           </div>
         </>
       )}
@@ -168,6 +252,11 @@ export default function ModelsPage() {
             onToggleSelect={() => toggleSelect(model.id)}
             onRemove={() => handleRemove(model.id, model.name)}
             isDeleting={deletingIds.has(model.id) || isBulkDeleting}
+            onDragStart={() => handleDragStart(model.id)}
+            onDragEnter={() => handleDragEnter(model.id)}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            isDragTarget={dragTargetId === model.id}
           />
         ))}
       </div>

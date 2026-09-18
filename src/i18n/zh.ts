@@ -31,7 +31,7 @@ export const zh = {
   models_db_error: "無法存取本機資料庫，3D 模型功能可能受限",
   models_upload_error: "{name} 儲存失敗",
   models_delete_failed: "刪除模型失敗",
-  models_gpu_lost: "GPU 資源已回收，等待恢復中…",
+  models_gpu_lost: "GPU 資源已回收，等待恢復中\u2026",
   models_view_3d: "檢視 3D 模型",
   models_collapse_3d: "收合 3D 檢視器",
   models_uploading: "正在儲存模型...",
@@ -39,6 +39,7 @@ export const zh = {
   models_exit_fullscreen: "離開全螢幕",
   models_remove_label: "移除「{name}」",
   models_select_label: "選取「{name}」",
+  models_drag_hint: "拖曳卡片可重新排序",
 
   store_title: "商店",
   store_products: "{n} 項商品",
