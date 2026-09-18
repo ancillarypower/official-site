@@ -104,6 +104,8 @@ export interface ModelRecord {
   ext: string;
   data: ArrayBuffer;
   timestamp: number;
+  /** SHA-256 hex digest of the file content for deduplication. */
+  hash?: string;
 }
 
 /** Model metadata without the heavy ArrayBuffer payload. */
