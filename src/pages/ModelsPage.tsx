@@ -39,12 +39,15 @@ export default function ModelsPage() {
   const { t } = useI18n();
   const [models, setModels] = useState<LoadedModelMeta[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [dragTargetId, setDragTargetId] = useState<number | null>(null);
   const dragSourceRef = useRef<number | null>(null);
   const dragTargetRef = useRef<number | null>(null);
+
+  const allExpanded = models.length > 0 && expandedIds.size === models.length;
 
   useEffect(() => {
     getAllModelMeta()
@@ -94,6 +97,7 @@ export default function ModelsPage() {
         return updated;
       });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      setExpandedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
     } catch (err) {
       console.error("Failed to delete model:", id, err);
       toast.error(t("models_delete_failed"));
@@ -127,6 +131,21 @@ export default function ModelsPage() {
     });
   }, [models]);
 
+  const handleToggleExpand = useCallback((id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleAllExpand = useCallback(() => {
+    setExpandedIds((prev) => {
+      if (prev.size === models.length && models.length > 0) return new Set();
+      return new Set(models.map((m) => m.id));
+    });
+  }, [models]);
+
   const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.size === 0) return;
     const confirmed = window.confirm(t("models_delete_selected_confirm", { n: selectedIds.size }));
@@ -141,6 +160,11 @@ export default function ModelsPage() {
         return updated;
       });
       setSelectedIds(new Set());
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
     } catch (err) {
       console.error("Failed to delete selected models:", ids, err);
       toast.error(t("models_delete_failed"));
@@ -158,6 +182,7 @@ export default function ModelsPage() {
       await deleteAllModels();
       setModels([]);
       setSelectedIds(new Set());
+      setExpandedIds(new Set());
       persistOrder([]);
     } catch (err) {
       console.error("Failed to delete all models:", err);
@@ -227,6 +252,13 @@ export default function ModelsPage() {
             >
               {allSelected ? t("models_deselect_all") : t("models_select_all")}
             </button>
+            <button
+              onClick={handleToggleAllExpand}
+              disabled={isBulkDeleting}
+              className={`rounded-md border border-border-subtle bg-surface-raised px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-sunken ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {allExpanded ? t("models_collapse_all") : t("models_expand_all")}
+            </button>
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
@@ -267,6 +299,8 @@ export default function ModelsPage() {
             onDragEnd={handleDragEnd}
             isDragTarget={dragTargetId === model.id}
             onRename={(newName) => handleRename(model.id, newName)}
+            expanded={expandedIds.has(model.id)}
+            onToggleExpand={() => handleToggleExpand(model.id)}
           />
         ))}
       </div>
