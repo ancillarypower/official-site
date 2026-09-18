@@ -193,6 +193,25 @@ describe("App scalable-content structure", () => {
 
 describe("HeroBanner", () => {
   it("uses ResizeObserver instead of window resize for canvas sizing (regression #129)", () => {
+    // Mock canvas 2D context (jsdom does not implement it)
+    const mockCtx = {
+      clearRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillRect: vi.fn(),
+      setTransform: vi.fn(),
+      createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+      strokeStyle: "",
+      fillStyle: "",
+      lineWidth: 1,
+    };
+    const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(mockCtx as unknown as CanvasRenderingContext2D);
+
     const observedElements: Element[] = [];
     let resizeCallback: ResizeObserverCallback | null = null;
     const disconnectSpy = vi.fn();
@@ -231,6 +250,7 @@ describe("HeroBanner", () => {
     expect(resizeCalls).toHaveLength(0);
 
     // Simulate ResizeObserver firing with new dimensions
+    expect(resizeCallback).not.toBeNull();
     if (resizeCallback && canvas) {
       Object.defineProperty(canvas, "offsetWidth", { value: 800, configurable: true });
       Object.defineProperty(canvas, "offsetHeight", { value: 200, configurable: true });
@@ -247,6 +267,7 @@ describe("HeroBanner", () => {
     expect(disconnectSpy).toHaveBeenCalled();
 
     addEventSpy.mockRestore();
+    getContextSpy.mockRestore();
     vi.unstubAllGlobals();
   });
 });
