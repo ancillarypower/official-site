@@ -12,7 +12,7 @@ export function ArticleView({ post, onBack }: ArticleViewProps) {
   const content = post.content || post.description || post.caption || post.excerpt || "";
   const date = post.date ? new Date(post.date).toLocaleDateString(lang === "zh" ? "zh-TW" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : null;
   const author = post._embedded?.author?.[0]?.name;
-  const img = getPostImage(post);
+  const imgData = getPostImage(post);
   const categories: string[] = [];
   if (post._embedded?.["wp:term"]) { for (const group of post._embedded["wp:term"]) { for (const term of group) { categories.push(term.name); } } }
 
@@ -26,7 +26,7 @@ export function ArticleView({ post, onBack }: ArticleViewProps) {
           {date && <span>📅 {date}</span>}
         </div>
         {categories.length > 0 && (<div className="mb-8 flex flex-wrap gap-1.5">{categories.map((cat) => (<span key={cat} className="rounded bg-accent-subtle px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide text-accent uppercase">{cat}</span>))}</div>)}
-        {img && <img src={img} alt="" className="mb-9 aspect-video w-full rounded-xl object-cover" loading="lazy" decoding="async" />}
+        {imgData && <img src={imgData.url} alt={imgData.alt} className="mb-9 aspect-video w-full rounded-xl object-cover" loading="lazy" decoding="async" />}
         {content && <div className="article-body font-serif text-[1.1em] leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />}
       </article>
     </div>

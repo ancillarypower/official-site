@@ -16,7 +16,7 @@ const fullPost: WpPost = {
   content: "<p>Article content here</p>",
   _embedded: {
     author: [{ name: "Author" }],
-    "wp:featuredmedia": [{ source_url: "https://example.com/hero.jpg" }],
+    "wp:featuredmedia": [{ source_url: "https://example.com/hero.jpg", alt_text: "Hero image" }],
     "wp:term": [[{ name: "Tech" }, { name: "News" }]],
   },
 };
@@ -39,11 +39,12 @@ describe("ArticleView", () => {
     expect(screen.getByText("News")).toBeInTheDocument();
   });
 
-  it("renders featured image", () => {
+  it("renders featured image with alt text", () => {
     const { container } = render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
     const img = container.querySelector("img");
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", "https://example.com/hero.jpg");
+    expect(img).toHaveAttribute("alt", "Hero image");
   });
 
   it("renders HTML content via dangerouslySetInnerHTML", () => {
@@ -122,5 +123,20 @@ describe("ArticleView", () => {
     render(withProviders(<ArticleView post={entityPost} onBack={vi.fn()} />));
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Q&A Column <Special> \u2019Quotes\u2019");
+  });
+
+  it("uses post title as alt fallback when alt_text is missing (regression #118)", () => {
+    const noAltPost: WpPost = {
+      id: 102,
+      title: "Fallback Alt Article",
+      content: "<p>Some content</p>",
+      _embedded: {
+        "wp:featuredmedia": [{ source_url: "https://example.com/no-alt.jpg" }],
+      },
+    };
+    const { container } = render(withProviders(<ArticleView post={noAltPost} onBack={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("alt", "Fallback Alt Article");
   });
 });

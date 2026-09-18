@@ -119,13 +119,19 @@ describe("getPostTitle", () => {
 });
 
 describe("getPostImage", () => {
-  it("returns source_url for image media type", () => {
-    expect(getPostImage({ id: 1, title: "t", source_url: "https://img.com/a.jpg", media_type: "image" } as WpPost)).toBe("https://img.com/a.jpg");
+  it("returns { url, alt } for image media type", () => {
+    const result = getPostImage({ id: 1, title: "t", source_url: "https://img.com/a.jpg", media_type: "image" } as WpPost);
+    expect(result).toEqual({ url: "https://img.com/a.jpg", alt: "t" });
   });
 
-  it("returns featured media from _embedded", () => {
-    const post = { id: 1, title: "t", _embedded: { "wp:featuredmedia": [{ source_url: "https://img.com/b.jpg" }] } } as WpPost;
-    expect(getPostImage(post)).toBe("https://img.com/b.jpg");
+  it("returns { url, alt } from featured media with alt_text", () => {
+    const post = { id: 1, title: "t", _embedded: { "wp:featuredmedia": [{ source_url: "https://img.com/b.jpg", alt_text: "Scenic view" }] } } as WpPost;
+    expect(getPostImage(post)).toEqual({ url: "https://img.com/b.jpg", alt: "Scenic view" });
+  });
+
+  it("falls back to post title when alt_text is missing", () => {
+    const post = { id: 1, title: "My Post", _embedded: { "wp:featuredmedia": [{ source_url: "https://img.com/b.jpg" }] } } as WpPost;
+    expect(getPostImage(post)).toEqual({ url: "https://img.com/b.jpg", alt: "My Post" });
   });
 
   it("returns null when no image available", () => {

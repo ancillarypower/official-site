@@ -49,9 +49,9 @@ describe("getPostTitle", () => {
 });
 
 describe("getPostImage", () => {
-  it("returns source_url for image media type", () => {
+  it("returns { url, alt } for image media type", () => {
     const post = { id: 1, title: "T", source_url: "https://img.jpg", media_type: "image" } as WpPost;
-    expect(getPostImage(post)).toBe("https://img.jpg");
+    expect(getPostImage(post)).toEqual({ url: "https://img.jpg", alt: "T" });
   });
 
   it("returns null when source_url is present but media_type is not image", () => {
@@ -59,13 +59,22 @@ describe("getPostImage", () => {
     expect(getPostImage(post)).toBeNull();
   });
 
-  it("returns featured media URL from _embedded", () => {
+  it("returns { url, alt } from featured media with alt_text", () => {
+    const post = {
+      id: 1,
+      title: "T",
+      _embedded: { "wp:featuredmedia": [{ source_url: "https://featured.jpg", alt_text: "Featured photo" }] },
+    } as WpPost;
+    expect(getPostImage(post)).toEqual({ url: "https://featured.jpg", alt: "Featured photo" });
+  });
+
+  it("falls back to post title when alt_text is missing", () => {
     const post = {
       id: 1,
       title: "T",
       _embedded: { "wp:featuredmedia": [{ source_url: "https://featured.jpg" }] },
     } as WpPost;
-    expect(getPostImage(post)).toBe("https://featured.jpg");
+    expect(getPostImage(post)).toEqual({ url: "https://featured.jpg", alt: "T" });
   });
 
   it("returns null when no image available", () => {
