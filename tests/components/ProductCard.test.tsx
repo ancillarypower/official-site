@@ -38,7 +38,7 @@ describe("ProductCard", () => {
   it("renders product name and price", () => {
     render(withProviders(<ProductCard product={product} />));
     expect(screen.getByText("Test Headphones")).toBeInTheDocument();
-    expect(screen.getByText("$99.99")).toBeInTheDocument();
+    expect(screen.getByText("NT$99.99")).toBeInTheDocument();
   });
 
   it("disables add button when out of stock", () => {
@@ -65,7 +65,7 @@ describe("ProductCard", () => {
     fireEvent.click(screen.getByText("\u52A0\u5165\u8CFC\u7269\u8ECA"));
     // Unmount before the 1s timer fires
     unmount();
-    // Advance past the timer — should not throw or warn
+    // Advance past the timer \u2014 should not throw or warn
     expect(() => vi.advanceTimersByTime(1500)).not.toThrow();
     vi.useRealTimers();
   });

@@ -7,7 +7,7 @@ import { CartPanel } from "@/components/store/CartPanel";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 
-/* ── Mock useCheckout (Issue #44 regression) ── */
+/* \u2500\u2500 Mock useCheckout (Issue #44 regression) \u2500\u2500 */
 const { mockCheckout } = vi.hoisted(() => ({
   mockCheckout: vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" }),
 }));
@@ -38,12 +38,12 @@ describe("CartPanel", () => {
 
   it("shows empty cart message", () => {
     render(withProviders(<CartPanel />));
-    expect(screen.getByText(/購物車是空的/)).toBeInTheDocument();
+    expect(screen.getByText(/\u8CFC\u7269\u8ECA\u662F\u7A7A\u7684/)).toBeInTheDocument();
   });
 
   it("renders cart title", () => {
     render(withProviders(<CartPanel />));
-    expect(screen.getByText("購物車")).toBeInTheDocument();
+    expect(screen.getByText("\u8CFC\u7269\u8ECA")).toBeInTheDocument();
   });
 
   it("renders items with quantity controls", () => {
@@ -52,9 +52,9 @@ describe("CartPanel", () => {
     });
     render(withProviders(<CartPanel />));
     expect(screen.getByText("Headphones")).toBeInTheDocument();
-    expect(screen.getByText("$99.99")).toBeInTheDocument();
-    expect(screen.getByLabelText("減少數量")).toBeInTheDocument();
-    expect(screen.getByLabelText("增加數量")).toBeInTheDocument();
+    expect(screen.getByText("NT$99.99")).toBeInTheDocument();
+    expect(screen.getByLabelText("\u6E1B\u5C11\u6578\u91CF")).toBeInTheDocument();
+    expect(screen.getByLabelText("\u589E\u52A0\u6578\u91CF")).toBeInTheDocument();
   });
 
   it("displays total price", () => {
@@ -65,7 +65,7 @@ describe("CartPanel", () => {
       ],
     });
     render(withProviders(<CartPanel />));
-    expect(screen.getByText("$40.00")).toBeInTheDocument();
+    expect(screen.getByText("NT$40.00")).toBeInTheDocument();
   });
 
   it("disables checkout without WooCommerce", () => {
@@ -73,12 +73,12 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
     });
     render(withProviders(<CartPanel />));
-    expect(screen.getByText("結帳")).toBeDisabled();
+    expect(screen.getByText("\u7D50\u5E33")).toBeDisabled();
   });
 
   it("does not show clear all button when cart is empty", () => {
     render(withProviders(<CartPanel />));
-    expect(screen.queryByLabelText(/清空購物車/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/)).not.toBeInTheDocument();
   });
 
   it("shows clear all button when cart has items", () => {
@@ -86,7 +86,7 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
     });
     render(withProviders(<CartPanel />));
-    expect(screen.getByLabelText(/清空購物車/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/)).toBeInTheDocument();
   });
 
   it("clears cart when clear all is confirmed", () => {
@@ -95,7 +95,7 @@ describe("CartPanel", () => {
     });
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText(/清空購物車/));
+    fireEvent.click(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/));
     expect(useCartStore.getState().items).toHaveLength(0);
     vi.restoreAllMocks();
   });
@@ -106,7 +106,7 @@ describe("CartPanel", () => {
     });
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText(/清空購物車/));
+    fireEvent.click(screen.getByLabelText(/\u6E05\u7A7A\u8CFC\u7269\u8ECA/));
     expect(useCartStore.getState().items).toHaveLength(1);
     vi.restoreAllMocks();
   });
@@ -116,7 +116,7 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
     });
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText("增加數量"));
+    fireEvent.click(screen.getByLabelText("\u589E\u52A0\u6578\u91CF"));
     expect(useCartStore.getState().items[0]?.qty).toBe(2);
   });
 
@@ -125,14 +125,14 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "Headphones", price: 99.99, icon: "\uD83C\uDFA7", img: null, qty: 1 }],
     });
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText("減少數量"));
+    fireEvent.click(screen.getByLabelText("\u6E1B\u5C11\u6578\u91CF"));
     expect(useCartStore.getState().items).toHaveLength(0);
   });
 
   it("closes panel when close button is clicked", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     render(withProviders(<CartPanel />));
-    fireEvent.click(screen.getByLabelText("關閉"));
+    fireEvent.click(screen.getByLabelText("\u95DC\u9589"));
     expect(useSettingsStore.getState().activePanel).toBeNull();
   });
 
@@ -160,7 +160,7 @@ describe("CartPanel", () => {
     });
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
-    expect(screen.getByText("結帳")).not.toBeDisabled();
+    expect(screen.getByText("\u7D50\u5E33")).not.toBeDisabled();
   });
 
   it("renders billing form when cart has items", () => {
@@ -179,11 +179,11 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
     expect(() => {
-      fireEvent.click(screen.getByText("結帳"));
+      fireEvent.click(screen.getByText("\u7D50\u5E33"));
     }).not.toThrow();
   });
 
-  /* ── Issue #44 Regression Tests ── */
+  /* \u2500\u2500 Issue #44 Regression Tests \u2500\u2500 */
 
   it("calls checkout mutation with items and billing on valid checkout", async () => {
     useCartStore.setState({
@@ -197,7 +197,7 @@ describe("CartPanel", () => {
     fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
     fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
 
-    fireEvent.click(screen.getByText("結帳"));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
@@ -229,7 +229,7 @@ describe("CartPanel", () => {
     fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
     fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
 
-    fireEvent.click(screen.getByText("結帳"));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
     await waitFor(() => {
       expect(screen.getByText("Payment gateway unavailable")).toBeInTheDocument();
@@ -243,12 +243,12 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
 
-    fireEvent.click(screen.getByText("結帳"));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
     expect(mockCheckout).not.toHaveBeenCalled();
   });
 
-  /* ── Issue #75 Regression Test ── */
+  /* \u2500\u2500 Issue #75 Regression Test \u2500\u2500 */
 
   it("shows field validation error instead of WooCommerce error when billing is incomplete", () => {
     useCartStore.setState({
@@ -257,13 +257,13 @@ describe("CartPanel", () => {
     useSettingsStore.setState({ wooKey: "ck_test" });
     render(withProviders(<CartPanel />));
 
-    fireEvent.click(screen.getByText("結帳"));
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
 
-    expect(screen.getByText(/請填寫姓名與 Email/)).toBeInTheDocument();
-    expect(screen.queryByText(/請先連接 WooCommerce/)).not.toBeInTheDocument();
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D\u8207 Email/)).toBeInTheDocument();
+    expect(screen.queryByText(/\u8ACB\u5148\u9023\u63A5 WooCommerce/)).not.toBeInTheDocument();
   });
 
-  /* ── Issue #104 Regression Test ── */
+  /* \u2500\u2500 Issue #104 Regression Test \u2500\u2500 */
 
   it("all checkout inputs have name and autocomplete attributes", () => {
     useCartStore.setState({
