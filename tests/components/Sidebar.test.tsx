@@ -144,7 +144,12 @@ describe("Sidebar", () => {
 
 describe("Sidebar focus trap", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     useSettingsStore.setState({ activePanel: null, wooKey: "", wooSecret: "" });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("moves focus into settings panel when opened", () => {
