@@ -44,7 +44,7 @@ describe("Navbar", () => {
   it("renders navigation with links", () => {
     render(withProviders(<Navbar />));
     expect(screen.getByRole("navigation")).toBeInTheDocument();
-    expect(screen.getByText("內容")).toBeInTheDocument();
+    expect(screen.getByText("消息")).toBeInTheDocument();
     expect(screen.getByText("3D 模型")).toBeInTheDocument();
     expect(screen.getByText("商店")).toBeInTheDocument();
     expect(screen.getByText("關於我們")).toBeInTheDocument();
