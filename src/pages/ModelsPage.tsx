@@ -6,6 +6,7 @@ import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
 import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
+import { computeFileHash } from "@/lib/hash";
 import type { ModelMeta } from "@/lib/types";
 
 interface LoadedModelMeta extends ModelMeta { id: number; }
@@ -85,6 +86,16 @@ export default function ModelsPage() {
         }
         if (ab.byteLength === 0) continue;
 
+        // Compute SHA-256 content hash for deduplication
+        const fileHash = await computeFileHash(ab);
+
+        // Check for duplicate content (hash match) before filename match
+        const hashDupe = currentModels.find((m) => m.hash && m.hash === fileHash);
+        if (hashDupe) {
+          toast.warning(t("models_duplicate_hash", { name: hashDupe.name }));
+          continue;
+        }
+
         // Check for duplicate filename
         const existing = currentModels.find((m) => m.name === file.name);
         if (existing) {
@@ -106,10 +117,10 @@ export default function ModelsPage() {
           }
         }
 
-        // Save the new model
+        // Save the new model with content hash
         try {
-          const id = await saveModel(file.name, file.size, ext, ab);
-          const newModel = { id, name: file.name, size: file.size, ext, timestamp: Date.now() };
+          const id = await saveModel(file.name, file.size, ext, ab, fileHash);
+          const newModel: LoadedModelMeta = { id, name: file.name, size: file.size, ext, timestamp: Date.now(), hash: fileHash };
           currentModels = [...currentModels, newModel];
           setModels((prev) => {
             const updated = [...prev, newModel];
