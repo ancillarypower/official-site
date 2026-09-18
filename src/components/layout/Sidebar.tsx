@@ -53,6 +53,8 @@ export function Sidebar() {
   // Focus trap: move focus in, wrap Tab/Shift+Tab, Escape closes, restore.
   // Uses document listener (not React synthetic) per WAI-ARIA dialog pattern.
   // Focusable elements are re-queried on every keydown to handle dynamic content.
+  // Depends on `mounted` because the panel only appears in the DOM after the
+  // mounted state catches up (one render cycle after activePanel changes).
   useEffect(() => {
     if (!activePanel) return;
 
@@ -97,7 +99,7 @@ export function Sidebar() {
       document.removeEventListener("keydown", handleKeyDown);
       previouslyFocused?.focus();
     };
-  }, [activePanel, closePanel]);
+  }, [activePanel, closePanel, mounted]);
 
   return (
     <>
