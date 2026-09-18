@@ -48,7 +48,7 @@ describe("SettingsPanel", () => {
 
   it("changes content type", () => {
     render(withProviders(<SettingsPanel />));
-    const select = screen.getByDisplayValue("文章");
+    const select = screen.getByDisplayValue("消息");
     fireEvent.change(select, { target: { value: "pages" } });
     expect(useSettingsStore.getState().contentType).toBe("pages");
   });
