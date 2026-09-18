@@ -65,6 +65,8 @@ export const en: Record<TranslationKey, string> = {
   models_drag_hint: "Drag cards to reorder",
   models_rename_hint: "Click name to rename",
   models_rename_failed: "Rename failed",
+  models_expand_all: "Expand All",
+  models_collapse_all: "Collapse All",
 
   store_title: "Store",
   store_products: "{n} products",
