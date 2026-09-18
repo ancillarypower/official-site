@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchWithProxy,
   wooApiUrl,
@@ -116,6 +116,7 @@ interface CheckoutParams {
 }
 
 export function useCheckout() {
+  const queryClient = useQueryClient();
   const wooKey = useSettingsStore((s) => s.wooKey);
   const wooSecret = useSettingsStore((s) => s.wooSecret);
   const useProxy = useSettingsStore((s) => s.useProxy);
@@ -163,6 +164,11 @@ export function useCheckout() {
       const raw = await response.json();
       const parsed = wooOrderSchema.safeParse(raw);
       return parsed.success ? parsed.data : (raw as WooOrder);
+    },
+    onSuccess: () => {
+      // Invalidate product cache so stock status refreshes immediately
+      // after a successful checkout (Issue #124).
+      queryClient.invalidateQueries({ queryKey: ["woo-products"] });
     },
   });
 }
