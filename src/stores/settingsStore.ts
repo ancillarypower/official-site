@@ -110,6 +110,7 @@ export const useSettingsStore = create<SettingsState>()(
         const clamped = Math.max(0.7, Math.min(1.5, scale));
         document.documentElement.style.setProperty("--font-scale", String(clamped));
         set({ fontScale: clamped });
+        window.dispatchEvent(new CustomEvent("fontscalechange"));
       },
 
       theme: "light",
