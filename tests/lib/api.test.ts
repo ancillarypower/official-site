@@ -139,6 +139,26 @@ describe("wooApiUrl", () => {
     const url = wooApiUrl("https://shop.com/wp-json", "products");
     expect(new URL(url).pathname).toBe("/wp-json/wc/v3/products");
   });
+
+  // --- Regression tests for Issue #121: friendly error on invalid URL ---
+
+  it("throws friendly error when baseUrl is empty (regression #121)", () => {
+    expect(() => wooApiUrl("", "products")).toThrow(
+      "WooCommerce store URL is not configured. Please check Settings.",
+    );
+  });
+
+  it("throws friendly error when baseUrl is whitespace-only (regression #121)", () => {
+    expect(() => wooApiUrl("   ", "products")).toThrow(
+      "WooCommerce store URL is not configured. Please check Settings.",
+    );
+  });
+
+  it("throws friendly error when baseUrl is malformed (regression #121)", () => {
+    expect(() => wooApiUrl("not a url !!!", "products")).toThrow(
+      /Invalid WooCommerce URL:.*Please check Settings/,
+    );
+  });
 });
 
 describe("wooAuthHeaders", () => {
