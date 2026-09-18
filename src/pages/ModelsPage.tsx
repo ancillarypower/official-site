@@ -186,7 +186,9 @@ export default function ModelsPage() {
       const srcIdx = arr.findIndex((m) => m.id === sourceId);
       const tgtIdx = arr.findIndex((m) => m.id === targetId);
       if (srcIdx === -1 || tgtIdx === -1) return prev;
-      const [moved] = arr.splice(srcIdx, 1);
+      const removed = arr.splice(srcIdx, 1);
+      const moved = removed[0];
+      if (!moved) return prev;
       arr.splice(tgtIdx, 0, moved);
       persistOrder(arr);
       return arr;
