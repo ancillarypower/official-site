@@ -71,6 +71,19 @@ export default function ModelsPage() {
       let currentModels = [...modelsRef.current];
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+
+        // Read file data first, before any state mutations
+        let ab: ArrayBuffer;
+        try {
+          ab = await file.arrayBuffer();
+        } catch (err) {
+          console.error("Failed to read file:", file.name, err);
+          toast.error(t("models_upload_error", { name: file.name }));
+          continue;
+        }
+        if (ab.byteLength === 0) continue;
+
+        // Check for duplicate filename
         const existing = currentModels.find((m) => m.name === file.name);
         if (existing) {
           if (!window.confirm(t("models_replace_confirm", { name: file.name }))) continue;
@@ -90,9 +103,9 @@ export default function ModelsPage() {
             continue;
           }
         }
+
+        // Save the new model
         try {
-          const ab = await file.arrayBuffer();
-          if (ab.byteLength === 0) continue;
           const id = await saveModel(file.name, file.size, ext, ab);
           const newModel = { id, name: file.name, size: file.size, ext, timestamp: Date.now() };
           currentModels = [...currentModels, newModel];
@@ -102,7 +115,7 @@ export default function ModelsPage() {
             return updated;
           });
         } catch (err) {
-          console.error("Failed to process:", file.name, err);
+          console.error("Failed to save model:", file.name, err);
           toast.error(t("models_upload_error", { name: file.name }));
         }
       }

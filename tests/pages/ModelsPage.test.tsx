@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createElement } from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/components/models/ModelViewer", () => ({
@@ -397,7 +397,10 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
 
     await waitFor(() => {
       expect(window.confirm).toHaveBeenCalledWith(
@@ -420,7 +423,10 @@ describe("ModelsPage", () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
 
     await waitFor(() => {
       expect(mockDeleteModel).toHaveBeenCalledWith(1);
