@@ -17,14 +17,33 @@ interface ModelCardProps {
   onDragEnd?: () => void;
   isDragTarget?: boolean;
   onRename?: (newName: string) => void;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false, onRename }: ModelCardProps) {
+export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false, onRename, expanded: controlledExpanded, onToggleExpand }: ModelCardProps) {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const isExpanded = onToggleExpand !== undefined ? (controlledExpanded ?? false) : localExpanded;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleExpand = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setLocalExpanded(true);
+    }
+  };
+
+  const handleCollapse = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setLocalExpanded(false);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -69,11 +88,11 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
       }`}
     >
       <div className="relative">
-        {expanded ? (
+        {isExpanded ? (
           <>
             <ModelViewer name={name} ext={ext} modelId={modelId} />
             <button
-              onClick={() => setExpanded(false)}
+              onClick={handleCollapse}
               className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded bg-surface-raised/80 text-xs text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
               aria-label={t("models_collapse_3d")}
               title={t("models_collapse_3d")}
@@ -87,7 +106,7 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
               {ext.toUpperCase()}
             </span>
             <button
-              onClick={() => setExpanded(true)}
+              onClick={handleExpand}
               className="rounded-md bg-accent/80 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent"
               title={t("models_view_3d")}
             >
