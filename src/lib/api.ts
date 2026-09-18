@@ -136,6 +136,10 @@ export function wpApiUrl(siteUrl: string): string {
 /**
  * Build a WooCommerce REST API URL.
  *
+ * Validates the input URL before constructing the API endpoint.
+ * Throws a user-friendly error when the URL is empty or malformed,
+ * guiding the user to the Settings panel (Issue #121).
+ *
  * Strips any existing `/wp-json` path the user may have pasted
  * before appending the canonical API prefix (Issue #86).
  *
@@ -150,7 +154,22 @@ export function wooApiUrl(
 ): string {
   let base = baseUrl.trim().replace(/\/+$/, "");
   base = base.replace(/\/wp-json(\/.*)?$/, "");
-  const url = new URL(`${base}/wp-json/wc/v3/${endpoint}`);
+
+  if (!base) {
+    throw new Error(
+      "WooCommerce store URL is not configured. Please check Settings.",
+    );
+  }
+
+  let url: URL;
+  try {
+    url = new URL(`${base}/wp-json/wc/v3/${endpoint}`);
+  } catch {
+    throw new Error(
+      `Invalid WooCommerce URL: "${base}". Please check Settings.`,
+    );
+  }
+
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
