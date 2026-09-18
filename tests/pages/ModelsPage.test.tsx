@@ -186,9 +186,8 @@ describe("ModelsPage", () => {
     });
 
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
-    await act(async () => {
-      await latestOnFilesSelected!([file]);
-    });
+    const handlerPromise = latestOnFilesSelected!([file]);
+    await handlerPromise;
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
@@ -409,13 +408,15 @@ describe("ModelsPage", () => {
     });
 
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    await act(async () => {
-      await latestOnFilesSelected!([file]);
+    // Call handler directly and await its full async completion
+    const promise = latestOnFilesSelected!([file]);
+    await promise;
+    // Flush React state updates
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cube.glb")
+      );
     });
-
-    expect(confirmSpy).toHaveBeenCalledWith(
-      expect.stringContaining("cube.glb")
-    );
     expect(mockDeleteModel).not.toHaveBeenCalled();
     expect(mockSaveModel).not.toHaveBeenCalled();
     vi.restoreAllMocks();
@@ -431,13 +432,15 @@ describe("ModelsPage", () => {
     });
 
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
-    await act(async () => {
-      await latestOnFilesSelected!([file]);
+    // Call handler directly and await its full async completion
+    const promise = latestOnFilesSelected!([file]);
+    await promise;
+    // Flush React state updates
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cube.glb")
+      );
     });
-
-    expect(confirmSpy).toHaveBeenCalledWith(
-      expect.stringContaining("cube.glb")
-    );
     expect(mockDeleteModel).toHaveBeenCalledWith(1);
     expect(mockSaveModel).toHaveBeenCalled();
     vi.restoreAllMocks();
