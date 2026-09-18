@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { ModelViewer } from "./ModelViewer";
 
@@ -16,11 +16,46 @@ interface ModelCardProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   isDragTarget?: boolean;
+  onRename?: (newName: string) => void;
 }
 
-export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false }: ModelCardProps) {
+export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false, onRename }: ModelCardProps) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleNameClick = () => {
+    if (onRename) {
+      setEditName(name);
+      setIsEditing(true);
+    }
+  };
+
+  const handleRenameSubmit = () => {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== name && onRename) {
+      onRename(trimmed);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRenameSubmit();
+    } else if (e.key === "Escape") {
+      setEditName(name);
+      setIsEditing(false);
+    }
+  };
 
   return (
     <div
@@ -73,7 +108,27 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
         )}
       </div>
       <div className="flex items-center gap-3 px-4 py-3">
-        <span className="flex-1 truncate text-sm font-semibold">{name}</span>
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={handleRenameSubmit}
+            onKeyDown={handleKeyDown}
+            className="flex-1 truncate text-sm font-semibold bg-transparent border-b border-accent outline-none"
+            aria-label={t("models_rename_hint")}
+          />
+        ) : (
+          <span
+            className={`flex-1 truncate text-sm font-semibold${onRename ? " cursor-pointer hover:text-accent group" : ""}`}
+            onClick={handleNameClick}
+            title={onRename ? t("models_rename_hint") : undefined}
+          >
+            {name}
+            {onRename && <span className="ml-1 opacity-0 group-hover:opacity-60 text-xs">\u270F\uFE0F</span>}
+          </span>
+        )}
         <span className="text-[0.7rem] text-tertiary">{(size / 1_048_576).toFixed(2)} MB</span>
         <button onClick={onRemove} disabled={isDeleting} className={`flex h-7 w-7 items-center justify-center rounded bg-surface-sunken text-xs text-tertiary transition-colors hover:bg-[oklch(90%_0.04_25)] hover:text-[oklch(45%_0.12_25)] ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`} aria-label={t("models_remove_label", { name })} title={t("models_remove_label", { name })}>{isDeleting ? "\u23F3" : "\u2715"}</button>
       </div>
