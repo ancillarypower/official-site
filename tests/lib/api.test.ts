@@ -1,5 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams, ensureHttps } from "@/lib/api";
+
+describe("ensureHttps", () => {
+  it("returns empty string unchanged", () => {
+    expect(ensureHttps("")).toBe("");
+    expect(ensureHttps("   ")).toBe("");
+  });
+
+  it("upgrades http:// to https:// (regression #111)", () => {
+    expect(ensureHttps("http://example.com")).toBe("https://example.com");
+    expect(ensureHttps("http://localhost:8080")).toBe("https://localhost:8080");
+  });
+
+  it("preserves existing https://", () => {
+    expect(ensureHttps("https://example.com")).toBe("https://example.com");
+  });
+
+  it("prepends https:// when no protocol is present", () => {
+    expect(ensureHttps("example.com")).toBe("https://example.com");
+  });
+
+  it("trims whitespace and trailing slashes", () => {
+    expect(ensureHttps("  http://example.com///  ")).toBe("https://example.com");
+  });
+});
 
 describe("wpApiUrl", () => {
   it("builds correct URL from site URL", () => {
@@ -26,9 +50,9 @@ describe("wpApiUrl", () => {
     );
   });
 
-  it("preserves http scheme", () => {
+  it("upgrades http:// to https:// (regression #111)", () => {
     expect(wpApiUrl("http://localhost:8080")).toBe(
-      "http://localhost:8080/wp-json/wp/v2",
+      "https://localhost:8080/wp-json/wp/v2",
     );
   });
 

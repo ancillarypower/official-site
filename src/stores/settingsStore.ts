@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { ensureHttps } from "@/lib/api";
 
 export type Theme = "light" | "sepia" | "dark";
 
@@ -132,10 +133,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       getWooBaseUrl: () => {
         const state = get();
-        let url = state.wooUseSameUrl ? state.wpUrl : state.wooUrl;
-        url = url.trim().replace(/\/+$/, "");
-        if (url && !url.startsWith("http")) url = "https://" + url;
-        return url;
+        const raw = state.wooUseSameUrl ? state.wpUrl : state.wooUrl;
+        return ensureHttps(raw);
       },
     }),
     {

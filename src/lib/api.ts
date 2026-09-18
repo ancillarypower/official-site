@@ -3,6 +3,25 @@ import { CORS_PROXIES, FETCH_TIMEOUT } from "./constants";
 let proxyIndex = 0;
 
 /**
+ * Ensure a URL uses HTTPS.
+ *
+ * Trims whitespace and trailing slashes, upgrades `http://` to
+ * `https://`, and prepends `https://` when no protocol is present.
+ * Returns an empty string unchanged (no protocol is added).
+ *
+ * This prevents WooCommerce credentials from being transmitted in
+ * cleartext when a user enters an `http://` URL (Issue #111).
+ */
+export function ensureHttps(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith("http://"))
+    return trimmed.replace("http://", "https://");
+  if (!trimmed.startsWith("https://")) return "https://" + trimmed;
+  return trimmed;
+}
+
+/**
  * Build a composite AbortSignal that fires when either the caller's
  * signal aborts or the timeout expires, whichever comes first.
  *
@@ -102,13 +121,14 @@ export async function fetchWithProxy(
 /**
  * Build the WP REST API base URL from a site URL.
  *
- * Strips any existing `/wp-json` path the user may have pasted
- * (e.g. from the browser address bar) before appending the canonical
- * API prefix, preventing path duplication (Issue #86).
+ * Forces HTTPS via {@link ensureHttps} to prevent credentials from
+ * being transmitted in cleartext (Issue #111). Strips any existing
+ * `/wp-json` path the user may have pasted (e.g. from the browser
+ * address bar) before appending the canonical API prefix, preventing
+ * path duplication (Issue #86).
  */
 export function wpApiUrl(siteUrl: string): string {
-  let base = siteUrl.trim().replace(/\/+$/, "");
-  base = base.startsWith("http") ? base : "https://" + base;
+  let base = ensureHttps(siteUrl);
   base = base.replace(/\/wp-json(\/.*)?$/, "");
   return `${base}/wp-json/wp/v2`;
 }
