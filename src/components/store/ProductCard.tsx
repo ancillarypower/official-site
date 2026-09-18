@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { useCartStore } from "@/stores/cartStore";
 import type { DisplayProduct } from "@/lib/types";
@@ -13,9 +13,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const cartQty = getQty(product.id);
   const outOfStock = product.stockStatus === "outofstock";
 
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
   function handleAdd() {
     addItem({ id: product.id, name: product.name, price: product.price, icon: product.icon, img: product.img }, qty);
-    setQty(1); setJustAdded(true); setTimeout(() => setJustAdded(false), 1000);
+    setQty(1); setJustAdded(true); timerRef.current = setTimeout(() => setJustAdded(false), 1000);
   }
 
   return (
