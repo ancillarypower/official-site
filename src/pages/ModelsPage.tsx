@@ -204,7 +204,6 @@ export default function ModelsPage() {
         <span className="text-xs text-tertiary">{t("models_loaded", { n: models.length })}</span>
       </div>
       <ModelUpload onFilesSelected={handleFilesSelected} disabled={isUploading} />
-      <StorageQuotaBar />
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
@@ -260,6 +259,7 @@ export default function ModelsPage() {
           />
         ))}
       </div>
+      <StorageQuotaBar />
     </div>
   );
 }
