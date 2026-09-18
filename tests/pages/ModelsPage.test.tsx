@@ -9,9 +9,9 @@ vi.mock("@/components/models/ModelViewer", () => ({
 }));
 
 // Capture the latest onFilesSelected callback from ModelUpload
-let latestOnFilesSelected: ((files: File[]) => void) | null = null;
+let latestOnFilesSelected: ((files: File[]) => Promise<void> | void) | null = null;
 vi.mock("@/components/models/ModelUpload", () => ({
-  ModelUpload: (props: { onFilesSelected: (files: File[]) => void; disabled?: boolean }) => {
+  ModelUpload: (props: { onFilesSelected: (files: File[]) => Promise<void> | void; disabled?: boolean }) => {
     latestOnFilesSelected = props.onFilesSelected;
     return createElement("div", { "data-testid": "model-upload" },
       props.disabled ? "\u6B63\u5728\u5132\u5B58\u6A21\u578B..." : "\u62D6\u653E 3D \u6A21\u578B\u81F3\u6B64\u8655\u6216\u9EDE\u64CA\u700F\u89BD"
@@ -187,7 +187,7 @@ describe("ModelsPage", () => {
 
     const file = new File(["data"], "test.glb", { type: "model/gltf-binary" });
     await act(async () => {
-      latestOnFilesSelected!([file]);
+      await latestOnFilesSelected!([file]);
     });
 
     await waitFor(() => {
@@ -410,14 +410,12 @@ describe("ModelsPage", () => {
 
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
     await act(async () => {
-      latestOnFilesSelected!([file]);
+      await latestOnFilesSelected!([file]);
     });
 
-    await waitFor(() => {
-      expect(confirmSpy).toHaveBeenCalledWith(
-        expect.stringContaining("cube.glb")
-      );
-    });
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining("cube.glb")
+    );
     expect(mockDeleteModel).not.toHaveBeenCalled();
     expect(mockSaveModel).not.toHaveBeenCalled();
     vi.restoreAllMocks();
@@ -434,20 +432,14 @@ describe("ModelsPage", () => {
 
     const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
     await act(async () => {
-      latestOnFilesSelected!([file]);
+      await latestOnFilesSelected!([file]);
     });
 
-    await waitFor(() => {
-      expect(confirmSpy).toHaveBeenCalledWith(
-        expect.stringContaining("cube.glb")
-      );
-    });
-    await waitFor(() => {
-      expect(mockDeleteModel).toHaveBeenCalledWith(1);
-    });
-    await waitFor(() => {
-      expect(mockSaveModel).toHaveBeenCalled();
-    });
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining("cube.glb")
+    );
+    expect(mockDeleteModel).toHaveBeenCalledWith(1);
+    expect(mockSaveModel).toHaveBeenCalled();
     vi.restoreAllMocks();
   });
 
