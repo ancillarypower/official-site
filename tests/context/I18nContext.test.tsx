@@ -17,6 +17,7 @@ function TestConsumer() {
 describe("I18nContext", () => {
   beforeEach(() => {
     localStorage.clear();
+    document.documentElement.lang = "";
   });
 
   it("defaults to Chinese", () => {
@@ -67,5 +68,21 @@ describe("I18nContext", () => {
     localStorage.setItem("ap-lang", "fr");
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("lang").textContent).toBe("zh");
+  });
+
+  // --- document.documentElement.lang sync tests (regression #119) ---
+
+  it("sets document.documentElement.lang to zh-TW on mount", () => {
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(document.documentElement.lang).toBe("zh-TW");
+  });
+
+  it("updates document.documentElement.lang on toggle (regression #119)", () => {
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(document.documentElement.lang).toBe("zh-TW");
+    fireEvent.click(screen.getByText("Toggle"));
+    expect(document.documentElement.lang).toBe("en");
+    fireEvent.click(screen.getByText("Toggle"));
+    expect(document.documentElement.lang).toBe("zh-TW");
   });
 });

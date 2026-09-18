@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -35,6 +36,10 @@ function getInitialLang(): Lang {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(getInitialLang);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "zh" ? "zh-TW" : "en";
+  }, [lang]);
 
   const toggleLang = useCallback(() => {
     setLang((prev) => {
