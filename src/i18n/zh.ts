@@ -247,6 +247,12 @@ export const zh = {
   error_reload: "重新載入頁面",
   error_unhandled: "發生非預期錯誤，請稍後再試",
 
+  // Fetch error
+  error_fetch_network: "無法連線至 WordPress",
+  error_fetch_network_desc: "請在設定中啟用 CORS 代理，或確認網址是否正確",
+  error_fetch_http: "伺服器回應錯誤（HTTP {status}）",
+  error_fetch_retry: "重試",
+
   // Accessibility
   a11y_skip_to_content: "跳至主要內容",
   a11y_storage: "儲存空間",
