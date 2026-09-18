@@ -63,3 +63,11 @@ export async function deleteAllModels(): Promise<void> {
   const db = await getDB();
   await db.clear(STORE_NAME);
 }
+
+export async function renameModel(id: number, newName: string): Promise<void> {
+  const db = await getDB();
+  const record = await db.get(STORE_NAME, id);
+  if (!record) throw new Error(`Model ${id} not found`);
+  record.name = newName;
+  await db.put(STORE_NAME, record);
+}
