@@ -48,8 +48,6 @@ export default function ModelsPage() {
   const [dragTargetId, setDragTargetId] = useState<number | null>(null);
   const dragSourceRef = useRef<number | null>(null);
   const dragTargetRef = useRef<number | null>(null);
-  const modelsRef = useRef<LoadedModelMeta[]>([]);
-  modelsRef.current = models;
 
   const allExpanded = models.length > 0 && expandedIds.size === models.length;
 
@@ -65,10 +63,12 @@ export default function ModelsPage() {
       });
   }, [t]);
 
-  const handleFilesSelected = useCallback(async (files: File[]) => {
+  // Not wrapped in useCallback: needs fresh `models` closure on every render
+  // for accurate duplicate detection. Re-creation cost is negligible.
+  const handleFilesSelected = async (files: File[]) => {
     setIsUploading(true);
     try {
-      let currentModels = [...modelsRef.current];
+      let currentModels = [...models];
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
@@ -122,7 +122,7 @@ export default function ModelsPage() {
     } finally {
       setIsUploading(false);
     }
-  }, [t]);
+  };
 
   const handleRemove = useCallback(async (id: number, name: string) => {
     const confirmed = window.confirm(t("models_delete_confirm", { name }));
