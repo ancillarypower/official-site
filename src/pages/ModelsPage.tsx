@@ -48,6 +48,8 @@ export default function ModelsPage() {
   const [dragTargetId, setDragTargetId] = useState<number | null>(null);
   const dragSourceRef = useRef<number | null>(null);
   const dragTargetRef = useRef<number | null>(null);
+  const modelsRef = useRef<LoadedModelMeta[]>([]);
+  modelsRef.current = models;
 
   const allExpanded = models.length > 0 && expandedIds.size === models.length;
 
@@ -66,7 +68,7 @@ export default function ModelsPage() {
   const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
-      let currentModels = [...models];
+      let currentModels = [...modelsRef.current];
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
         const existing = currentModels.find((m) => m.name === file.name);
@@ -107,7 +109,7 @@ export default function ModelsPage() {
     } finally {
       setIsUploading(false);
     }
-  }, [models, t]);
+  }, [t]);
 
   const handleRemove = useCallback(async (id: number, name: string) => {
     const confirmed = window.confirm(t("models_delete_confirm", { name }));
@@ -266,7 +268,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            \uD83D\uDCBE {t("models_persisted")}
+            💾 {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -297,7 +299,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              \uD83D\uDDD1 {t("models_delete_all")}
+              🗑 {t("models_delete_all")}
             </button>
           </div>
           <div className="mt-1 text-center text-[0.65rem] text-tertiary">
