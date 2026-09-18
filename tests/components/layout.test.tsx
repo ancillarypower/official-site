@@ -212,16 +212,29 @@ describe("HeroBanner", () => {
     const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockReturnValue(mockCtx as unknown as CanvasRenderingContext2D);
 
+    // Mock IntersectionObserver (jsdom does not implement it;
+    // with getContext mocked the useEffect now reaches IO code)
+    const MockIntersectionObserver = vi.fn((_cb: IntersectionObserverCallback) => ({
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+      root: null,
+      rootMargin: "",
+      thresholds: [0],
+      takeRecords: vi.fn(() => []),
+    }));
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
     const observedElements: Element[] = [];
     let resizeCallback: ResizeObserverCallback | null = null;
-    const disconnectSpy = vi.fn();
+    const roDisconnectSpy = vi.fn();
 
     const MockResizeObserver = vi.fn((cb: ResizeObserverCallback) => {
       resizeCallback = cb;
       return {
         observe: vi.fn((el: Element) => { observedElements.push(el); }),
         unobserve: vi.fn(),
-        disconnect: disconnectSpy,
+        disconnect: roDisconnectSpy,
       };
     });
     vi.stubGlobal("ResizeObserver", MockResizeObserver);
@@ -264,7 +277,7 @@ describe("HeroBanner", () => {
 
     // Cleanup disconnects ResizeObserver
     unmount();
-    expect(disconnectSpy).toHaveBeenCalled();
+    expect(roDisconnectSpy).toHaveBeenCalled();
 
     addEventSpy.mockRestore();
     getContextSpy.mockRestore();
