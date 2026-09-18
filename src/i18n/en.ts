@@ -271,4 +271,9 @@ export const en: Record<TranslationKey, string> = {
   // Route error boundary
   route_load_error: "Failed to load this page",
   route_load_retry: "Reload",
+
+  // 404 Not Found
+  not_found_title: "Page Not Found",
+  not_found_text: "The page you're looking for doesn't exist or has been moved.",
+  not_found_home: "Back to Home",
 };
