@@ -133,9 +133,19 @@ export default function AboutPage() {
             <span className="font-medium">
               {t("about_phone_label")}:
             </span>{" "}
-            <span className="text-accent">
-              {t("about_phone_value")}
-            </span>
+            {t("about_phone_value")
+              .split(" / ")
+              .map((phone, i, arr) => (
+                <span key={phone}>
+                  <a
+                    href={`tel:${phone.replace(/[^\d+]/g, "")}`}
+                    className="text-accent hover:underline"
+                  >
+                    {phone}
+                  </a>
+                  {i < arr.length - 1 && " / "}
+                </span>
+              ))}
           </p>
           <p>
             <span className="font-medium">
