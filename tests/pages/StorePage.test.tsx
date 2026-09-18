@@ -152,4 +152,46 @@ describe("StorePage", () => {
     });
     expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
   });
+
+  // --- WooCommerce loading/error state regression tests (#112) ---
+
+  it("shows loading spinner when WooCommerce query is loading", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
+  });
+
+  it("shows error state when WooCommerce query fails", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("HTTP 500"),
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByText(/HTTP 500/)).toBeInTheDocument();
+    expect(screen.getByText("\u91CD\u8A66")).toBeInTheDocument();
+    expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
+  });
+
+  it("shows sample products when WooCommerce is not configured (regression #112)", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });
