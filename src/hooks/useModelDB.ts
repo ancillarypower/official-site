@@ -15,9 +15,9 @@ async function getDB(): Promise<IDBPDatabase> {
   });
 }
 
-export async function saveModel(name: string, size: number, ext: string, data: ArrayBuffer): Promise<number> {
+export async function saveModel(name: string, size: number, ext: string, data: ArrayBuffer, hash?: string): Promise<number> {
   const db = await getDB();
-  const id = await db.add(STORE_NAME, { name, size, ext, data, timestamp: Date.now() });
+  const id = await db.add(STORE_NAME, { name, size, ext, data, timestamp: Date.now(), ...(hash != null && { hash }) });
   return id as number;
 }
 
@@ -35,7 +35,7 @@ export async function getAllModels(): Promise<ModelRecord[]> {
 export async function getAllModelMeta(): Promise<ModelMeta[]> {
   const db = await getDB();
   const all = await db.getAll(STORE_NAME);
-  return all.map(({ id, name, size, ext, timestamp }) => ({ id, name, size, ext, timestamp }));
+  return all.map(({ id, name, size, ext, timestamp, hash }) => ({ id, name, size, ext, timestamp, ...(hash != null && { hash }) }));
 }
 
 /**
