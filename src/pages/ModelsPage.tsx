@@ -66,19 +66,58 @@ export default function ModelsPage() {
   const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
+      // Read current models from IndexedDB (canonical source of truth)
+      // instead of React state to avoid stale closure issues
+      const dbRecords = await getAllModelMeta();
+      let currentModels = dbRecords.filter((r): r is LoadedModelMeta => r.id != null);
+
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+
+        // Read file data first, before any state mutations
+        let ab: ArrayBuffer;
         try {
-          const ab = await file.arrayBuffer();
-          if (ab.byteLength === 0) continue;
+          ab = await file.arrayBuffer();
+        } catch (err) {
+          console.error("Failed to read file:", file.name, err);
+          toast.error(t("models_upload_error", { name: file.name }));
+          continue;
+        }
+        if (ab.byteLength === 0) continue;
+
+        // Check for duplicate filename
+        const existing = currentModels.find((m) => m.name === file.name);
+        if (existing) {
+          if (!window.confirm(t("models_replace_confirm", { name: file.name }))) continue;
+          try {
+            await deleteModel(existing.id);
+            currentModels = currentModels.filter((m) => m.id !== existing.id);
+            setModels((prev) => {
+              const updated = prev.filter((m) => m.id !== existing.id);
+              persistOrder(updated);
+              return updated;
+            });
+            setSelectedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+            setExpandedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+          } catch (err) {
+            console.error("Failed to delete existing model:", existing.id, err);
+            toast.error(t("models_delete_failed"));
+            continue;
+          }
+        }
+
+        // Save the new model
+        try {
           const id = await saveModel(file.name, file.size, ext, ab);
+          const newModel = { id, name: file.name, size: file.size, ext, timestamp: Date.now() };
+          currentModels = [...currentModels, newModel];
           setModels((prev) => {
-            const updated = [...prev, { id, name: file.name, size: file.size, ext, timestamp: Date.now() }];
+            const updated = [...prev, newModel];
             persistOrder(updated);
             return updated;
           });
         } catch (err) {
-          console.error("Failed to process:", file.name, err);
+          console.error("Failed to save model:", file.name, err);
           toast.error(t("models_upload_error", { name: file.name }));
         }
       }

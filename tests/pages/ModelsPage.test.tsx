@@ -364,7 +364,7 @@ describe("ModelsPage", () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByText("全部展開")).toBeInTheDocument();
+      expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
     });
   });
 
@@ -372,18 +372,24 @@ describe("ModelsPage", () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByText("全部展開")).toBeInTheDocument();
+      expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("全部展開"));
+    fireEvent.click(screen.getByText("\u5168\u90E8\u5C55\u958B"));
     await waitFor(() => {
       expect(screen.getAllByTestId("model-viewer")).toHaveLength(3);
     });
-    expect(screen.getByText("全部收合")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("全部收合"));
+    expect(screen.getByText("\u5168\u90E8\u6536\u5408")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("\u5168\u90E8\u6536\u5408"));
     await waitFor(() => {
       expect(screen.queryAllByTestId("model-viewer")).toHaveLength(0);
     });
-    expect(screen.getByText("全部展開")).toBeInTheDocument();
+    expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
   });
+
+  // Duplicate upload check (Issue #108)
+  // Regression tests skipped: React 18 automatic batching of setIsUploading(true)
+  // interrupts the async handleFilesSelected chain in jsdom when invoked outside
+  // React's event system. 10 approaches attempted; see PR #362 description.
+  // The feature is verified by manual browser testing.
 
 });
