@@ -364,7 +364,7 @@ describe("ModelsPage", () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByText("全部展開")).toBeInTheDocument();
+      expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
     });
   });
 
@@ -372,18 +372,63 @@ describe("ModelsPage", () => {
     mockGetAllModelMeta.mockResolvedValue(sampleModels);
     render(<I18nProvider><ModelsPage /></I18nProvider>);
     await waitFor(() => {
-      expect(screen.getByText("全部展開")).toBeInTheDocument();
+      expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("全部展開"));
+    fireEvent.click(screen.getByText("\u5168\u90E8\u5C55\u958B"));
     await waitFor(() => {
       expect(screen.getAllByTestId("model-viewer")).toHaveLength(3);
     });
-    expect(screen.getByText("全部收合")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("全部收合"));
+    expect(screen.getByText("\u5168\u90E8\u6536\u5408")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("\u5168\u90E8\u6536\u5408"));
     await waitFor(() => {
       expect(screen.queryAllByTestId("model-viewer")).toHaveLength(0);
     });
-    expect(screen.getByText("全部展開")).toBeInTheDocument();
+    expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
+  });
+
+  // Duplicate upload check tests (Issue #108)
+  it("skips duplicate file when user cancels replace confirm", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("cube.glb")
+      );
+    });
+    expect(mockDeleteModel).not.toHaveBeenCalled();
+    expect(mockSaveModel).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("replaces duplicate file when user confirms", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    mockSaveModel.mockResolvedValueOnce(10);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["new data"], "cube.glb", { type: "model/gltf-binary" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(mockDeleteModel).toHaveBeenCalledWith(1);
+    });
+    await waitFor(() => {
+      expect(mockSaveModel).toHaveBeenCalledWith("cube.glb", 8, "glb", expect.any(ArrayBuffer));
+    });
+    vi.restoreAllMocks();
   });
 
 });
