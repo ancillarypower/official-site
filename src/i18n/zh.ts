@@ -41,6 +41,8 @@ export const zh = {
   models_remove_label: "移除「{name}」",
   models_select_label: "選取「{name}」",
   models_drag_hint: "拖曳卡片可重新排序",
+  models_rename_hint: "點擊名稱可重新命名",
+  models_rename_failed: "重新命名失敗",
 
   store_title: "商店",
   store_products: "{n} 項商品",
