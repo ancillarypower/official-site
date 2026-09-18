@@ -9,6 +9,7 @@ import { SkipToContent } from "@/components/layout/SkipToContent";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
+const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const ContentPage = lazy(() => import("@/pages/ContentPage"));
 const ModelsPage = lazy(() => import("@/pages/ModelsPage"));
 const StorePage = lazy(() => import("@/pages/StorePage"));
@@ -29,7 +30,8 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <RouteErrorBoundary key={location.pathname}>
                 <Routes>
-                  <Route path="/" element={<ContentPage />} />
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/news" element={<ContentPage />} />
                   <Route path="/models" element={<ModelsPage />} />
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/about" element={<AboutPage />} />
