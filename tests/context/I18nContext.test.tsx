@@ -22,14 +22,14 @@ describe("I18nContext", () => {
   it("defaults to Chinese", () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("lang").textContent).toBe("zh");
-    expect(screen.getByTestId("translated").textContent).toBe("內容");
+    expect(screen.getByTestId("translated").textContent).toBe("消息");
   });
 
   it("toggles to English", () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     fireEvent.click(screen.getByText("Toggle"));
     expect(screen.getByTestId("lang").textContent).toBe("en");
-    expect(screen.getByTestId("translated").textContent).toBe("Content");
+    expect(screen.getByTestId("translated").textContent).toBe("News");
   });
 
   it("interpolates replacements", () => {
@@ -53,7 +53,7 @@ describe("I18nContext", () => {
     localStorage.setItem("ap-lang", "en");
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("lang").textContent).toBe("en");
-    expect(screen.getByTestId("translated").textContent).toBe("Content");
+    expect(screen.getByTestId("translated").textContent).toBe("News");
   });
 
   it("persists language choice to localStorage on toggle", () => {
