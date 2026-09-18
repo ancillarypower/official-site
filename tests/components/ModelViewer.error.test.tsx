@@ -78,7 +78,7 @@ vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
   })),
 }));
 vi.mock("three/examples/jsm/loaders/DRACOLoader.js", () => ({
-  DRACOLoader: vi.fn().mockImplementation(() => ({ setDecoderPath: vi.fn() })),
+  DRACOLoader: vi.fn().mockImplementation(() => ({ setDecoderPath: vi.fn(), dispose: vi.fn() })),
 }));
 vi.mock("three/examples/jsm/loaders/OBJLoader.js", () => ({
   OBJLoader: vi.fn().mockImplementation(() => ({ parse: vi.fn(() => ({ children: [{}], add: vi.fn() })) })),

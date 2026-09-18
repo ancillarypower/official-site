@@ -88,6 +88,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let ctxRestoredHandler: (() => void) | null = null;
     let scene: Scene | null = null;
     let controls: OrbitControls | null = null;
+    let dracoLoader: { dispose(): void } | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -150,6 +151,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           disposeSceneResources(scene);
           controls?.dispose();
           controls = null;
+          dracoLoader?.dispose();
+          dracoLoader = null;
           scene = null;
           if (renderer) {
             if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
@@ -378,6 +381,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           const draco = new DRACOLoader();
           draco.setDecoderPath(DRACO_CDN);
           loader.setDRACOLoader(draco);
+          dracoLoader = draco;
           const payload =
             ext === "gltf"
               ? new TextDecoder().decode(new Uint8Array(buf))
@@ -440,6 +444,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       cancelAnimationFrame(animId);
       ro?.disconnect();
       disposeSceneResources(scene);
+      dracoLoader?.dispose();
       controls?.dispose();
       resetViewpointRef.current = null;
       if (renderer) {
