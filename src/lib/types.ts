@@ -129,6 +129,8 @@ export interface ModelRecord {
   timestamp: number;
   /** SHA-256 hex digest of the file content for deduplication. */
   hash?: string;
+  /** Last modification timestamp (e.g. rename). Falls back to timestamp when absent. */
+  updatedAt?: number;
 }
 
 /** Model metadata without the heavy ArrayBuffer payload. */

@@ -48,7 +48,11 @@ export async function getAllModels(): Promise<ModelRecord[]> {
 export async function getAllModelMeta(): Promise<ModelMeta[]> {
   const db = await getDB();
   const all = await db.getAll(STORE_NAME);
-  return all.map(({ id, name, size, ext, timestamp, hash }) => ({ id, name, size, ext, timestamp, ...(hash != null && { hash }) }));
+  return all.map(({ id, name, size, ext, timestamp, hash, updatedAt }) => ({
+    id, name, size, ext, timestamp,
+    ...(hash != null && { hash }),
+    ...(updatedAt != null && { updatedAt }),
+  }));
 }
 
 /**
@@ -82,5 +86,6 @@ export async function renameModel(id: number, newName: string): Promise<void> {
   const record = await db.get(STORE_NAME, id);
   if (!record) throw new Error(`Model ${id} not found`);
   record.name = newName;
+  record.updatedAt = Date.now();
   await db.put(STORE_NAME, record);
 }

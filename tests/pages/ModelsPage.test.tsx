@@ -40,6 +40,7 @@ describe("ModelsPage", () => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
     localStorage.removeItem("model_sort_order");
+    localStorage.removeItem("model_sort_key");
   });
 
   it("renders models title", async () => {
@@ -391,5 +392,84 @@ describe("ModelsPage", () => {
   // interrupts the async handleFilesSelected chain in jsdom when invoked outside
   // React's event system. 10 approaches attempted; see PR #362 description.
   // The feature is verified by manual browser testing.
+
+  // Sort tests (Issue #361)
+  it("sorts models by name ascending when sort option selected (regression #361)", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    // Select "Name A→Z" sort option
+    const sortSelect = screen.getByRole("combobox");
+    fireEvent.change(sortSelect, { target: { value: "name_asc" } });
+
+    await waitFor(() => {
+      const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
+      const order = removeButtons.map((btn) => {
+        const match = btn.getAttribute("aria-label")?.match(/\u300C(.+?)\u300D/);
+        return match ? match[1] : "";
+      });
+      // cube.glb < plane.stl < sphere.obj (alphabetical)
+      expect(order).toEqual(["cube.glb", "plane.stl", "sphere.obj"]);
+    });
+  });
+
+  it("sorts models by size descending when sort option selected (regression #361)", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    const sortSelect = screen.getByRole("combobox");
+    fireEvent.change(sortSelect, { target: { value: "size_desc" } });
+
+    await waitFor(() => {
+      const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
+      const order = removeButtons.map((btn) => {
+        const match = btn.getAttribute("aria-label")?.match(/\u300C(.+?)\u300D/);
+        return match ? match[1] : "";
+      });
+      // sphere.obj (2MB) > cube.glb (1MB) > plane.stl (0.5MB)
+      expect(order).toEqual(["sphere.obj", "cube.glb", "plane.stl"]);
+    });
+  });
+
+  it("disables drag reorder when non-custom sort is active (regression #361)", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
+    });
+
+    // Switch to name sort
+    const sortSelect = screen.getByRole("combobox");
+    fireEvent.change(sortSelect, { target: { value: "name_asc" } });
+
+    // Drag hint should be hidden
+    await waitFor(() => {
+      expect(screen.queryByText("\u62D6\u66F3\u5361\u7247\u53EF\u91CD\u65B0\u6392\u5E8F")).not.toBeInTheDocument();
+    });
+
+    // Attempt drag: order should not change (still alphabetical)
+    const cards = document.querySelectorAll("[draggable='true']");
+    if (cards.length >= 3) {
+      fireEvent.dragStart(cards[0]);
+      fireEvent.dragEnter(cards[2]);
+      fireEvent.dragEnd(cards[0]);
+    }
+
+    await waitFor(() => {
+      const removeButtons = screen.getAllByRole("button", { name: /\u79FB\u9664/ });
+      const order = removeButtons.map((btn) => {
+        const match = btn.getAttribute("aria-label")?.match(/\u300C(.+?)\u300D/);
+        return match ? match[1] : "";
+      });
+      // Order remains alphabetical despite drag attempt
+      expect(order).toEqual(["cube.glb", "plane.stl", "sphere.obj"]);
+    });
+  });
 
 });
