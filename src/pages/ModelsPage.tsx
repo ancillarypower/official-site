@@ -11,7 +11,58 @@ import type { ModelMeta } from "@/lib/types";
 
 interface LoadedModelMeta extends ModelMeta { id: number; }
 
+type ModelSortKey =
+  | "custom"
+  | "name_asc" | "name_desc"
+  | "size_asc" | "size_desc"
+  | "ext_asc" | "ext_desc"
+  | "date_asc" | "date_desc"
+  | "updated_asc" | "updated_desc";
+
 const SORT_ORDER_KEY = "model_sort_order";
+const SORT_KEY_STORAGE = "model_sort_key";
+
+const VALID_SORT_KEYS: readonly string[] = [
+  "custom", "name_asc", "name_desc", "size_asc", "size_desc",
+  "ext_asc", "ext_desc", "date_asc", "date_desc",
+  "updated_asc", "updated_desc",
+];
+
+function getStoredSortKey(): ModelSortKey {
+  try {
+    const raw = localStorage.getItem(SORT_KEY_STORAGE);
+    if (raw && VALID_SORT_KEYS.includes(raw)) return raw as ModelSortKey;
+  } catch { /* localStorage unavailable */ }
+  return "custom";
+}
+
+function persistSortKey(key: ModelSortKey): void {
+  try {
+    if (key === "custom") localStorage.removeItem(SORT_KEY_STORAGE);
+    else localStorage.setItem(SORT_KEY_STORAGE, key);
+  } catch { /* localStorage unavailable */ }
+}
+
+function sortModels(models: LoadedModelMeta[], key: ModelSortKey): LoadedModelMeta[] {
+  if (key === "custom") return models;
+  const sorted = [...models];
+  sorted.sort((a, b) => {
+    switch (key) {
+      case "name_asc": return a.name.localeCompare(b.name);
+      case "name_desc": return b.name.localeCompare(a.name);
+      case "size_asc": return a.size - b.size;
+      case "size_desc": return b.size - a.size;
+      case "ext_asc": return a.ext.localeCompare(b.ext);
+      case "ext_desc": return b.ext.localeCompare(a.ext);
+      case "date_asc": return a.timestamp - b.timestamp;
+      case "date_desc": return b.timestamp - a.timestamp;
+      case "updated_asc": return (a.updatedAt ?? a.timestamp) - (b.updatedAt ?? b.timestamp);
+      case "updated_desc": return (b.updatedAt ?? b.timestamp) - (a.updatedAt ?? a.timestamp);
+      default: return 0;
+    }
+  });
+  return sorted;
+}
 
 function applyStoredOrder(models: LoadedModelMeta[]): LoadedModelMeta[] {
   try {
@@ -47,16 +98,32 @@ export default function ModelsPage() {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [dragTargetId, setDragTargetId] = useState<number | null>(null);
+  const [sortKey, setSortKeyState] = useState<ModelSortKey>(getStoredSortKey);
   const dragSourceRef = useRef<number | null>(null);
   const dragTargetRef = useRef<number | null>(null);
 
+  const isCustomSort = sortKey === "custom";
   const allExpanded = models.length > 0 && expandedIds.size === models.length;
+
+  const setSortKey = useCallback((key: ModelSortKey) => {
+    setSortKeyState(key);
+    persistSortKey(key);
+    setModels((prev) => {
+      if (key === "custom") return applyStoredOrder(prev);
+      return sortModels(prev, key);
+    });
+  }, []);
 
   useEffect(() => {
     getAllModelMeta()
       .then((records) => {
         const loaded = records.filter((r): r is LoadedModelMeta => r.id != null);
-        setModels(applyStoredOrder(loaded));
+        const initialKey = getStoredSortKey();
+        if (initialKey === "custom") {
+          setModels(applyStoredOrder(loaded));
+        } else {
+          setModels(sortModels(loaded, initialKey));
+        }
       })
       .catch((err) => {
         console.warn("[ModelsPage] IndexedDB unavailable:", err);
@@ -105,7 +172,7 @@ export default function ModelsPage() {
             currentModels = currentModels.filter((m) => m.id !== existing.id);
             setModels((prev) => {
               const updated = prev.filter((m) => m.id !== existing.id);
-              persistOrder(updated);
+              if (getStoredSortKey() === "custom") persistOrder(updated);
               return updated;
             });
             setSelectedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
@@ -124,8 +191,12 @@ export default function ModelsPage() {
           currentModels = [...currentModels, newModel];
           setModels((prev) => {
             const updated = [...prev, newModel];
-            persistOrder(updated);
-            return updated;
+            const currentKey = getStoredSortKey();
+            if (currentKey === "custom") {
+              persistOrder(updated);
+              return updated;
+            }
+            return sortModels(updated, currentKey);
           });
         } catch (err) {
           console.error("Failed to save model:", file.name, err);
@@ -145,7 +216,7 @@ export default function ModelsPage() {
       await deleteModel(id);
       setModels((prev) => {
         const updated = prev.filter((m) => m.id !== id);
-        persistOrder(updated);
+        if (getStoredSortKey() === "custom") persistOrder(updated);
         return updated;
       });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
@@ -161,7 +232,12 @@ export default function ModelsPage() {
   const handleRename = useCallback(async (id: number, newName: string) => {
     try {
       await renameModel(id, newName);
-      setModels((prev) => prev.map((m) => m.id === id ? { ...m, name: newName } : m));
+      setModels((prev) => {
+        const updated = prev.map((m) => m.id === id ? { ...m, name: newName, updatedAt: Date.now() } : m);
+        const currentKey = getStoredSortKey();
+        if (currentKey !== "custom") return sortModels(updated, currentKey);
+        return updated;
+      });
     } catch (err) {
       console.error("Failed to rename model:", id, err);
       toast.error(t("models_rename_failed"));
@@ -208,7 +284,7 @@ export default function ModelsPage() {
       await deleteMultipleModels(ids);
       setModels((prev) => {
         const updated = prev.filter((m) => !selectedIds.has(m.id));
-        persistOrder(updated);
+        if (getStoredSortKey() === "custom") persistOrder(updated);
         return updated;
       });
       setSelectedIds(new Set());
@@ -282,6 +358,10 @@ export default function ModelsPage() {
     });
   }, []);
 
+  // No-op handlers for when drag is disabled
+  const noop = useCallback(() => {}, []);
+  const noopDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
+
   const allSelected = models.length > 0 && selectedIds.size === models.length;
 
   return (
@@ -311,6 +391,27 @@ export default function ModelsPage() {
             >
               {allExpanded ? t("models_collapse_all") : t("models_expand_all")}
             </button>
+            <label className="flex items-center gap-1 text-xs font-medium text-secondary">
+              {t("models_sort_label")}
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as ModelSortKey)}
+                disabled={isBulkDeleting}
+                className={`rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 text-xs transition-colors hover:bg-surface-sunken ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <option value="custom">{t("models_sort_custom")}</option>
+                <option value="name_asc">{t("models_sort_name_asc")}</option>
+                <option value="name_desc">{t("models_sort_name_desc")}</option>
+                <option value="size_asc">{t("models_sort_size_asc")}</option>
+                <option value="size_desc">{t("models_sort_size_desc")}</option>
+                <option value="ext_asc">{t("models_sort_ext_asc")}</option>
+                <option value="ext_desc">{t("models_sort_ext_desc")}</option>
+                <option value="date_desc">{t("models_sort_date_desc")}</option>
+                <option value="date_asc">{t("models_sort_date_asc")}</option>
+                <option value="updated_desc">{t("models_sort_updated_desc")}</option>
+                <option value="updated_asc">{t("models_sort_updated_asc")}</option>
+              </select>
+            </label>
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
@@ -328,9 +429,11 @@ export default function ModelsPage() {
               🗑 {t("models_delete_all")}
             </button>
           </div>
-          <div className="mt-1 text-center text-[0.65rem] text-tertiary">
-            {t("models_drag_hint")}
-          </div>
+          {isCustomSort && (
+            <div className="mt-1 text-center text-[0.65rem] text-tertiary">
+              {t("models_drag_hint")}
+            </div>
+          )}
         </>
       )}
       <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-5">
@@ -345,11 +448,11 @@ export default function ModelsPage() {
             onToggleSelect={() => toggleSelect(model.id)}
             onRemove={() => handleRemove(model.id, model.name)}
             isDeleting={deletingIds.has(model.id) || isBulkDeleting}
-            onDragStart={() => handleDragStart(model.id)}
-            onDragEnter={() => handleDragEnter(model.id)}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            isDragTarget={dragTargetId === model.id}
+            onDragStart={isCustomSort ? () => handleDragStart(model.id) : noop}
+            onDragEnter={isCustomSort ? () => handleDragEnter(model.id) : noop}
+            onDragOver={isCustomSort ? handleDragOver : noopDragOver}
+            onDragEnd={isCustomSort ? handleDragEnd : noop}
+            isDragTarget={isCustomSort && dragTargetId === model.id}
             onRename={(newName) => handleRename(model.id, newName)}
             expanded={expandedIds.has(model.id)}
             onToggleExpand={() => handleToggleExpand(model.id)}
