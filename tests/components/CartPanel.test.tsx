@@ -29,10 +29,26 @@ function withProviders(ui: React.ReactElement) {
   );
 }
 
+/** Helper: set all three WooCommerce credentials so wooConnected = true */
+function setWooConnected() {
+  useSettingsStore.setState({
+    wooKey: "ck_test",
+    wooSecret: "cs_test",
+    wpUrl: "https://shop.example.com",
+    wooUseSameUrl: true,
+  });
+}
+
 describe("CartPanel", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
-    useSettingsStore.setState({ activePanel: "cart", wooKey: "" });
+    useSettingsStore.setState({
+      activePanel: "cart",
+      wooKey: "",
+      wooSecret: "",
+      wpUrl: "https://shop.example.com",
+      wooUseSameUrl: true,
+    });
     mockCheckout.mockClear();
   });
 
@@ -158,7 +174,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     render(withProviders(<CartPanel />));
     expect(screen.getByText("結帳")).not.toBeDisabled();
   });
@@ -176,7 +192,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     render(withProviders(<CartPanel />));
     expect(() => {
       fireEvent.click(screen.getByText("結帳"));
@@ -189,7 +205,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     const { container } = render(withProviders(<CartPanel />));
 
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
@@ -221,7 +237,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     const { container } = render(withProviders(<CartPanel />));
 
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
@@ -240,7 +256,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     render(withProviders(<CartPanel />));
 
     fireEvent.click(screen.getByText("結帳"));
@@ -254,7 +270,7 @@ describe("CartPanel", () => {
     useCartStore.setState({
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
     });
-    useSettingsStore.setState({ wooKey: "ck_test" });
+    setWooConnected();
     render(withProviders(<CartPanel />));
 
     fireEvent.click(screen.getByText("結帳"));
@@ -345,5 +361,16 @@ describe("CartPanel", () => {
     fieldLabels.forEach((label) => {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     });
+  });
+
+  /* ── Issue #137 Regression Test ── */
+
+  it("disables checkout when wooSecret is empty but wooKey is set (regression #137)", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "A", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    useSettingsStore.setState({ wooKey: "ck_test", wooSecret: "" });
+    render(withProviders(<CartPanel />));
+    expect(screen.getByText("結帳")).toBeDisabled();
   });
 });
