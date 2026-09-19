@@ -373,4 +373,32 @@ describe("CartPanel", () => {
     render(withProviders(<CartPanel />));
     expect(screen.getByText("結帳")).toBeDisabled();
   });
+
+  /* ── Issue #133 Regression Test ── */
+
+  it("error message uses semantic danger tokens instead of hardcoded oklch (regression #133)", async () => {
+    mockCheckout.mockRejectedValueOnce(new Error("Test error"));
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Test error")).toBeInTheDocument();
+    });
+
+    const errorDiv = screen.getByText("Test error");
+    expect(errorDiv.className).toContain("border-danger/20");
+    expect(errorDiv.className).toContain("bg-danger/5");
+    expect(errorDiv.className).toContain("text-danger");
+    expect(errorDiv.className).not.toContain("oklch");
+  });
 });
