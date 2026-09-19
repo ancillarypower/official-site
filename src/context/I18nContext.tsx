@@ -31,6 +31,14 @@ function getInitialLang(): Lang {
   } catch {
     // localStorage unavailable (e.g. security restrictions)
   }
+  // Detect browser language preference (#141)
+  try {
+    const browserLang = navigator.language ?? "";
+    if (browserLang.startsWith("zh")) return "zh";
+    if (browserLang) return "en";
+  } catch {
+    // navigator unavailable (e.g. SSR)
+  }
   return "zh";
 }
 
