@@ -472,4 +472,66 @@ describe("useCheckout", () => {
       expect.objectContaining({ queryKey: ["woo-products"] }),
     );
   });
+
+  /* ── Issue #137 Regression Tests ── */
+
+  it("throws when baseUrl is empty (regression #137)", async () => {
+    useSettingsStore.setState({ wpUrl: "", wooUseSameUrl: true });
+    vi.stubGlobal("fetch", vi.fn());
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "", address_1: "", city: "", postcode: "", country: "TW",
+        },
+      }),
+    ).rejects.toThrow("WooCommerce is not fully configured");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("throws when wooKey is empty (regression #137)", async () => {
+    useSettingsStore.setState({ wooKey: "" });
+    vi.stubGlobal("fetch", vi.fn());
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "", address_1: "", city: "", postcode: "", country: "TW",
+        },
+      }),
+    ).rejects.toThrow("WooCommerce is not fully configured");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("throws when wooSecret is empty (regression #137)", async () => {
+    useSettingsStore.setState({ wooSecret: "" });
+    vi.stubGlobal("fetch", vi.fn());
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "", address_1: "", city: "", postcode: "", country: "TW",
+        },
+      }),
+    ).rejects.toThrow("WooCommerce is not fully configured");
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
