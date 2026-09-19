@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { decodeHtml } from "@/lib/utils";
 
 /* ── WordPress REST API schemas ── */
 
@@ -62,9 +63,16 @@ export function resolveRendered(val: unknown): string {
 
 /* ── WordPress post helpers ── */
 
-/** Extract a display-safe title from a WpPost. */
+/**
+ * Extract a display-safe title from a WpPost.
+ *
+ * Decodes HTML entities (e.g. `&amp;` → `&`) so that downstream consumers
+ * (search filtering, sort comparison, alt text) operate on human-readable
+ * text instead of encoded strings. `decodeHtml` is idempotent, so callers
+ * that decode again (e.g. PostCard) are safe from double-decode issues.
+ */
 export function getPostTitle(post: WpPost): string {
-  return post.title || post.name || `#${post.id}`;
+  return decodeHtml(post.title || post.name || `#${post.id}`);
 }
 
 /**

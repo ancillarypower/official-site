@@ -116,6 +116,14 @@ describe("getPostTitle", () => {
   it("falls back to #id when both are empty", () => {
     expect(getPostTitle({ id: 42, title: "" } as WpPost)).toBe("#42");
   });
+
+  it("decodes HTML entities in title (regression #136)", () => {
+    expect(getPostTitle({ id: 1, title: "Smith &amp; Sons" } as WpPost)).toBe("Smith & Sons");
+  });
+
+  it("decodes numeric HTML entities in title (regression #136)", () => {
+    expect(getPostTitle({ id: 1, title: "It&#8217;s here" } as WpPost)).toBe("It\u2019s here");
+  });
 });
 
 describe("getPostImage", () => {
