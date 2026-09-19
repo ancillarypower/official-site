@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { I18nProvider, useI18n } from "@/context/I18nContext";
 
@@ -15,13 +15,28 @@ function TestConsumer() {
   );
 }
 
+function mockNavigatorLanguage(lang: string) {
+  Object.defineProperty(navigator, "language", {
+    value: lang,
+    configurable: true,
+  });
+}
+
 describe("I18nContext", () => {
+  const originalLanguage = navigator.language;
+
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.lang = "";
+    // Default to zh-TW so existing tests that assume Chinese default still pass
+    mockNavigatorLanguage("zh-TW");
   });
 
-  it("defaults to Chinese", () => {
+  afterEach(() => {
+    mockNavigatorLanguage(originalLanguage);
+  });
+
+  it("defaults to Chinese when browser language is Chinese", () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("lang").textContent).toBe("zh");
     expect(screen.getByTestId("translated").textContent).toBe("消息");
@@ -92,5 +107,21 @@ describe("I18nContext", () => {
   it("replaces all occurrences of the same placeholder (regression #139)", () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId("repeated").textContent).toBe("5 of 5");
+  });
+
+  // --- browser language detection tests (regression #141) ---
+
+  it("detects English browser language when no stored preference (regression #141)", () => {
+    mockNavigatorLanguage("en-US");
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(screen.getByTestId("lang").textContent).toBe("en");
+    expect(screen.getByTestId("translated").textContent).toBe("News");
+  });
+
+  it("detects Chinese browser language variants (regression #141)", () => {
+    mockNavigatorLanguage("zh-CN");
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(screen.getByTestId("lang").textContent).toBe("zh");
+    expect(screen.getByTestId("translated").textContent).toBe("消息");
   });
 });
