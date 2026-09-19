@@ -47,9 +47,7 @@ pnpm format        # Prettier
 
 All checks run in CI on every PR.
 
-## Three.js / R3F Notes
+## Three.js Notes
 
-- three.js is pinned to `^0.160` for R3F compatibility
-- R3F components lose state on HMR during development (this is expected)
-- Use `@react-three/drei` debug tools for rapid 3D iteration
+- three.js is pinned to `^0.160` for stability
 - Draco decoder is loaded from CDN; no local WASM files needed
