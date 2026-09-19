@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore, type Theme } from "@/stores/settingsStore";
 import { CONTENT_TYPES, PER_PAGE_OPTIONS } from "@/lib/constants";
@@ -38,6 +38,29 @@ export function SettingsPanel() {
   useEffect(() => { s.setWooSecret(debouncedWooSecret); }, [debouncedWooSecret]);
   useEffect(() => { s.setWooUrl(debouncedWooUrl); }, [debouncedWooUrl]);
 
+  // --- Refs for theme radio buttons (arrow key focus management) ---
+  const themeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleThemeKeyDown = useCallback(
+    (e: React.KeyboardEvent, currentIndex: number) => {
+      const len = THEME_OPTIONS.length;
+      let nextIndex: number;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        nextIndex = (currentIndex + 1) % len;
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        nextIndex = (currentIndex - 1 + len) % len;
+      } else {
+        return;
+      }
+
+      e.preventDefault();
+      s.setTheme(THEME_OPTIONS[nextIndex]!.value);
+      themeRefs.current[nextIndex]?.focus();
+    },
+    [s],
+  );
+
   return (
     <>
       <div className="flex items-center justify-between border-b border-border-subtle px-5 py-5">
@@ -66,10 +89,13 @@ export function SettingsPanel() {
         </div>
 
         <div className="flex gap-2" role="radiogroup" aria-label={t("theme_section")}>
-          {THEME_OPTIONS.map(({ value, icon }) => (
+          {THEME_OPTIONS.map(({ value, icon }, idx) => (
             <button
               key={value}
+              ref={(el) => { themeRefs.current[idx] = el; }}
               onClick={() => s.setTheme(value)}
+              onKeyDown={(e) => handleThemeKeyDown(e, idx)}
+              tabIndex={s.theme === value ? 0 : -1}
               className={`flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
                 s.theme === value
                   ? "bg-accent text-white"

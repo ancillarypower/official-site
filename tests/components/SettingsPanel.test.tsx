@@ -132,6 +132,57 @@ describe("SettingsPanel", () => {
     expect(keyInput).toHaveAttribute("type", "password");
   });
 
+  // --- Arrow key navigation tests (regression #134) ---
+
+  it("navigates themes with ArrowRight/ArrowLeft keys (regression #134)", () => {
+    render(withProviders(<SettingsPanel />));
+    const lightRadio = screen.getByRole("radio", { name: /明亮/ });
+    const sepiaRadio = screen.getByRole("radio", { name: /復古/ });
+    const darkRadio = screen.getByRole("radio", { name: /深色/ });
+
+    // Focus the currently selected radio (light)
+    lightRadio.focus();
+    expect(document.activeElement).toBe(lightRadio);
+
+    // ArrowRight -> sepia
+    fireEvent.keyDown(lightRadio, { key: "ArrowRight" });
+    expect(useSettingsStore.getState().theme).toBe("sepia");
+    expect(document.activeElement).toBe(sepiaRadio);
+
+    // ArrowRight -> dark
+    fireEvent.keyDown(sepiaRadio, { key: "ArrowRight" });
+    expect(useSettingsStore.getState().theme).toBe("dark");
+    expect(document.activeElement).toBe(darkRadio);
+
+    // ArrowRight -> wraps to light
+    fireEvent.keyDown(darkRadio, { key: "ArrowRight" });
+    expect(useSettingsStore.getState().theme).toBe("light");
+    expect(document.activeElement).toBe(lightRadio);
+
+    // ArrowLeft -> wraps to dark
+    fireEvent.keyDown(lightRadio, { key: "ArrowLeft" });
+    expect(useSettingsStore.getState().theme).toBe("dark");
+    expect(document.activeElement).toBe(darkRadio);
+  });
+
+  it("only selected theme radio has tabIndex 0, others have -1 (regression #134)", () => {
+    render(withProviders(<SettingsPanel />));
+    const lightRadio = screen.getByRole("radio", { name: /明亮/ });
+    const sepiaRadio = screen.getByRole("radio", { name: /復古/ });
+    const darkRadio = screen.getByRole("radio", { name: /深色/ });
+
+    // Initial state: light is selected
+    expect(lightRadio).toHaveAttribute("tabindex", "0");
+    expect(sepiaRadio).toHaveAttribute("tabindex", "-1");
+    expect(darkRadio).toHaveAttribute("tabindex", "-1");
+
+    // Switch to dark
+    fireEvent.click(darkRadio);
+    expect(lightRadio).toHaveAttribute("tabindex", "-1");
+    expect(sepiaRadio).toHaveAttribute("tabindex", "-1");
+    expect(darkRadio).toHaveAttribute("tabindex", "0");
+  });
+
   // --- Debounced text input tests (regression #88) ---
 
   describe("debounced text inputs", () => {
