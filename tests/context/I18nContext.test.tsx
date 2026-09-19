@@ -9,6 +9,7 @@ function TestConsumer() {
       <span data-testid="lang">{lang}</span>
       <span data-testid="translated">{t("nav_content")}</span>
       <span data-testid="interpolated">{t("total_items", { n: 42 })}</span>
+      <span data-testid="repeated">{t("{n} of {n}" as never, { n: 5 })}</span>
       <button onClick={toggleLang}>Toggle</button>
     </div>
   );
@@ -84,5 +85,12 @@ describe("I18nContext", () => {
     expect(document.documentElement.lang).toBe("en");
     fireEvent.click(screen.getByText("Toggle"));
     expect(document.documentElement.lang).toBe("zh-TW");
+  });
+
+  // --- repeated placeholder regression test (#139) ---
+
+  it("replaces all occurrences of the same placeholder (regression #139)", () => {
+    render(<I18nProvider><TestConsumer /></I18nProvider>);
+    expect(screen.getByTestId("repeated").textContent).toBe("5 of 5");
   });
 });
