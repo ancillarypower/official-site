@@ -5,6 +5,10 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
 import { formatPrice } from "@/lib/formatPrice";
 
+const inputCls = "rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none";
+const labelCls = "flex flex-col gap-1";
+const labelTextCls = "text-xs font-medium text-secondary";
+
 export function CartPanel() {
   const { t, lang } = useI18n();
   const { items, updateQty, totalPrice, clearCart } = useCartStore();
@@ -82,17 +86,41 @@ export function CartPanel() {
             <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
               <div className="text-[0.725rem] font-semibold tracking-wide text-tertiary uppercase">{t("checkout_billing")}</div>
               <div className="grid grid-cols-2 gap-2">
-                <input name="given-name" autoComplete="given-name" value={billing.first_name} onChange={(e) => updateField("first_name", e.target.value)} placeholder={t("checkout_first_name")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-                <input name="family-name" autoComplete="family-name" value={billing.last_name} onChange={(e) => updateField("last_name", e.target.value)} placeholder={t("checkout_last_name")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+                <label className={labelCls}>
+                  <span className={labelTextCls}>{t("checkout_first_name")}</span>
+                  <input name="given-name" autoComplete="given-name" value={billing.first_name} onChange={(e) => updateField("first_name", e.target.value)} placeholder={t("checkout_first_name")} className={inputCls} />
+                </label>
+                <label className={labelCls}>
+                  <span className={labelTextCls}>{t("checkout_last_name")}</span>
+                  <input name="family-name" autoComplete="family-name" value={billing.last_name} onChange={(e) => updateField("last_name", e.target.value)} placeholder={t("checkout_last_name")} className={inputCls} />
+                </label>
               </div>
-              <input name="email" autoComplete="email" type="email" value={billing.email} onChange={(e) => updateField("email", e.target.value)} placeholder={t("checkout_email")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-              <input name="tel" autoComplete="tel" type="tel" value={billing.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder={t("checkout_phone")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-              <input name="street-address" autoComplete="street-address" value={billing.address_1} onChange={(e) => updateField("address_1", e.target.value)} placeholder={t("checkout_address")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+              <label className={labelCls}>
+                <span className={labelTextCls}>{t("checkout_email")}</span>
+                <input name="email" autoComplete="email" type="email" value={billing.email} onChange={(e) => updateField("email", e.target.value)} placeholder={t("checkout_email")} className={inputCls} />
+              </label>
+              <label className={labelCls}>
+                <span className={labelTextCls}>{t("checkout_phone")}</span>
+                <input name="tel" autoComplete="tel" type="tel" value={billing.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder={t("checkout_phone")} className={inputCls} />
+              </label>
+              <label className={labelCls}>
+                <span className={labelTextCls}>{t("checkout_address")}</span>
+                <input name="street-address" autoComplete="street-address" value={billing.address_1} onChange={(e) => updateField("address_1", e.target.value)} placeholder={t("checkout_address")} className={inputCls} />
+              </label>
               <div className="grid grid-cols-2 gap-2">
-                <input name="address-level2" autoComplete="address-level2" value={billing.city} onChange={(e) => updateField("city", e.target.value)} placeholder={t("checkout_city")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
-                <input name="postal-code" autoComplete="postal-code" value={billing.postcode} onChange={(e) => updateField("postcode", e.target.value)} placeholder={t("checkout_postcode")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+                <label className={labelCls}>
+                  <span className={labelTextCls}>{t("checkout_city")}</span>
+                  <input name="address-level2" autoComplete="address-level2" value={billing.city} onChange={(e) => updateField("city", e.target.value)} placeholder={t("checkout_city")} className={inputCls} />
+                </label>
+                <label className={labelCls}>
+                  <span className={labelTextCls}>{t("checkout_postcode")}</span>
+                  <input name="postal-code" autoComplete="postal-code" value={billing.postcode} onChange={(e) => updateField("postcode", e.target.value)} placeholder={t("checkout_postcode")} className={inputCls} />
+                </label>
               </div>
-              <input name="country" autoComplete="country" value={billing.country} onChange={(e) => updateField("country", e.target.value)} placeholder={t("checkout_country")} className="rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none" />
+              <label className={labelCls}>
+                <span className={labelTextCls}>{t("checkout_country")}</span>
+                <input name="country" autoComplete="country" value={billing.country} onChange={(e) => updateField("country", e.target.value)} placeholder={t("checkout_country")} className={inputCls} />
+              </label>
               <p className="mt-1 text-[0.7rem] leading-relaxed text-tertiary">{t(wooConnected ? "checkout_note" : "checkout_no_woo")}</p>
             </div>
             {orderError && <div className="rounded-md border border-[oklch(88%_0.06_25)] bg-[oklch(95%_0.04_25)] px-3 py-2.5 text-xs text-[oklch(40%_0.12_25)]">{orderError}</div>}
