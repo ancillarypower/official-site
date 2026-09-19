@@ -16,7 +16,7 @@
 
 **Decision:** `React.lazy()` for Models and Store pages
 
-**Rationale:** React Three Fiber is ~500KB+ gzipped. Users who only use the Content tab should not pay that cost. The Store page is also lazy-loaded since its checkout flow pulls in additional logic.
+**Rationale:** three.js is large (~500KB+ gzipped). Users who only use the Content tab should not pay that cost. The Store page is also lazy-loaded since its checkout flow pulls in additional logic.
 
 ## Git Branching
 

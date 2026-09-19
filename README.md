@@ -5,7 +5,7 @@
 
 Multi-tool platform: WordPress content viewer, 3D model inspector, and WooCommerce store.
 
-Built with **React 18** + **TypeScript** + **Vite** + **Tailwind CSS v4** + **React Three Fiber**.
+Built with **React 18** + **TypeScript** + **Vite** + **Tailwind CSS v4** + **three.js**.
 
 ## Features
 
@@ -32,7 +32,7 @@ pnpm dev
 | Build | Vite 6 |
 | Routing | React Router v7 |
 | State | Zustand (cart, settings) + React Context (i18n) |
-| 3D | React Three Fiber + drei + three.js 0.160 |
+| 3D | three.js 0.160 |
 | Data | TanStack Query v5 |
 | Styling | Tailwind CSS v4 |
 | Validation | Zod |
