@@ -5,14 +5,27 @@ const DB_NAME = "wp_renderer_models";
 const DB_VERSION = 1;
 const STORE_NAME = "models";
 
-async function getDB(): Promise<IDBPDatabase> {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-      }
-    },
-  });
+let dbPromise: Promise<IDBPDatabase> | null = null;
+
+function getDB(): Promise<IDBPDatabase> {
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+        }
+      },
+    });
+  }
+  return dbPromise;
+}
+
+/**
+ * Reset the cached DB promise. For test isolation only.
+ * @internal
+ */
+export function _resetDB(): void {
+  dbPromise = null;
 }
 
 export async function saveModel(name: string, size: number, ext: string, data: ArrayBuffer, hash?: string): Promise<number> {

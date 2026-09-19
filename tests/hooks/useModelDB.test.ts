@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   saveModel,
   getAllModels,
@@ -7,10 +7,19 @@ import {
   deleteModel,
   deleteMultipleModels,
   deleteAllModels,
+  _resetDB,
 } from "@/hooks/useModelDB";
+
+// Wrap idb.openDB with vi.fn at module-resolution level so the
+// singleton regression test can count calls reliably across ESM.
+vi.mock("idb", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("idb")>();
+  return { ...actual, openDB: vi.fn(actual.openDB) };
+});
 
 describe("useModelDB", () => {
   beforeEach(async () => {
+    _resetDB();
     const models = await getAllModels();
     for (const m of models) {
       if (m.id != null) await deleteModel(m.id);
@@ -125,5 +134,22 @@ describe("useModelDB", () => {
   it("getModelData returns null for non-existent id", async () => {
     const result = await getModelData(999999);
     expect(result).toBeNull();
+  });
+
+  /* ── singleton connection (regression #131) ── */
+
+  it("reuses a single IndexedDB connection across multiple operations (regression #131)", async () => {
+    _resetDB();
+    const { openDB } = await import("idb");
+    vi.mocked(openDB).mockClear();
+
+    await saveModel("a.glb", 10, "glb", new ArrayBuffer(10));
+    await getAllModels();
+    await deleteModel(1);
+    await getAllModelMeta();
+    await getModelData(999);
+
+    // openDB should be called exactly once — the singleton caches the promise
+    expect(openDB).toHaveBeenCalledTimes(1);
   });
 });
