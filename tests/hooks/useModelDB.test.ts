@@ -10,6 +10,13 @@ import {
   _resetDB,
 } from "@/hooks/useModelDB";
 
+// Wrap idb.openDB with vi.fn at module-resolution level so the
+// singleton regression test can count calls reliably across ESM.
+vi.mock("idb", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("idb")>();
+  return { ...actual, openDB: vi.fn(actual.openDB) };
+});
+
 describe("useModelDB", () => {
   beforeEach(async () => {
     _resetDB();
@@ -133,8 +140,8 @@ describe("useModelDB", () => {
 
   it("reuses a single IndexedDB connection across multiple operations (regression #131)", async () => {
     _resetDB();
-    const idb = await import("idb");
-    const openDBSpy = vi.spyOn(idb, "openDB");
+    const { openDB } = await import("idb");
+    vi.mocked(openDB).mockClear();
 
     await saveModel("a.glb", 10, "glb", new ArrayBuffer(10));
     await getAllModels();
@@ -143,7 +150,6 @@ describe("useModelDB", () => {
     await getModelData(999);
 
     // openDB should be called exactly once — the singleton caches the promise
-    expect(openDBSpy).toHaveBeenCalledTimes(1);
-    openDBSpy.mockRestore();
+    expect(openDB).toHaveBeenCalledTimes(1);
   });
 });
