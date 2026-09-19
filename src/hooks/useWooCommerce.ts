@@ -124,6 +124,15 @@ export function useCheckout() {
 
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {
+      // Guard: all three WooCommerce settings must be present (Issue #137).
+      // useMutation does not support `enabled`, so validate at runtime.
+      if (!baseUrl || !wooKey || !wooSecret) {
+        throw new Error(
+          "WooCommerce is not fully configured. " +
+            "Please provide the store URL, Consumer Key, and Consumer Secret in Settings.",
+        );
+      }
+
       // Proxy mode cannot securely handle checkout:
       // 1. POST body is lost through CORS proxy (Issue #45/#166)
       // 2. Credentials must not be sent to third-party proxies (Issue #43)

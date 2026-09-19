@@ -14,7 +14,9 @@ export function CartPanel() {
   const { items, updateQty, totalPrice, clearCart } = useCartStore();
   const closePanel = useSettingsStore((s) => s.closePanel);
   const wooKey = useSettingsStore((s) => s.wooKey);
-  const wooConnected = !!wooKey;
+  const wooSecret = useSettingsStore((s) => s.wooSecret);
+  const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
+  const wooConnected = !!wooKey && !!wooSecret && !!baseUrl;
 
   const { mutateAsync: checkout, isPending } = useCheckout();
 

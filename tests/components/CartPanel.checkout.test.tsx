@@ -28,12 +28,23 @@ function withProviders(ui: React.ReactElement) {
   );
 }
 
+/** Helper: set all three WooCommerce credentials so wooConnected = true */
+function setWooConnected() {
+  useSettingsStore.setState({
+    wooKey: "ck_test",
+    wooSecret: "cs_test",
+    wpUrl: "https://shop.example.com",
+    wooUseSameUrl: true,
+  });
+}
+
 describe("CartPanel checkout success flow", () => {
   beforeEach(() => {
     useCartStore.setState({
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
     });
-    useSettingsStore.setState({ activePanel: "cart", wooKey: "ck_test" });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
     mockCheckout.mockClear();
     mockCheckout.mockResolvedValue({ id: 100, order_key: "wc_order_test" });
   });
@@ -69,7 +80,7 @@ describe("CartPanel checkout success flow", () => {
   });
 
   it("shows no-woo note when wooKey is empty", () => {
-    useSettingsStore.setState({ wooKey: "" });
+    useSettingsStore.setState({ wooKey: "", wooSecret: "", wpUrl: "" });
     render(withProviders(<CartPanel />));
     expect(screen.getByText(/WooCommerce/)).toBeInTheDocument();
   });
