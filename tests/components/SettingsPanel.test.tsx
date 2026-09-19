@@ -137,7 +137,7 @@ describe("SettingsPanel", () => {
   it("navigates themes with ArrowRight/ArrowLeft keys (regression #134)", () => {
     render(withProviders(<SettingsPanel />));
     const lightRadio = screen.getByRole("radio", { name: /明亮/ });
-    const sepiaRadio = screen.getByRole("radio", { name: /復古/ });
+    const sepiaRadio = screen.getByRole("radio", { name: /護眼/ });
     const darkRadio = screen.getByRole("radio", { name: /深色/ });
 
     // Focus the currently selected radio (light)
@@ -168,7 +168,7 @@ describe("SettingsPanel", () => {
   it("only selected theme radio has tabIndex 0, others have -1 (regression #134)", () => {
     render(withProviders(<SettingsPanel />));
     const lightRadio = screen.getByRole("radio", { name: /明亮/ });
-    const sepiaRadio = screen.getByRole("radio", { name: /復古/ });
+    const sepiaRadio = screen.getByRole("radio", { name: /護眼/ });
     const darkRadio = screen.getByRole("radio", { name: /深色/ });
 
     // Initial state: light is selected
