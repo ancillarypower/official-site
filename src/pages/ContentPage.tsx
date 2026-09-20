@@ -31,6 +31,7 @@ export default function ContentPage() {
   useDocumentTitle(t("nav_content"));
   const contentType = useSettingsStore((s) => s.contentType);
   const perPage = useSettingsStore((s) => s.perPage);
+  const wpUrl = useSettingsStore((s) => s.wpUrl);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
   const articleParam = searchParams.get("article");
@@ -67,21 +68,24 @@ export default function ContentPage() {
   // Debounce search input before sending to WordPress REST API (300 ms).
   const debouncedSearch = useDebouncedValue(filter, 300);
 
-  // Reset page to 1 when contentType or perPage changes (not on mount).
-  // Also reset filter and sort when contentType changes (#123, #127).
+  // Reset page to 1 when contentType, perPage, or wpUrl changes (not on mount).
+  // Also reset filter and sort when contentType or wpUrl changes (#123, #127, #144).
+  // Switching wpUrl is equivalent to switching data sources, so all view state resets.
   // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
   // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
   const prevContentType = useRef(contentType);
   const prevPerPage = useRef(perPage);
+  const prevWpUrl = useRef(wpUrl);
 
   useEffect(() => {
     const contentTypeChanged = prevContentType.current !== contentType;
     const perPageChanged = prevPerPage.current !== perPage;
-    if (contentTypeChanged || perPageChanged) {
+    const wpUrlChanged = prevWpUrl.current !== wpUrl;
+    if (contentTypeChanged || perPageChanged || wpUrlChanged) {
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
         next.delete("page");
-        if (contentTypeChanged) {
+        if (contentTypeChanged || wpUrlChanged) {
           next.delete("q");
           next.delete("sort");
         }
@@ -90,7 +94,8 @@ export default function ContentPage() {
     }
     prevContentType.current = contentType;
     prevPerPage.current = perPage;
-  }, [contentType, perPage, setSearchParams]);
+    prevWpUrl.current = wpUrl;
+  }, [contentType, perPage, wpUrl, setSearchParams]);
 
   const setPage = (p: number) => {
     setSearchParams(prev => {
