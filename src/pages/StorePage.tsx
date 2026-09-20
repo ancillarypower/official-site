@@ -30,6 +30,9 @@ export default function StorePage() {
   const { t } = useI18n();
   useDocumentTitle(t("nav_store"));
   const wooPerPage = useSettingsStore((s) => s.wooPerPage);
+  const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
+  const wooKey = useSettingsStore((s) => s.wooKey);
+  const wooSecret = useSettingsStore((s) => s.wooSecret);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
   const [filter, setFilter] = useState("");
@@ -37,21 +40,33 @@ export default function StorePage() {
   const { data: wooData, isLoading, isError, error, refetch } = useWooProducts(page);
   const usingSamples = !wooData && !isLoading && !isError;
 
-  // Reset page to 1 when wooPerPage changes (not on mount).
-  // usePrevious ref pattern: mount -> ref === current -> skip; value change ->
-  // ref !== current -> reset page. StrictMode-safe.
+  // Reset page to 1 when wooPerPage or WooCommerce connection settings change
+  // (not on mount). usePrevious ref pattern: mount -> ref === current -> skip;
+  // value change -> ref !== current -> reset page. StrictMode-safe.
   const prevWooPerPage = useRef(wooPerPage);
+  const prevBaseUrl = useRef(baseUrl);
+  const prevWooKey = useRef(wooKey);
+  const prevWooSecret = useRef(wooSecret);
 
   useEffect(() => {
-    if (prevWooPerPage.current !== wooPerPage) {
+    const perPageChanged = prevWooPerPage.current !== wooPerPage;
+    const baseUrlChanged = prevBaseUrl.current !== baseUrl;
+    const wooKeyChanged = prevWooKey.current !== wooKey;
+    const wooSecretChanged = prevWooSecret.current !== wooSecret;
+
+    if (perPageChanged || baseUrlChanged || wooKeyChanged || wooSecretChanged) {
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
         next.delete("page");
         return next;
       }, { replace: true });
     }
+
     prevWooPerPage.current = wooPerPage;
-  }, [wooPerPage, setSearchParams]);
+    prevBaseUrl.current = baseUrl;
+    prevWooKey.current = wooKey;
+    prevWooSecret.current = wooSecret;
+  }, [wooPerPage, baseUrl, wooKey, wooSecret, setSearchParams]);
 
   const setPage = (p: number) => {
     setSearchParams(prev => {
