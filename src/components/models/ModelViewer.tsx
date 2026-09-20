@@ -90,6 +90,9 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let controls: OrbitControls | null = null;
     let dracoLoader: { dispose(): void } | null = null;
     let fontScaleHandler: (() => void) | null = null;
+    // Track IFC WASM instance for cleanup on early unmount (#173)
+    let ifcApiRef: { CloseModel: (id: number) => void } | null = null;
+    let ifcModelId: number | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -279,6 +282,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           if (disposed) return;
 
           const ifcApi = new WebIFC.IfcAPI();
+          ifcApiRef = ifcApi;
           ifcApi.SetWasmPath(IFC_WASM_CDN, true);
           await ifcApi.Init();
           if (disposed) { return; }
@@ -286,8 +290,11 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           const modelID = ifcApi.OpenModel(new Uint8Array(buf), {
             COORDINATE_TO_ORIGIN: true,
           });
+          ifcModelId = modelID;
 
           if (modelID === -1) {
+            ifcApiRef = null;
+            ifcModelId = null;
             throw new Error("Failed to open IFC file: unsupported schema or invalid data");
           }
 
@@ -355,6 +362,9 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           });
 
           ifcApi.CloseModel(modelID);
+          // Normal flow: model closed, clear refs so cleanup skips (#173)
+          ifcApiRef = null;
+          ifcModelId = null;
 
           const group = new THREE.Group();
 
@@ -466,6 +476,12 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       }
       disposeSceneResources(scene);
       dracoLoader?.dispose();
+      // Release IFC WASM heap if unmounted during processing (#173)
+      if (ifcApiRef) {
+        try { ifcApiRef.CloseModel(ifcModelId!); } catch { /* model may already be closed */ }
+        ifcApiRef = null;
+        ifcModelId = null;
+      }
       controls?.dispose();
       resetViewpointRef.current = null;
       if (renderer) {
