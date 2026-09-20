@@ -335,4 +335,28 @@ describe("ContentPage", () => {
       expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "energy");
     });
   });
+
+  // --- Focus management regression tests (#149) ---
+
+  it("focuses #main-content when returning from article view (regression #149)", () => {
+    // Create a #main-content element in the test DOM (normally provided by App shell)
+    const mainEl = document.createElement("main");
+    mainEl.id = "main-content";
+    document.body.appendChild(mainEl);
+
+    try {
+      renderPage("/?article=1");
+      // We're in article view now
+      expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+
+      // Navigate back to list
+      fireEvent.click(screen.getByText(/\u2190/));
+
+      // #main-content should receive focus
+      expect(mainEl).toHaveFocus();
+      expect(mainEl.getAttribute("tabindex")).toBe("-1");
+    } finally {
+      document.body.removeChild(mainEl);
+    }
+  });
 });

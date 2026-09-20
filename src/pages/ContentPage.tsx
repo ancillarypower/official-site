@@ -97,6 +97,23 @@ export default function ContentPage() {
     prevWpUrl.current = wpUrl;
   }, [contentType, perPage, wpUrl, setSearchParams]);
 
+  // Focus #main-content when returning from article detail view to list (#149).
+  // Tracks previous articleId: when it transitions from non-null to null,
+  // the user navigated back from ArticleView and the back button is gone.
+  const prevArticleIdRef = useRef(articleId);
+  useEffect(() => {
+    const wasInArticle = prevArticleIdRef.current !== null;
+    const nowInList = articleId === null;
+    if (wasInArticle && nowInList) {
+      const main = document.getElementById("main-content");
+      if (main) {
+        main.setAttribute("tabindex", "-1");
+        main.focus({ preventScroll: true });
+      }
+    }
+    prevArticleIdRef.current = articleId;
+  }, [articleId]);
+
   const setPage = (p: number) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
