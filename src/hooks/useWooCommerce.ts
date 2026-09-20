@@ -145,8 +145,8 @@ export function useCheckout() {
       }
 
       const body = {
-        payment_method: "",
-        payment_method_title: "",
+        payment_method: "cod",
+        payment_method_title: "\u8CA8\u5230\u4ED8\u6B3E",
         set_paid: false,
         billing,
         shipping: billing,
