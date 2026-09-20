@@ -6,12 +6,14 @@ vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
 
+const mockCloseModel = vi.fn();
+
 vi.mock("web-ifc", () => ({
   IfcAPI: vi.fn().mockImplementation(() => ({
     SetWasmPath: vi.fn(),
     Init: vi.fn(),
     OpenModel: vi.fn().mockReturnValue(0),
-    CloseModel: vi.fn(),
+    CloseModel: mockCloseModel,
     GetGeometry: vi.fn().mockReturnValue({
       GetVertexData: () => 0, GetVertexDataSize: () => 0,
       GetIndexData: () => 0, GetIndexDataSize: () => 0, delete: vi.fn(),
@@ -340,5 +342,34 @@ describe("ModelViewer font scale resize (#110)", () => {
 
     expect(mockRendererSetSize).toHaveBeenCalledTimes(1);
     expect(mockUpdateProjectionMatrix).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ModelViewer IFC WASM heap cleanup (#173)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("calls CloseModel exactly once during normal IFC processing and does not re-call on unmount (regression #173)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    // Normal flow: CloseModel called once after StreamAllMeshes
+    const callsAfterRender = mockCloseModel.mock.calls.length;
+    expect(callsAfterRender).toBe(1);
+
+    // Unmount: cleanup should NOT re-call CloseModel because
+    // ifcApiRef was nulled after normal CloseModel
+    unmount();
+    expect(mockCloseModel.mock.calls.length).toBe(1);
   });
 });
