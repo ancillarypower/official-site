@@ -39,6 +39,19 @@ function setWooConnected() {
   });
 }
 
+/** Helper: fill all 8 billing fields so the 8-field validation passes */
+function fillAllBillingFields(container: HTMLElement) {
+  const inputs = container.querySelectorAll<HTMLInputElement>("input");
+  fireEvent.change(inputs[0]!, { target: { value: "John" } });      // first_name
+  fireEvent.change(inputs[1]!, { target: { value: "Doe" } });       // last_name
+  fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } }); // email
+  fireEvent.change(inputs[3]!, { target: { value: "0912345678" } }); // phone
+  fireEvent.change(inputs[4]!, { target: { value: "123 Main St" } }); // address_1
+  fireEvent.change(inputs[5]!, { target: { value: "Taipei" } });     // city
+  fireEvent.change(inputs[6]!, { target: { value: "100" } });        // postcode
+  // inputs[7] = country, already defaults to "TW"
+}
+
 describe("CartPanel", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
@@ -208,10 +221,7 @@ describe("CartPanel", () => {
     setWooConnected();
     const { container } = render(withProviders(<CartPanel />));
 
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fillAllBillingFields(container);
 
     fireEvent.click(screen.getByText("結帳"));
 
@@ -240,10 +250,7 @@ describe("CartPanel", () => {
     setWooConnected();
     const { container } = render(withProviders(<CartPanel />));
 
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fillAllBillingFields(container);
 
     fireEvent.click(screen.getByText("結帳"));
 
@@ -275,7 +282,7 @@ describe("CartPanel", () => {
 
     fireEvent.click(screen.getByText("結帳"));
 
-    expect(screen.getByText(/請填寫姓名與 Email/)).toBeInTheDocument();
+    expect(screen.getByText(/請填寫所有必填欄位/)).toBeInTheDocument();
     expect(screen.queryByText(/請先連接 WooCommerce/)).not.toBeInTheDocument();
   });
 
@@ -384,10 +391,7 @@ describe("CartPanel", () => {
     setWooConnected();
     const { container } = render(withProviders(<CartPanel />));
 
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fillAllBillingFields(container);
 
     fireEvent.click(screen.getByText("結帳"));
 
@@ -400,5 +404,41 @@ describe("CartPanel", () => {
     expect(errorDiv.className).toContain("bg-danger/5");
     expect(errorDiv.className).toContain("text-danger");
     expect(errorDiv.className).not.toContain("oklch");
+  });
+
+  /* ── Issue #147 Regression Tests ── */
+
+  it("blocks checkout when phone/address/city/postcode are empty (regression #147)", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    // Fill only first_name, last_name, email (old 3-field validation would pass)
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+
+    fireEvent.click(screen.getByText("結帳"));
+
+    expect(mockCheckout).not.toHaveBeenCalled();
+    expect(screen.getByText(/請填寫所有必填欄位/)).toBeInTheDocument();
+  });
+
+  it("proceeds to checkout when all 8 required fields are filled (regression #147)", async () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
   });
 });
