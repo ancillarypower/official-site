@@ -154,7 +154,7 @@ export const en: Record<TranslationKey, string> = {
   checkout_country: "Country Code",
   checkout_note: "Creates an order and redirects to payment.",
   checkout_no_woo: "Connect WooCommerce first.",
-  checkout_required_fields: "Please fill in your name and email address",
+  checkout_required_fields: "Please fill in all required fields",
   order_success_title: "\u2713 Order Created!",
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",

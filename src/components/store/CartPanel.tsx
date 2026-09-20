@@ -37,7 +37,9 @@ export function CartPanel() {
 
   async function handleCheckout() {
     setOrderError("");
-    if (!billing.first_name || !billing.last_name || !billing.email) {
+    const requiredFields = ["first_name", "last_name", "email", "phone", "address_1", "city", "postcode", "country"] as const;
+    const missing = requiredFields.filter((f) => !billing[f].trim());
+    if (missing.length > 0) {
       setOrderError(t("checkout_required_fields"));
       return;
     }

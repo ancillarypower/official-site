@@ -38,6 +38,19 @@ function setWooConnected() {
   });
 }
 
+/** Helper: fill all 8 billing fields so the 8-field validation passes */
+function fillAllBillingFields(container: HTMLElement) {
+  const inputs = container.querySelectorAll<HTMLInputElement>("input");
+  fireEvent.change(inputs[0]!, { target: { value: "John" } });
+  fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+  fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+  fireEvent.change(inputs[3]!, { target: { value: "0912345678" } });
+  fireEvent.change(inputs[4]!, { target: { value: "123 Main St" } });
+  fireEvent.change(inputs[5]!, { target: { value: "Taipei" } });
+  fireEvent.change(inputs[6]!, { target: { value: "100" } });
+  // inputs[7] = country, already defaults to "TW"
+}
+
 describe("CartPanel checkout success flow", () => {
   beforeEach(() => {
     useCartStore.setState({
@@ -51,10 +64,7 @@ describe("CartPanel checkout success flow", () => {
 
   it("shows clear cart link after successful checkout", async () => {
     const { container } = render(withProviders(<CartPanel />));
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fillAllBillingFields(container);
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
@@ -93,10 +103,7 @@ describe("CartPanel checkout success flow", () => {
   it("handles non-Error checkout failure gracefully", async () => {
     mockCheckout.mockRejectedValueOnce("string error");
     const { container } = render(withProviders(<CartPanel />));
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fillAllBillingFields(container);
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
     await waitFor(() => {
       expect(screen.getByText("Checkout failed")).toBeInTheDocument();
@@ -106,21 +113,21 @@ describe("CartPanel checkout success flow", () => {
   it("clears validation error when user edits a billing field (regression #95)", () => {
     const { container } = render(withProviders(<CartPanel />));
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).toBeInTheDocument();
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
     fireEvent.change(inputs[0]!, { target: { value: "J" } });
-    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).not.toBeInTheDocument();
   });
 
-  it("clears previous error at start of handleCheckout retry (regression #95)", () => {
+  it("clears previous error at start of handleCheckout retry (regression #95)", async () => {
     const { container } = render(withProviders(<CartPanel />));
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).toBeInTheDocument();
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
-    fireEvent.change(inputs[0]!, { target: { value: "John" } });
-    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
-    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    expect(screen.getByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).toBeInTheDocument();
+    fillAllBillingFields(container);
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u59D3\u540D/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).not.toBeInTheDocument();
   });
 });
