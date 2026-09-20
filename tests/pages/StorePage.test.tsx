@@ -153,6 +153,26 @@ describe("StorePage", () => {
     expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
   });
 
+  it("resets page when WooCommerce baseUrl changes (regression #145)", () => {
+    useSettingsStore.setState({ wpUrl: "https://old.example.com" });
+    renderPage("/?page=3");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3);
+    act(() => {
+      useSettingsStore.setState({ wpUrl: "https://new.example.com" });
+    });
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
+  });
+
+  it("resets page when wooKey changes (regression #145)", () => {
+    useSettingsStore.setState({ wooKey: "ck_old" });
+    renderPage("/?page=3");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3);
+    act(() => {
+      useSettingsStore.setState({ wooKey: "ck_new" });
+    });
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
+  });
+
   // --- WooCommerce loading/error state regression tests (#112) ---
 
   it("shows loading spinner when WooCommerce query is loading", () => {
