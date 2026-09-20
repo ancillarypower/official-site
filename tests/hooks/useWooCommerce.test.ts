@@ -403,6 +403,33 @@ describe("useCheckout", () => {
     expect(calledInit?.method).toBe("POST");
   });
 
+  it("sends valid COD payment method in order body (regression #161)", async () => {
+    const orderResponse = { id: 300, order_key: "wc_order_cod", payment_url: "https://shop.example.com/pay" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(orderResponse), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      billing: {
+        first_name: "Test", last_name: "User", email: "test@example.com",
+        phone: "0912345678", address_1: "100 Main St", city: "Taipei", postcode: "100", country: "TW",
+      },
+    });
+
+    // Regression (#161): payment_method must not be empty string
+    const callInit = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const sentBody = JSON.parse(callInit.body as string);
+    expect(sentBody.payment_method).toBe("cod");
+    expect(sentBody.payment_method_title).toBe("\u8CA8\u5230\u4ED8\u6B3E");
+    expect(sentBody.payment_method).not.toBe("");
+    expect(sentBody.payment_method_title).not.toBe("");
+  });
+
   it("throws on HTTP error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: "Bad request" }), { status: 400 }),
