@@ -19,6 +19,8 @@
 
   --color-success: oklch(52% 0.14 155);
   --color-danger: oklch(55% 0.2 25);
+
+  --font-serif: "Newsreader", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 /* ── Font scale (user-adjustable) ── */
