@@ -139,4 +139,11 @@ describe("ArticleView", () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("alt", "Fallback Alt Article");
   });
+
+  it("auto-focuses article title on mount (regression #149)", () => {
+    render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toHaveFocus();
+    expect(h1.getAttribute("tabindex")).toBe("-1");
+  });
 });

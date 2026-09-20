@@ -8,6 +8,7 @@ import { RouteErrorBoundary } from "@/components/layout/RouteErrorBoundary";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useFocusOnNavigate } from "@/hooks/useFocusOnNavigate";
 
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const ContentPage = lazy(() => import("@/pages/ContentPage"));
@@ -19,6 +20,7 @@ const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 export default function App() {
   const location = useLocation();
+  useFocusOnNavigate();
 
   return (
     <ErrorBoundary>
