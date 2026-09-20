@@ -190,6 +190,34 @@ describe("ContentPage", () => {
     expect(mockUseWordPress).not.toHaveBeenCalledWith(1, "");
   });
 
+  // --- Pagination reset on wpUrl change regression tests (#144) ---
+
+  it("resets page when wpUrl changes (regression #144)", () => {
+    useSettingsStore.setState({ wpUrl: "https://old.example.com" });
+    renderPage("/?page=3");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "");
+    act(() => {
+      useSettingsStore.setState({ wpUrl: "https://new.example.com" });
+    });
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "");
+  });
+
+  it("resets filter and sort when wpUrl changes (regression #144)", () => {
+    useSettingsStore.setState({ wpUrl: "https://old.example.com" });
+    renderPage();
+    const searchInput = screen.getByPlaceholderText("\u641C\u5C0B...");
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    fireEvent.change(searchInput, { target: { value: "energy" } });
+    fireEvent.change(sortSelect, { target: { value: "title_asc" } });
+    expect(searchInput).toHaveValue("energy");
+    expect(sortSelect).toHaveValue("title_asc");
+    act(() => {
+      useSettingsStore.setState({ wpUrl: "https://new.example.com" });
+    });
+    expect(searchInput).toHaveValue("");
+    expect(sortSelect).toHaveValue("date_desc");
+  });
+
   // --- Filter/sort reset on contentType change regression tests (#123) ---
 
   it("resets filter when contentType changes (regression #123)", () => {
