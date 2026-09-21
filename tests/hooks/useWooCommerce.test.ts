@@ -615,4 +615,33 @@ describe("useCheckout", () => {
     ).rejects.toThrow("WooCommerce is not fully configured");
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("throws when order response fails Zod validation (regression #192)", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // Response missing required `id` field (number) — safeParse must fail
+    const invalidOrder = { unexpected: true, status: "completed" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(invalidOrder), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+        },
+      }),
+    ).rejects.toThrow("Invalid order response from WooCommerce");
+
+    // Regression (#192): console.error must log validation details
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[Woo] Order response validation failed:",
+      expect.anything(),
+    );
+  });
 });
