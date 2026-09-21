@@ -18,6 +18,15 @@ export function SettingsPanel() {
   const { t } = useI18n();
   const s = useSettingsStore();
 
+  // Extract individual Zustand action selectors for stable references
+  // so they can be safely listed in useEffect/useCallback dependency arrays
+  // without triggering unnecessary re-runs (#254).
+  const storeSetWpUrl = useSettingsStore((st) => st.setWpUrl);
+  const storeSetWooKey = useSettingsStore((st) => st.setWooKey);
+  const storeSetWooSecret = useSettingsStore((st) => st.setWooSecret);
+  const storeSetWooUrl = useSettingsStore((st) => st.setWooUrl);
+  const storeSetTheme = useSettingsStore((st) => st.setTheme);
+
   // --- Local state + debounce for text inputs that affect queryKeys ---
   const [localWpUrl, setLocalWpUrl] = useState(s.wpUrl);
   const [localWooKey, setLocalWooKey] = useState(s.wooKey);
@@ -33,10 +42,10 @@ export function SettingsPanel() {
   const debouncedWooSecret = useDebouncedValue(localWooSecret, INPUT_DEBOUNCE_MS);
   const debouncedWooUrl = useDebouncedValue(localWooUrl, INPUT_DEBOUNCE_MS);
 
-  useEffect(() => { s.setWpUrl(debouncedWpUrl); }, [debouncedWpUrl]);
-  useEffect(() => { s.setWooKey(debouncedWooKey); }, [debouncedWooKey]);
-  useEffect(() => { s.setWooSecret(debouncedWooSecret); }, [debouncedWooSecret]);
-  useEffect(() => { s.setWooUrl(debouncedWooUrl); }, [debouncedWooUrl]);
+  useEffect(() => { storeSetWpUrl(debouncedWpUrl); }, [debouncedWpUrl, storeSetWpUrl]);
+  useEffect(() => { storeSetWooKey(debouncedWooKey); }, [debouncedWooKey, storeSetWooKey]);
+  useEffect(() => { storeSetWooSecret(debouncedWooSecret); }, [debouncedWooSecret, storeSetWooSecret]);
+  useEffect(() => { storeSetWooUrl(debouncedWooUrl); }, [debouncedWooUrl, storeSetWooUrl]);
 
   // --- Arrow key navigation for theme radio group (WAI-ARIA Radio Group Pattern) ---
   const radioGroupRef = useRef<HTMLDivElement>(null);
@@ -55,7 +64,7 @@ export function SettingsPanel() {
       }
 
       e.preventDefault();
-      s.setTheme(THEME_OPTIONS[nextIndex]!.value);
+      storeSetTheme(THEME_OPTIONS[nextIndex]!.value);
 
       const group = radioGroupRef.current;
       if (group) {
@@ -63,7 +72,7 @@ export function SettingsPanel() {
         buttons[nextIndex]?.focus();
       }
     },
-    [s],
+    [storeSetTheme],
   );
 
   return (
@@ -102,7 +111,7 @@ export function SettingsPanel() {
           {THEME_OPTIONS.map(({ value, icon }, idx) => (
             <button
               key={value}
-              onClick={() => s.setTheme(value)}
+              onClick={() => storeSetTheme(value)}
               onKeyDown={(e) => handleRadioKeyDown(e, idx)}
               tabIndex={s.theme === value ? 0 : -1}
               className={`flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
