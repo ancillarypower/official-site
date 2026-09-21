@@ -61,9 +61,9 @@ function buildSignal(init?: RequestInit): AbortSignal {
  *
  * Every request (direct and proxied) is subject to a {@link FETCH_TIMEOUT}
  * timeout. In direct mode the caller's optional `init.signal` is merged
- * with the timeout signal. In proxy mode the timeout signal is attached
- * to each individual proxy attempt; a timeout is treated as a proxy
- * failure and triggers the next proxy in rotation.
+ * with the timeout signal. In proxy mode the caller's signal is merged
+ * with each per-attempt timeout; a caller abort immediately stops proxy
+ * rotation (Issue #205).
  *
  * When `useProxy` is false, the optional `init` parameter is forwarded
  * to the native `fetch()` call (e.g. for custom headers or POST body).
@@ -93,15 +93,21 @@ export async function fetchWithProxy(
     );
   }
 
+  const callerSignal = init?.signal;
   const errors: string[] = [];
 
   for (let i = 0; i < CORS_PROXIES.length; i++) {
+    // Stop rotation immediately if the caller cancelled (Issue #205)
+    if (callerSignal?.aborted) {
+      throw new DOMException("The operation was aborted.", "AbortError");
+    }
+
     const idx = (proxyIndex + i) % CORS_PROXIES.length;
     const proxy = CORS_PROXIES[idx];
     if (!proxy) continue;
     try {
       const response = await fetch(proxy + encodeURIComponent(url), {
-        signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        signal: buildSignal(init),
       });
       if (response.ok) {
         proxyIndex = idx;
@@ -109,6 +115,10 @@ export async function fetchWithProxy(
       }
       errors.push(`${proxy}: HTTP ${response.status}`);
     } catch (err) {
+      // Caller abort: stop rotation immediately (Issue #205)
+      if (callerSignal?.aborted) {
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }
       errors.push(
         `${proxy}: ${err instanceof Error ? err.message : "Unknown error"}`,
       );

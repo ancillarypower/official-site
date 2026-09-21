@@ -446,4 +446,54 @@ describe("fetchWithProxy", () => {
       expect(msg).toContain("HTTP 500");
     }
   });
+
+  // --- Regression tests for Issue #205: AbortSignal in proxy mode ---
+
+  it("re-throws AbortError from caller signal in proxy mode (regression #205)", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+
+    const controller = new AbortController();
+    controller.abort(); // Already aborted
+
+    await expect(
+      fetchWithProxy("https://api.test.com/data", true, {
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("The operation was aborted.");
+    // fetch should never have been called — abort checked before first attempt
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("propagates caller abort mid-rotation in proxy mode (regression #205)", async () => {
+    const controller = new AbortController();
+    const serverError = new Response("Error", { status: 500 });
+    const mockFetch = vi.fn().mockImplementation(() => {
+      // Abort after the first proxy attempt fails
+      controller.abort();
+      return Promise.resolve(serverError);
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(
+      fetchWithProxy("https://api.test.com/data", true, {
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("The operation was aborted.");
+    // Only the first proxy was attempted; rotation stopped on abort
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards caller signal to proxy fetch via buildSignal (regression #205)", async () => {
+    const mockResponse = new Response("ok", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const controller = new AbortController();
+    await fetchWithProxy("https://api.test.com/data", true, {
+      signal: controller.signal,
+    });
+
+    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs[1]).toHaveProperty("signal");
+    expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
+  });
 });

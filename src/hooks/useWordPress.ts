@@ -81,12 +81,12 @@ export function useWordPress(page: number = 1, search: string = "") {
 
   return useQuery<WpQueryResult>({
     queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
       const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed${searchParam}`;
 
-      const response = await fetchWithProxy(url, useProxy);
+      const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const hasPageHeader =
