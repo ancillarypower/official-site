@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams, ensureHttps, parseJsonResponse } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, ensureHttps, parseJsonResponse } from "@/lib/api";
 
 describe("ensureHttps", () => {
   it("returns empty string unchanged", () => {
@@ -119,7 +119,8 @@ describe("wooApiUrl", () => {
 
   it("can include auth params when explicitly spread", () => {
     const url = wooApiUrl("https://shop.com", "products", {
-      ...wooAuthParams("ck_key", "cs_secret"),
+      consumer_key: "ck_key",
+      consumer_secret: "cs_secret",
       per_page: "10",
     });
     const parsed = new URL(url);
@@ -186,22 +187,6 @@ describe("wooAuthHeaders", () => {
       "",
     );
     expect(atob(encoded)).toBe("ck_a&b=c:cs_d+e");
-  });
-});
-
-describe("wooAuthParams", () => {
-  it("returns consumer_key and consumer_secret", () => {
-    const params = wooAuthParams("ck_key", "cs_secret");
-    expect(params).toEqual({
-      consumer_key: "ck_key",
-      consumer_secret: "cs_secret",
-    });
-  });
-
-  it("handles special characters in credentials", () => {
-    const params = wooAuthParams("ck_a&b=c", "cs_d+e");
-    expect(params.consumer_key).toBe("ck_a&b=c");
-    expect(params.consumer_secret).toBe("cs_d+e");
   });
 });
 

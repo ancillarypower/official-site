@@ -244,20 +244,3 @@ export function wooAuthHeaders(key: string, secret: string): HeadersInit {
     Authorization: `Basic ${btoa(`${key}:${secret}`)}`,
   };
 }
-
-/**
- * Return credential query parameters for WooCommerce REST API.
- *
- * @deprecated Proxy mode no longer sends credentials to avoid leaking
- * them to third-party CORS proxy services (see Issue #43). This function
- * is retained for backward compatibility but should not be used.
- */
-export function wooAuthParams(
-  key: string,
-  secret: string,
-): Record<string, string> {
-  return {
-    consumer_key: key,
-    consumer_secret: secret,
-  };
-}
