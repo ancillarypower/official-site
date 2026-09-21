@@ -34,6 +34,13 @@ export interface IfcWorkerError {
 
 export type IfcWorkerMessage = IfcWorkerResult | IfcWorkerError;
 
+// TypeScript DOM lib types `self` as Window by default.
+// Override postMessage to match DedicatedWorkerGlobalScope signature.
+const _postMessage = self.postMessage as unknown as (
+  message: unknown,
+  transfer?: Transferable[],
+) => void;
+
 self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
   let ifcApi: IfcAPIType | null = null;
   let modelID = -1;
@@ -120,7 +127,7 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
     modelID = -1;
     ifcApi = null;
 
-    const transferables: ArrayBuffer[] = [];
+    const transferables: Transferable[] = [];
     for (const m of meshes) {
       transferables.push(
         m.positions.buffer,
@@ -130,9 +137,9 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
       );
     }
 
-    self.postMessage(
+    _postMessage(
       { type: "result", meshes } satisfies IfcWorkerResult,
-      transferables as unknown as Transferable[],
+      transferables,
     );
   } catch (err) {
     // Clean up on error
@@ -143,7 +150,7 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
         /* model may already be closed */
       }
     }
-    self.postMessage({
+    _postMessage({
       type: "error",
       message: err instanceof Error ? err.message : "IFC processing failed",
     } satisfies IfcWorkerError);
