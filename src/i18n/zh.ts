@@ -314,6 +314,17 @@ export const zh = {
   not_found_title: "找不到頁面",
   not_found_text: "您要找的頁面不存在或已被移動。",
   not_found_home: "回到首頁",
+
+  // Share
+  share_title: "分享這篇文章",
+  share_copy: "複製連結",
+  share_copied: "已複製連結",
+  share_copy_failed: "複製連結失敗",
+  share_native: "分享",
+  share_facebook: "Facebook",
+  share_x: "X",
+  share_line: "LINE",
+  share_email: "Email",
 } as const;
 
 export type TranslationKey = keyof typeof zh;

@@ -290,4 +290,15 @@ export const en: Record<TranslationKey, string> = {
   not_found_title: "Page Not Found",
   not_found_text: "The page you're looking for doesn't exist or has been moved.",
   not_found_home: "Back to Home",
+
+  // Share
+  share_title: "Share this article",
+  share_copy: "Copy Link",
+  share_copied: "Link copied",
+  share_copy_failed: "Failed to copy link",
+  share_native: "Share",
+  share_facebook: "Facebook",
+  share_x: "X",
+  share_line: "LINE",
+  share_email: "Email",
 };
