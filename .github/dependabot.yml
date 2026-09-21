@@ -1,0 +1,34 @@
+# Dependabot dependency update configuration
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # npm ecosystem (pnpm is auto-detected)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
+    # Prevent Dependabot from running arbitrary lifecycle scripts
+    insecure-external-code-execution: deny
+
+  # GitHub Actions ecosystem (tracks SHA-pinned action updates from PR #405)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
