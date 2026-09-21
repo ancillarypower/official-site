@@ -1,6 +1,6 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchWithProxy, wpApiUrl, parseJsonResponse } from "@/lib/api";
-import { wpPostArraySchema, type WpPost, resolveRendered } from "@/lib/types";
+import { wpPostArraySchema, wpPostSchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 interface WpQueryResult {
@@ -128,5 +128,50 @@ export function useWordPress(page: number = 1, search: string = "") {
     },
     enabled: !!wpUrl,
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Fetch a single post by ID from the WP REST API.
+ *
+ * Used by ContentPage to resolve deep links (`?article=<id>`) when the
+ * target post is not on the currently loaded page (Issue #250).
+ *
+ * Returns `null` when the API responds with 404 (post does not exist).
+ * Disabled when `id` is `null` or `wpUrl` is empty.
+ */
+export function useSinglePost(id: number | null) {
+  const wpUrl = useSettingsStore((s) => s.wpUrl);
+  const contentType = useSettingsStore((s) => s.contentType);
+  const useProxy = useSettingsStore((s) => s.useProxy);
+
+  return useQuery<WpPost | null>({
+    queryKey: ["wp-single-post", wpUrl, contentType, id, useProxy],
+    queryFn: async ({ signal }) => {
+      const api = wpApiUrl(wpUrl);
+      const url = `${api}/${contentType}/${id}?_embed`;
+
+      const response = await fetchWithProxy(url, useProxy, { signal });
+
+      // Post does not exist: return null instead of throwing
+      if (response.status === 404) return null;
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const raw = await parseJsonResponse(response);
+      const parsed = wpPostSchema.safeParse(raw);
+
+      if (!parsed.success) {
+        console.warn("[WP] Single post Zod parse warning:", parsed.error);
+        if (typeof raw !== "object" || raw === null) {
+          throw new Error("Unexpected API response: expected an object");
+        }
+        return normalizeRawPost(raw as Record<string, unknown>);
+      }
+
+      return parsed.data;
+    },
+    enabled: !!wpUrl && id !== null,
+    retry: false,
   });
 }
