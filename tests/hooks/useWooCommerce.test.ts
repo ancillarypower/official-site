@@ -802,4 +802,35 @@ describe("useCheckout", () => {
     // Both price validation and order creation fetches should be called
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  /* -- Issue #235 Regression Test -- */
+
+  it("passes AbortSignal with timeout to checkout fetch (regression #235)", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    const orderResponse = { id: 600, order_key: "wc_order_timeout", payment_url: "https://shop.example.com/pay" };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "10.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(orderResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      billing: {
+        first_name: "A", last_name: "B", email: "a@b.com",
+        phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+      },
+    });
+
+    // Order creation fetch (second call) must include a signal
+    const orderCallInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(orderCallInit.signal).toBeInstanceOf(AbortSignal);
+
+    // AbortSignal.timeout should have been called for the order fetch.
+    // validateCartPrices also calls it, so at least 2 invocations total.
+    expect(timeoutSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
 });
