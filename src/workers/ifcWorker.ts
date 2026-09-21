@@ -125,6 +125,12 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
 
     ifcApi.CloseModel(modelID);
     modelID = -1;
+    // Release WASM heap memory immediately (#253)
+    try {
+      ifcApi.Dispose();
+    } catch {
+      /* WASM module may already be freed */
+    }
     ifcApi = null;
 
     const transferables: Transferable[] = [];
@@ -148,6 +154,14 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
         ifcApi.CloseModel(modelID);
       } catch {
         /* model may already be closed */
+      }
+    }
+    // Release WASM heap memory on error path (#253)
+    if (ifcApi) {
+      try {
+        ifcApi.Dispose();
+      } catch {
+        /* WASM module may be partially initialized */
       }
     }
     _postMessage({
