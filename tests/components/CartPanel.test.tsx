@@ -52,6 +52,31 @@ function fillAllBillingFields(container: HTMLElement) {
   // inputs[7] = country, already defaults to "TW"
 }
 
+/**
+ * Helper: replace window.location with a minimal mock that has a spyable
+ * assign(). jsdom's Location object is non-configurable, so vi.spyOn on
+ * location.assign throws TypeError. Returns { assignMock, restore }.
+ */
+function mockLocationAssign() {
+  const assignMock = vi.fn();
+  const savedLocation = window.location;
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    writable: true,
+    value: { assign: assignMock, href: savedLocation.href, origin: savedLocation.origin },
+  });
+  return {
+    assignMock,
+    restore: () => {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        writable: true,
+        value: savedLocation,
+      });
+    },
+  };
+}
+
 describe("CartPanel", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
@@ -440,5 +465,56 @@ describe("CartPanel", () => {
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
+  });
+
+  /* ── Issue #241 Regression Tests ── */
+
+  it("redirects to payment_url after successful checkout (regression #241)", async () => {
+    mockCheckout.mockResolvedValueOnce({
+      id: 100,
+      order_key: "wc_order_test",
+      payment_url: "https://shop.example.com/checkout/order-pay/100/?key=wc_order_test",
+    });
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+
+    // jsdom Location is non-configurable; replace window.location entirely
+    const { assignMock, restore } = mockLocationAssign();
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(assignMock).toHaveBeenCalledWith(
+        "https://shop.example.com/checkout/order-pay/100/?key=wc_order_test",
+      );
+    });
+    restore();
+  });
+
+  it("shows success state when checkout returns no payment_url (regression #241)", async () => {
+    mockCheckout.mockResolvedValueOnce({
+      id: 200,
+      order_key: "wc_order_no_pay",
+    });
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+
+    const { assignMock, restore } = mockLocationAssign();
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(assignMock).not.toHaveBeenCalled();
+    restore();
   });
 });
