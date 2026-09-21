@@ -441,4 +441,52 @@ describe("CartPanel", () => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
   });
+
+  /* ── Issue #241 Regression Tests ── */
+
+  it("redirects to payment_url after successful checkout (regression #241)", async () => {
+    mockCheckout.mockResolvedValueOnce({
+      id: 100,
+      order_key: "wc_order_test",
+      payment_url: "https://shop.example.com/checkout/order-pay/100/?key=wc_order_test",
+    });
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const assignSpy = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(assignSpy).toHaveBeenCalledWith(
+        "https://shop.example.com/checkout/order-pay/100/?key=wc_order_test",
+      );
+    });
+    assignSpy.mockRestore();
+  });
+
+  it("shows success state when checkout returns no payment_url (regression #241)", async () => {
+    mockCheckout.mockResolvedValueOnce({
+      id: 200,
+      order_key: "wc_order_no_pay",
+    });
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const assignSpy = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("結帳"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(assignSpy).not.toHaveBeenCalled();
+    assignSpy.mockRestore();
+  });
 });
