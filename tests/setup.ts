@@ -24,6 +24,26 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
+// Mock IntersectionObserver (jsdom does not provide it) (#203)
+global.IntersectionObserver = vi.fn().mockImplementation(
+  (callback: IntersectionObserverCallback) => {
+    // Auto-trigger with isIntersecting: true so components that gate
+    // initialization on visibility work in tests by default.
+    const instance = {
+      observe: vi.fn().mockImplementation(() => {
+        setTimeout(() => callback([{ isIntersecting: true } as IntersectionObserverEntry], instance as unknown as IntersectionObserver), 0);
+      }),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+      takeRecords: vi.fn().mockReturnValue([]),
+      root: null,
+      rootMargin: "",
+      thresholds: [0],
+    };
+    return instance;
+  },
+) as unknown as typeof IntersectionObserver;
+
 // Mock import.meta.env
 vi.stubEnv("VITE_WP_URL", "https://test.example.com");
 vi.stubEnv("VITE_WOO_KEY", "");

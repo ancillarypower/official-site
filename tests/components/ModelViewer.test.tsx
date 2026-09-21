@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/hooks/useModelDB", () => ({
@@ -56,6 +56,29 @@ class MockWorker {
 }
 // --- end IFC Worker mock ---
 
+// --- IntersectionObserver mock (#203) ---
+let ioAutoTrigger = true;
+let lastIOCallback: ((entries: Array<{ isIntersecting: boolean }>) => void) | null = null;
+const mockIODisconnect = vi.fn();
+
+class MockIntersectionObserver {
+  private _callback: (entries: Array<{ isIntersecting: boolean }>) => void;
+  disconnect = mockIODisconnect;
+  unobserve = vi.fn();
+
+  constructor(callback: (entries: Array<{ isIntersecting: boolean }>) => void) {
+    this._callback = callback;
+    lastIOCallback = callback;
+  }
+
+  observe = vi.fn().mockImplementation(() => {
+    if (ioAutoTrigger) {
+      setTimeout(() => this._callback([{ isIntersecting: true }]), 0);
+    }
+  });
+}
+// --- end IntersectionObserver mock ---
+
 const mockTraverse = vi.fn();
 const mockControlsDispose = vi.fn();
 const mockCameraPositionSet = vi.fn();
@@ -64,6 +87,7 @@ const mockUpdateProjectionMatrix = vi.fn();
 const mockControlsUpdate = vi.fn();
 const mockDracoDispose = vi.fn();
 const mockRendererSetSize = vi.fn();
+const mockWebGLRenderer = vi.fn();
 
 vi.mock("three", async () => ({
   Color: vi.fn().mockImplementation(() => ({ r: 0.5, g: 0.5, b: 0.5, setRGB: vi.fn().mockReturnThis() })),
@@ -74,7 +98,7 @@ vi.mock("three", async () => ({
   PerspectiveCamera: vi.fn().mockImplementation(() => ({
     position: { set: mockCameraPositionSet }, aspect: 1, near: 0.01, far: 1000, updateProjectionMatrix: mockUpdateProjectionMatrix,
   })),
-  WebGLRenderer: vi.fn().mockImplementation(() => {
+  WebGLRenderer: mockWebGLRenderer.mockImplementation(() => {
     const canvas = document.createElement("canvas");
     return {
       setSize: mockRendererSetSize, setPixelRatio: vi.fn(), toneMapping: 0, toneMappingExposure: 1,
@@ -135,7 +159,10 @@ describe("ModelViewer IFC support", () => {
     workerAutoRespond = true;
     workerResponseOverride = null;
     lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -159,6 +186,9 @@ describe("ModelViewer IFC support", () => {
 describe("ModelViewer GLB/OBJ/STL support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -208,6 +238,9 @@ describe("ModelViewer GLB/OBJ/STL support", () => {
 describe("ModelViewer GPU resource cleanup (#74)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -244,6 +277,9 @@ describe("ModelViewer GPU resource cleanup (#74)", () => {
 describe("ModelViewer DRACOLoader cleanup (#105)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -267,6 +303,9 @@ describe("ModelViewer DRACOLoader cleanup (#105)", () => {
 describe("ModelViewer WebGL context loss recovery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -314,6 +353,9 @@ describe("ModelViewer WebGL context loss recovery", () => {
 describe("ModelViewer viewpoint reset (#336)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -346,6 +388,9 @@ describe("ModelViewer viewpoint reset (#336)", () => {
 describe("ModelViewer font scale resize (#110)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -377,7 +422,10 @@ describe("ModelViewer IFC Worker lifecycle (#173)", () => {
     workerAutoRespond = true;
     workerResponseOverride = null;
     lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -409,7 +457,10 @@ describe("ModelViewer IFC Worker error handling (#190)", () => {
     workerAutoRespond = true;
     workerResponseOverride = null;
     lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -434,7 +485,10 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
     workerAutoRespond = true;
     workerResponseOverride = null;
     lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -467,7 +521,10 @@ describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
     workerAutoRespond = false; // Worker does NOT auto-respond
     workerResponseOverride = null;
     lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -493,5 +550,39 @@ describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
 
     // Cleanup should terminate the active Worker
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ModelViewer IntersectionObserver deferred init (#203)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ioAutoTrigger = false; // Do NOT auto-trigger for this test suite
+    lastIOCallback = null;
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("does not create WebGLRenderer until container is visible (regression #203)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+
+    // Allow any pending microtasks/timers to flush
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Not visible yet \u2014 WebGLRenderer should NOT have been called
+    expect(mockWebGLRenderer).not.toHaveBeenCalled();
+
+    // Simulate scroll into viewport
+    await act(async () => {
+      lastIOCallback?.([{ isIntersecting: true }]);
+    });
+
+    // Now init should run and create a renderer
+    await waitFor(() => {
+      expect(mockWebGLRenderer).toHaveBeenCalledTimes(1);
+    });
   });
 });
