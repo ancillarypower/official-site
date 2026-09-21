@@ -45,7 +45,6 @@ export function CartPanel() {
     }
     try {
       const order = await checkout({ items, billing });
-      clearCart();
       if (order.payment_url) {
         window.location.assign(order.payment_url);
         return;
