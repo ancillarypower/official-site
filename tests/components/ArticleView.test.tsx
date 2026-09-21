@@ -178,4 +178,28 @@ describe("ArticleView", () => {
     expect(articleBody!.innerHTML).not.toContain("<fieldset");
     expect(articleBody!.innerHTML).toContain("Safe paragraph");
   });
+
+  it("renders share buttons section at bottom of article (regression #424)", () => {
+    render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    expect(screen.getByText(/\u5206\u4eab\u9019\u7bc7\u6587\u7ae0/)).toBeInTheDocument();
+    expect(screen.getByText(/\u8907\u88fd\u9023\u7d50/)).toBeInTheDocument();
+  });
+
+  it("copy link button writes URL to clipboard (regression #424)", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    const copyBtn = screen.getByText(/\u8907\u88fd\u9023\u7d50/);
+    fireEvent.click(copyBtn);
+    expect(writeText).toHaveBeenCalledOnce();
+  });
+
+  it("renders social share links with correct href (regression #424)", () => {
+    const { container } = render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    const externalLinks = container.querySelectorAll('a[target="_blank"]');
+    const hrefs = Array.from(externalLinks).map((a) => a.getAttribute("href") || "");
+    expect(hrefs.some((h) => h.includes("facebook.com/sharer"))).toBe(true);
+    expect(hrefs.some((h) => h.includes("twitter.com/intent/tweet"))).toBe(true);
+    expect(hrefs.some((h) => h.includes("line.me/lineit/share"))).toBe(true);
+  });
 });
