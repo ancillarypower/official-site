@@ -71,7 +71,7 @@ vi.mock("three", async () => ({
   Vector3: vi.fn().mockImplementation(() => ({ x: 0, y: 0, z: 0, copy: vi.fn() })),
   Group: vi.fn().mockImplementation(() => ({ children: [{}], add: vi.fn() })),
   Mesh: vi.fn(), MeshPhongMaterial: vi.fn(), MeshStandardMaterial: vi.fn(),
-  BufferGeometry: vi.fn().mockImplementation(() => ({ setAttribute: vi.fn(), setIndex: vi.fn(), applyMatrix4: vi.fn().mockReturnThis() })),
+  BufferGeometry: vi.fn().mockImplementation(() => ({ setAttribute: vi.fn(), setIndex: vi.fn(), applyMatrix4: vi.fn().mockReturnThis(), dispose: vi.fn() })),
   BufferAttribute: vi.fn(),
   Matrix4: vi.fn().mockImplementation(() => ({ fromArray: vi.fn().mockReturnThis() })),
   PMREMGenerator: vi.fn().mockImplementation(() => ({ fromScene: vi.fn().mockReturnValue({ texture: {} }), dispose: vi.fn() })),
@@ -433,5 +433,34 @@ describe("ModelViewer IFC per-mesh error handling (#190)", () => {
     );
 
     warnSpy.mockRestore();
+  });
+});
+
+describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("disposes source BufferGeometry instances after mergeGeometries (regression #193)", async () => {
+    const THREE = await import("three");
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    // StreamAllMeshes mock produces 2 meshes (1 opaque w=1 + 1 transparent w=0.5),
+    // each creates a BufferGeometry that should be disposed after mergeGeometries
+    const bgInstances = vi.mocked(THREE.BufferGeometry).mock.results
+      .filter((r) => r.type === "return")
+      .map((r) => r.value as { dispose: ReturnType<typeof vi.fn> });
+    expect(bgInstances.length).toBe(2);
+    for (const geom of bgInstances) {
+      expect(geom.dispose).toHaveBeenCalledTimes(1);
+    }
   });
 });

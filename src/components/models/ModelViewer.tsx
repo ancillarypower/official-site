@@ -377,6 +377,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
           if (opaqueGeometries.length > 0) {
             const merged = mergeGeometries(opaqueGeometries);
+            // Release source GPU buffers after merge (#193)
+            for (const geom of opaqueGeometries) geom.dispose();
             if (merged) {
               group.add(
                 new THREE.Mesh(
@@ -392,6 +394,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
           if (transparentGeometries.length > 0) {
             const merged = mergeGeometries(transparentGeometries);
+            // Release source GPU buffers after merge (#193)
+            for (const geom of transparentGeometries) geom.dispose();
             if (merged) {
               group.add(
                 new THREE.Mesh(
