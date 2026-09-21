@@ -6,34 +6,55 @@ vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
 
-const mockCloseModel = vi.fn();
+// --- IFC Worker mock infrastructure (#202) ---
+const mockWorkerTerminate = vi.fn();
+let lastWorkerInstance: {
+  onmessage: ((e: { data: unknown }) => void) | null;
+  onerror: ((e: unknown) => void) | null;
+  terminate: ReturnType<typeof vi.fn>;
+} | null = null;
 
-vi.mock("web-ifc", () => ({
-  IfcAPI: vi.fn().mockImplementation(() => ({
-    SetWasmPath: vi.fn(),
-    Init: vi.fn(),
-    OpenModel: vi.fn().mockReturnValue(0),
-    CloseModel: mockCloseModel,
-    GetGeometry: vi.fn().mockReturnValue({
-      GetVertexData: () => 0, GetVertexDataSize: () => 0,
-      GetIndexData: () => 0, GetIndexDataSize: () => 0, delete: vi.fn(),
-    }),
-    GetVertexArray: vi.fn().mockReturnValue(new Float32Array([0, 1, 2, 0, 0, 1])),
-    GetIndexArray: vi.fn().mockReturnValue(new Uint32Array([0])),
-    StreamAllMeshes: vi.fn((_modelID: number, callback: (flatMesh: unknown) => void) => {
-      callback({
-        geometries: {
-          size: () => 2,
-          get: (i: number) => ({
-            geometryExpressID: i,
-            color: { x: 0.5, y: 0.5, z: 0.5, w: i === 0 ? 1 : 0.5 },
-            flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
-          }),
-        },
-      });
-    }),
-  })),
-}));
+const MOCK_IFC_MESHES = [
+  {
+    positions: new Float32Array([0, 1, 2]),
+    normals: new Float32Array([0, 0, 1]),
+    colors: new Float32Array([0.5, 0.5, 0.5, 1.0]),
+    indices: new Uint32Array([0]),
+    flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
+    transparent: false,
+  },
+  {
+    positions: new Float32Array([3, 4, 5]),
+    normals: new Float32Array([0, 1, 0]),
+    colors: new Float32Array([0.5, 0.5, 0.5, 0.5]),
+    indices: new Uint32Array([0]),
+    flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
+    transparent: true,
+  },
+];
+
+let workerAutoRespond = true;
+let workerResponseOverride: unknown = null;
+
+class MockWorker {
+  onmessage: ((e: { data: unknown }) => void) | null = null;
+  onerror: ((e: unknown) => void) | null = null;
+  terminate = mockWorkerTerminate;
+
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    lastWorkerInstance = this;
+  }
+
+  postMessage() {
+    if (!workerAutoRespond) return;
+    const data = workerResponseOverride ?? { type: "result", meshes: MOCK_IFC_MESHES };
+    setTimeout(() => {
+      this.onmessage?.({ data });
+    }, 0);
+  }
+}
+// --- end IFC Worker mock ---
 
 const mockTraverse = vi.fn();
 const mockControlsDispose = vi.fn();
@@ -111,6 +132,10 @@ vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
 describe("ModelViewer IFC support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -118,12 +143,13 @@ describe("ModelViewer IFC support", () => {
   });
 
   it("renders loading state for IFC files", async () => {
+    workerAutoRespond = false;
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
     expect(screen.getByText(/\u89e3\u6790\u6a21\u578b/)).toBeInTheDocument();
   });
 
-  it("processes IFC geometries and reaches ready state", async () => {
+  it("processes IFC geometries via Worker and reaches ready state", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
@@ -345,16 +371,20 @@ describe("ModelViewer font scale resize (#110)", () => {
   });
 });
 
-describe("ModelViewer IFC WASM heap cleanup (#173)", () => {
+describe("ModelViewer IFC Worker lifecycle (#173)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  it("calls CloseModel exactly once during normal IFC processing and does not re-call on unmount (regression #173)", async () => {
+  it("terminates Worker once after normal IFC processing and does not re-terminate on unmount (regression #173)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     const { unmount } = render(
       <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
@@ -363,82 +393,48 @@ describe("ModelViewer IFC WASM heap cleanup (#173)", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // Normal flow: CloseModel called once after StreamAllMeshes
-    const callsAfterRender = mockCloseModel.mock.calls.length;
-    expect(callsAfterRender).toBe(1);
+    // Normal flow: Worker.terminate() called once in onmessage handler
+    expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
 
-    // Unmount: cleanup should NOT re-call CloseModel because
-    // ifcApiRef was nulled after normal CloseModel
+    // Unmount: cleanup should NOT re-terminate because ifcWorker was
+    // nulled after the onmessage handler called terminate
     unmount();
-    expect(mockCloseModel.mock.calls.length).toBe(1);
+    expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("ModelViewer IFC per-mesh error handling (#190)", () => {
+describe("ModelViewer IFC Worker error handling (#190)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  it("skips corrupted mesh and continues processing remaining meshes (regression #190)", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    // Override IfcAPI constructor for this render: GetGeometry throws on first call
-    const WebIFC = await import("web-ifc");
-    let getGeomCallCount = 0;
-    vi.mocked(WebIFC.IfcAPI).mockImplementationOnce(() => ({
-      SetWasmPath: vi.fn(),
-      Init: vi.fn(),
-      OpenModel: vi.fn().mockReturnValue(0),
-      CloseModel: vi.fn(),
-      GetGeometry: vi.fn().mockImplementation(() => {
-        getGeomCallCount++;
-        if (getGeomCallCount === 1) throw new Error("Corrupted mesh data");
-        return {
-          GetVertexData: () => 0, GetVertexDataSize: () => 0,
-          GetIndexData: () => 0, GetIndexDataSize: () => 0, delete: vi.fn(),
-        };
-      }),
-      GetVertexArray: vi.fn().mockReturnValue(new Float32Array([0, 1, 2, 0, 0, 1])),
-      GetIndexArray: vi.fn().mockReturnValue(new Uint32Array([0])),
-      StreamAllMeshes: vi.fn((_modelID: number, callback: (flatMesh: unknown) => void) => {
-        callback({
-          geometries: {
-            size: () => 2,
-            get: (i: number) => ({
-              geometryExpressID: i,
-              color: { x: 0.5, y: 0.5, z: 0.5, w: i === 0 ? 1 : 0.5 },
-              flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
-            }),
-          },
-        });
-      }),
-    }) as unknown);
+  it("shows error state when IFC Worker reports error (regression #190)", async () => {
+    workerResponseOverride = { type: "error", message: "Corrupted IFC data" };
 
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
 
-    // Component should still reach ready state (second mesh processed successfully)
     await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Corrupted IFC data/)).toBeInTheDocument();
     });
-
-    // console.warn should have been called for the corrupted mesh
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[IFC]"),
-      expect.any(Error),
-    );
-
-    warnSpy.mockRestore();
   });
 });
 
 describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
@@ -453,8 +449,8 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // StreamAllMeshes mock produces 2 meshes (1 opaque w=1 + 1 transparent w=0.5),
-    // each creates a BufferGeometry that should be disposed after mergeGeometries
+    // Worker returns 2 meshes (1 opaque + 1 transparent),
+    // each rebuilt as BufferGeometry that should be disposed after mergeGeometries
     const bgInstances = vi.mocked(THREE.BufferGeometry).mock.results
       .filter((r) => r.type === "return")
       .map((r) => r.value as { dispose: ReturnType<typeof vi.fn> });
@@ -462,5 +458,40 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
     for (const geom of bgInstances) {
       expect(geom.dispose).toHaveBeenCalledTimes(1);
     }
+  });
+});
+
+describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    workerAutoRespond = false; // Worker does NOT auto-respond
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("terminates IFC Worker on unmount during active processing (regression #202)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
+    );
+
+    // Wait for Worker to be created (init is async)
+    await waitFor(() => {
+      expect(lastWorkerInstance).not.toBeNull();
+    });
+
+    // Worker has NOT responded yet (workerAutoRespond = false)
+    expect(mockWorkerTerminate).not.toHaveBeenCalled();
+
+    // Unmount while Worker is still processing
+    unmount();
+
+    // Cleanup should terminate the active Worker
+    expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
 });
