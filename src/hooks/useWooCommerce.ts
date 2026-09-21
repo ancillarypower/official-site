@@ -5,6 +5,7 @@ import {
   wooAuthHeaders,
   parseJsonResponse,
 } from "@/lib/api";
+import { FETCH_TIMEOUT } from "@/lib/constants";
 import {
   wooProductArraySchema,
   wooOrderSchema,
@@ -57,12 +58,6 @@ export function useWooProducts(page: number = 1) {
 
       const url = wooApiUrl(baseUrl, "products", pageParams);
 
-      // Direct mode: credentials in Authorization header (never in URL).
-      // Proxy mode: no credentials — public CORS proxies cannot securely
-      // relay authentication (Issue #43). Unauthenticated requests may
-      // still succeed if the WooCommerce store allows public product access.
-      // Both modes forward the TanStack Query cancellation signal so that
-      // page navigation aborts in-flight requests (Issue #205).
       const response = useProxy
         ? await fetchWithProxy(url, true, { signal })
         : await fetchWithProxy(url, false, {
@@ -87,8 +82,6 @@ export function useWooProducts(page: number = 1) {
 
       const raw = await parseJsonResponse(response);
 
-      // Fallback: when CORS proxy strips custom response headers,
-      // infer pagination from the response body length (Issue #178).
       if (!hasPageHeader && Array.isArray(raw)) {
         totalPages = raw.length >= wooPerPage ? page + 1 : page;
         totalProducts = totalProducts || raw.length;
@@ -113,12 +106,82 @@ export function useWooProducts(page: number = 1) {
         totalProducts: totalProducts || parsed.data.length,
       };
     },
-    // Proxy mode does not send credentials (Issue #43), so only baseUrl
-    // is required. Direct mode needs all three WooCommerce settings.
     enabled: useProxy
       ? !!baseUrl
       : !!baseUrl && !!wooKey && !!wooSecret,
   });
+}
+
+/**
+ * Validate that cart item prices still match WooCommerce server prices.
+ *
+ * Fetches the latest product prices in a single batch request and compares
+ * them against the locally persisted cart prices. Returns any mismatches so
+ * the caller can warn the user before submitting an order with a different
+ * total than displayed (Issue #222).
+ *
+ * Uses integer-cent comparison (Math.round(price * 100)) to avoid
+ * floating-point precision issues (same strategy as cartStore.totalPrice).
+ */
+export async function validateCartPrices(
+  items: CartItem[],
+  baseUrl: string,
+  wooKey: string,
+  wooSecret: string,
+): Promise<{
+  mismatches: Array<{
+    id: number;
+    name: string;
+    cartPrice: number;
+    serverPrice: number;
+  }>;
+}> {
+  const ids = items.map((i) => i.id).join(",");
+  const url = wooApiUrl(baseUrl, "products", {
+    include: ids,
+    per_page: String(items.length),
+    _fields: "id,price",
+  });
+
+  const response = await fetch(url, {
+    headers: wooAuthHeaders(wooKey, wooSecret),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Price validation failed: HTTP ${response.status}`);
+  }
+
+  const raw = await response.json();
+  if (!Array.isArray(raw)) {
+    throw new Error("Price validation failed: unexpected response format");
+  }
+
+  const serverPrices = new Map<number, number>();
+  for (const p of raw as Array<{ id: number; price: string }>) {
+    serverPrices.set(p.id, parseFloat(p.price));
+  }
+
+  const mismatches: Array<{
+    id: number;
+    name: string;
+    cartPrice: number;
+    serverPrice: number;
+  }> = [];
+  for (const item of items) {
+    const serverPrice = serverPrices.get(item.id);
+    if (serverPrice === undefined) continue;
+    if (Math.round(item.price * 100) !== Math.round(serverPrice * 100)) {
+      mismatches.push({
+        id: item.id,
+        name: item.name,
+        cartPrice: item.price,
+        serverPrice,
+      });
+    }
+  }
+
+  return { mismatches };
 }
 
 interface CheckoutParams {
@@ -144,8 +207,6 @@ export function useCheckout() {
 
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {
-      // Guard: all three WooCommerce settings must be present (Issue #137).
-      // useMutation does not support `enabled`, so validate at runtime.
       if (!baseUrl || !wooKey || !wooSecret) {
         throw new Error(
           "WooCommerce is not fully configured. " +
@@ -153,14 +214,31 @@ export function useCheckout() {
         );
       }
 
-      // Proxy mode cannot securely handle checkout:
-      // 1. POST body is lost through CORS proxy (Issue #45/#166)
-      // 2. Credentials must not be sent to third-party proxies (Issue #43)
       if (useProxy) {
         throw new Error(
           "Checkout is not available in proxy mode. " +
             "CORS proxies cannot forward POST body or authentication securely. " +
             "Please disable the proxy or use a self-hosted backend proxy.",
+        );
+      }
+
+      // Validate cart prices against server before submitting order.
+      // Cart items store a price snapshot from when they were added; if the
+      // server price has changed since then, the displayed total differs
+      // from the amount WooCommerce will actually charge (Issue #222).
+      const { mismatches } = await validateCartPrices(
+        items,
+        baseUrl,
+        wooKey,
+        wooSecret,
+      );
+      if (mismatches.length > 0) {
+        const details = mismatches
+          .map((m) => `${m.name}: ${m.cartPrice} \u2192 ${m.serverPrice}`)
+          .join(", ");
+        throw new Error(
+          `Price changed since items were added to cart. ` +
+            `Please refresh and try again. Changed: ${details}`,
         );
       }
 
@@ -174,7 +252,6 @@ export function useCheckout() {
         status: "pending",
       };
 
-      // Direct mode: credentials in Authorization header, never in URL.
       const url = wooApiUrl(baseUrl, "orders");
       const response = await fetch(url, {
         method: "POST",
@@ -199,8 +276,6 @@ export function useCheckout() {
       return parsed.data;
     },
     onSuccess: () => {
-      // Invalidate product cache so stock status refreshes immediately
-      // after a successful checkout (Issue #124).
       queryClient.invalidateQueries({ queryKey: ["woo-products"] });
     },
   });
