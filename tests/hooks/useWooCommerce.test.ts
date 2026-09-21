@@ -184,13 +184,13 @@ describe("useWooProducts", () => {
     // Products should be normalized with safe defaults
     const products = result.current.data?.products;
     expect(products).toHaveLength(2);
-    // First item: id was string "bad" → default 0, name was number → default ""
+    // First item: id was string "bad" -> default 0, name was number -> default ""
     expect(products?.[0]?.id).toBe(0);
     expect(products?.[0]?.name).toBe("");
     expect(products?.[0]?.price).toBe("0");
     expect(products?.[0]?.stock_status).toBe("instock");
     expect(products?.[0]?.images).toEqual([]);
-    // Second item: all fields missing → all defaults
+    // Second item: all fields missing -> all defaults
     expect(products?.[1]?.id).toBe(0);
     expect(products?.[1]?.name).toBe("");
   });
@@ -293,6 +293,60 @@ describe("useWooProducts", () => {
     });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("infers totalPages from array length when headers are stripped (regression #178)", async () => {
+    // Simulate CORS proxy stripping X-WP-TotalPages / X-WP-Total headers.
+    // Return exactly wooPerPage (10) items so the heuristic infers a next page.
+    const products = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Product ${i + 1}`,
+      price: "10.00",
+      regular_price: "10.00",
+      sale_price: "",
+      short_description: "",
+      stock_status: "instock",
+      images: [],
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useWooProducts(2), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // 10 items returned = wooPerPage => totalPages = page + 1 = 3
+    expect(result.current.data?.totalPages).toBe(3);
+    expect(result.current.data?.totalProducts).toBe(10);
+  });
+
+  it("infers last page when fewer items than wooPerPage and headers are stripped (regression #178)", async () => {
+    // Simulate CORS proxy stripping headers.
+    // Return fewer than wooPerPage (10) items so the heuristic infers this is the last page.
+    const products = Array.from({ length: 3 }, (_, i) => ({
+      id: i + 1,
+      name: `Product ${i + 1}`,
+      price: "5.00",
+      regular_price: "5.00",
+      sale_price: "",
+      short_description: "",
+      stock_status: "instock",
+      images: [],
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useWooProducts(2), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // 3 items returned < wooPerPage (10) => totalPages = page = 2
+    expect(result.current.data?.totalPages).toBe(2);
+    expect(result.current.data?.totalProducts).toBe(3);
   });
 });
 
@@ -500,7 +554,7 @@ describe("useCheckout", () => {
     );
   });
 
-  /* ── Issue #137 Regression Tests ── */
+  /* -- Issue #137 Regression Tests -- */
 
   it("throws when baseUrl is empty (regression #137)", async () => {
     useSettingsStore.setState({ wpUrl: "", wooUseSameUrl: true });

@@ -89,18 +89,30 @@ export function useWordPress(page: number = 1, search: string = "") {
       const response = await fetchWithProxy(url, useProxy);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const totalPages = parseInt(
+      const hasPageHeader =
+        response.headers.has("X-WP-TotalPages") ||
+        response.headers.has("x-wp-totalpages");
+
+      let totalPages = parseInt(
         response.headers.get("X-WP-TotalPages") ??
           response.headers.get("x-wp-totalpages") ?? "1",
         10,
       );
-      const totalPosts = parseInt(
+      let totalPosts = parseInt(
         response.headers.get("X-WP-Total") ??
           response.headers.get("x-wp-total") ?? "0",
         10,
       );
 
       const raw = await response.json();
+
+      // Fallback: when CORS proxy strips custom response headers,
+      // infer pagination from the response body length (Issue #178).
+      if (!hasPageHeader && Array.isArray(raw)) {
+        totalPages = raw.length >= perPage ? page + 1 : page;
+        totalPosts = totalPosts || raw.length;
+      }
+
       const parsed = wpPostArraySchema.safeParse(raw);
 
       if (!parsed.success) {

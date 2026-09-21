@@ -298,4 +298,48 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
+
+  it("infers totalPages from array length when headers are stripped (regression #178)", async () => {
+    // Simulate CORS proxy stripping X-WP-TotalPages / X-WP-Total headers.
+    // Return exactly perPage (20) items so the heuristic infers a next page.
+    const posts = Array.from({ length: 20 }, (_, i) => ({
+      id: i + 1,
+      title: { rendered: `Post ${i + 1}` },
+      date: "2026-01-01T00:00:00",
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(posts), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useWordPress(2), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // 20 items returned = perPage => totalPages = page + 1 = 3
+    expect(result.current.data?.totalPages).toBe(3);
+    expect(result.current.data?.totalPosts).toBe(20);
+  });
+
+  it("infers last page when fewer items than perPage and headers are stripped (regression #178)", async () => {
+    // Simulate CORS proxy stripping headers.
+    // Return fewer than perPage (20) items so the heuristic infers this is the last page.
+    const posts = Array.from({ length: 5 }, (_, i) => ({
+      id: i + 1,
+      title: { rendered: `Post ${i + 1}` },
+      date: "2026-01-01T00:00:00",
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(posts), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useWordPress(2), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // 5 items returned < perPage (20) => totalPages = page = 2
+    expect(result.current.data?.totalPages).toBe(2);
+    expect(result.current.data?.totalPosts).toBe(5);
+  });
 });
