@@ -51,8 +51,7 @@ export function CartPanel() {
         if (!errs[key]) errs[key] = issue.message;
       }
       setFieldErrors(errs);
-      const firstMsg = result.error.issues[0]?.message ?? "checkout_required_fields";
-      setOrderError(t((firstMsg === "checkout_field_required" ? "checkout_required_fields" : firstMsg) as Parameters<typeof t>[0]));
+      setOrderError(t("checkout_required_fields"));
       return;
     }
     try {
