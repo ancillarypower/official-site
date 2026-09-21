@@ -373,3 +373,65 @@ describe("ModelViewer IFC WASM heap cleanup (#173)", () => {
     expect(mockCloseModel.mock.calls.length).toBe(1);
   });
 });
+
+describe("ModelViewer IFC per-mesh error handling (#190)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("skips corrupted mesh and continues processing remaining meshes (regression #190)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Override IfcAPI constructor for this render: GetGeometry throws on first call
+    const WebIFC = await import("web-ifc");
+    let getGeomCallCount = 0;
+    vi.mocked(WebIFC.IfcAPI).mockImplementationOnce(() => ({
+      SetWasmPath: vi.fn(),
+      Init: vi.fn(),
+      OpenModel: vi.fn().mockReturnValue(0),
+      CloseModel: vi.fn(),
+      GetGeometry: vi.fn().mockImplementation(() => {
+        getGeomCallCount++;
+        if (getGeomCallCount === 1) throw new Error("Corrupted mesh data");
+        return {
+          GetVertexData: () => 0, GetVertexDataSize: () => 0,
+          GetIndexData: () => 0, GetIndexDataSize: () => 0, delete: vi.fn(),
+        };
+      }),
+      GetVertexArray: vi.fn().mockReturnValue(new Float32Array([0, 1, 2, 0, 0, 1])),
+      GetIndexArray: vi.fn().mockReturnValue(new Uint32Array([0])),
+      StreamAllMeshes: vi.fn((_modelID: number, callback: (flatMesh: unknown) => void) => {
+        callback({
+          geometries: {
+            size: () => 2,
+            get: (i: number) => ({
+              geometryExpressID: i,
+              color: { x: 0.5, y: 0.5, z: 0.5, w: i === 0 ? 1 : 0.5 },
+              flatTransformation: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
+            }),
+          },
+        });
+      }),
+    }) as unknown);
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+
+    // Component should still reach ready state (second mesh processed successfully)
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+
+    // console.warn should have been called for the corrupted mesh
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[IFC]"),
+      expect.any(Error),
+    );
+
+    warnSpy.mockRestore();
+  });
+});

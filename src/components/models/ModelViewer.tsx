@@ -305,59 +305,66 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           ifcApi.StreamAllMeshes(modelID, (flatMesh) => {
             const placedGeometries = flatMesh.geometries;
             for (let i = 0; i < placedGeometries.size(); i++) {
-              const pg = placedGeometries.get(i);
-              const geometry = ifcApi.GetGeometry(modelID, pg.geometryExpressID);
-              const vertexData = ifcApi.GetVertexArray(
-                geometry.GetVertexData(),
-                geometry.GetVertexDataSize(),
-              );
-              const indexData = ifcApi.GetIndexArray(
-                geometry.GetIndexData(),
-                geometry.GetIndexDataSize(),
-              );
+              let geometry: ReturnType<typeof ifcApi.GetGeometry> | null = null;
+              try {
+                const pg = placedGeometries.get(i);
+                geometry = ifcApi.GetGeometry(modelID, pg.geometryExpressID);
+                const vertexData = ifcApi.GetVertexArray(
+                  geometry.GetVertexData(),
+                  geometry.GetVertexDataSize(),
+                );
+                const indexData = ifcApi.GetIndexArray(
+                  geometry.GetIndexData(),
+                  geometry.GetIndexDataSize(),
+                );
 
-              const vertexCount = vertexData.length / 6;
-              const positions = new Float32Array(vertexCount * 3);
-              const normals = new Float32Array(vertexCount * 3);
-              const colors = new Float32Array(vertexCount * 4);
+                const vertexCount = vertexData.length / 6;
+                const positions = new Float32Array(vertexCount * 3);
+                const normals = new Float32Array(vertexCount * 3);
+                const colors = new Float32Array(vertexCount * 4);
 
-              tmpColor.setRGB(pg.color.x, pg.color.y, pg.color.z, THREE.SRGBColorSpace);
+                tmpColor.setRGB(pg.color.x, pg.color.y, pg.color.z, THREE.SRGBColorSpace);
 
-              for (let v = 0; v < vertexCount; v++) {
-                const src = v * 6;
-                const dst3 = v * 3;
-                const dst4 = v * 4;
+                for (let v = 0; v < vertexCount; v++) {
+                  const src = v * 6;
+                  const dst3 = v * 3;
+                  const dst4 = v * 4;
 
-                positions[dst3] = vertexData[src]!;
-                positions[dst3 + 1] = vertexData[src + 1]!;
-                positions[dst3 + 2] = vertexData[src + 2]!;
+                  positions[dst3] = vertexData[src]!;
+                  positions[dst3 + 1] = vertexData[src + 1]!;
+                  positions[dst3 + 2] = vertexData[src + 2]!;
 
-                normals[dst3] = vertexData[src + 3]!;
-                normals[dst3 + 1] = vertexData[src + 4]!;
-                normals[dst3 + 2] = vertexData[src + 5]!;
+                  normals[dst3] = vertexData[src + 3]!;
+                  normals[dst3 + 1] = vertexData[src + 4]!;
+                  normals[dst3 + 2] = vertexData[src + 5]!;
 
-                colors[dst4] = tmpColor.r;
-                colors[dst4 + 1] = tmpColor.g;
-                colors[dst4 + 2] = tmpColor.b;
-                colors[dst4 + 3] = pg.color.w;
+                  colors[dst4] = tmpColor.r;
+                  colors[dst4 + 1] = tmpColor.g;
+                  colors[dst4 + 2] = tmpColor.b;
+                  colors[dst4 + 3] = pg.color.w;
+                }
+
+                const bufGeom = new THREE.BufferGeometry();
+                bufGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+                bufGeom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+                bufGeom.setAttribute("color", new THREE.BufferAttribute(colors, 4));
+                bufGeom.setIndex(new THREE.BufferAttribute(indexData, 1));
+
+                const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
+                bufGeom.applyMatrix4(matrix);
+
+                if (pg.color.w !== 1) {
+                  transparentGeometries.push(bufGeom);
+                } else {
+                  opaqueGeometries.push(bufGeom);
+                }
+              } catch (meshErr) {
+                console.warn("[IFC] Skipping corrupted mesh:", meshErr);
+              } finally {
+                if (geometry) {
+                  (geometry as unknown as { delete: () => void }).delete();
+                }
               }
-
-              const bufGeom = new THREE.BufferGeometry();
-              bufGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-              bufGeom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-              bufGeom.setAttribute("color", new THREE.BufferAttribute(colors, 4));
-              bufGeom.setIndex(new THREE.BufferAttribute(indexData, 1));
-
-              const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
-              bufGeom.applyMatrix4(matrix);
-
-              if (pg.color.w !== 1) {
-                transparentGeometries.push(bufGeom);
-              } else {
-                opaqueGeometries.push(bufGeom);
-              }
-
-              (geometry as unknown as { delete: () => void }).delete();
             }
           });
 
