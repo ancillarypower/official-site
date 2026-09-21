@@ -3,7 +3,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { useWooProducts, useCheckout, normalizeRawProduct } from "@/hooks/useWooCommerce";
+import { useWooProducts, useCheckout, normalizeRawProduct, validateCartPrices } from "@/hooks/useWooCommerce";
 
 function createWrapper(queryClient?: QueryClient) {
   const qc = queryClient ?? new QueryClient({
@@ -12,6 +12,11 @@ function createWrapper(queryClient?: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(QueryClientProvider, { client: qc }, children);
   };
+}
+
+/** Helper: build a successful price-check Response for the given items. */
+function makePriceCheckResponse(items: Array<{ id: number; price: string }>) {
+  return new Response(JSON.stringify(items), { status: 200 });
 }
 
 describe("useWooProducts", () => {
@@ -62,8 +67,6 @@ describe("useWooProducts", () => {
   });
 
   it("is enabled in proxy mode without credentials (regression #219)", async () => {
-    // Proxy mode does not send credentials (Issue #43), so wooKey and
-    // wooSecret should not gate the query. Only baseUrl is required.
     useSettingsStore.setState({ useProxy: true, wooKey: "", wooSecret: "" });
     const products = [
       { id: 1, name: "Public Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
@@ -103,13 +106,11 @@ describe("useWooProducts", () => {
     expect(result.current.data?.totalPages).toBe(3);
     expect(result.current.data?.totalProducts).toBe(25);
 
-    // Regression: credentials must NOT appear in the URL
     const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const calledUrl = callArgs?.[0] as string;
     const calledInit = callArgs?.[1] as RequestInit | undefined;
     expect(calledUrl).not.toContain("consumer_key");
     expect(calledUrl).not.toContain("consumer_secret");
-    // Credentials sent via Authorization header instead
     expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
   });
 
@@ -130,7 +131,6 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Regression (Issue #43): credentials must NOT appear in proxy URL
     const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
     const decodedUrl = decodeURIComponent(calledUrl);
     expect(decodedUrl).not.toContain("consumer_key");
@@ -180,7 +180,6 @@ describe("useWooProducts", () => {
 
   it("warns and normalizes products when Zod safeParse fails", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // Data that triggers safeParse failure: id must be number, not string
     const invalidProducts = [
       { id: "bad", name: 123, extra: true },
       { id: "also-bad" },
@@ -197,29 +196,24 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Regression (Issue #48): console.warn must be called on parse failure
     expect(warnSpy).toHaveBeenCalledWith(
       "[Woo] Zod parse warning:",
       expect.anything(),
     );
 
-    // Products should be normalized with safe defaults
     const products = result.current.data?.products;
     expect(products).toHaveLength(2);
-    // First item: id was string "bad" -> default 0, name was number -> default ""
     expect(products?.[0]?.id).toBe(0);
     expect(products?.[0]?.name).toBe("");
     expect(products?.[0]?.price).toBe("0");
     expect(products?.[0]?.stock_status).toBe("instock");
     expect(products?.[0]?.images).toEqual([]);
-    // Second item: all fields missing -> all defaults
     expect(products?.[1]?.id).toBe(0);
     expect(products?.[1]?.name).toBe("");
   });
 
   it("throws when API returns non-array and Zod parse fails", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    // Non-array response that also fails Zod parse
     const mockResponse = new Response(JSON.stringify({ error: "not found" }), {
       status: 200,
     });
@@ -250,11 +244,9 @@ describe("useWooProducts", () => {
       wrapper: createWrapper(),
     });
 
-    // Wait for initial fetch
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    // Rotate secret — queryKey must include wooSecret so this triggers refetch
     act(() => {
       useSettingsStore.setState({ wooSecret: "cs_rotated" });
     });
@@ -280,8 +272,6 @@ describe("useWooProducts", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    // Change wpUrl — getWooBaseUrl() selector derives from wpUrl when
-    // wooUseSameUrl is true, so baseUrl changes and queryKey triggers refetch
     act(() => {
       useSettingsStore.setState({ wpUrl: "https://other.example.com" });
     });
@@ -309,7 +299,6 @@ describe("useWooProducts", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    // Toggle proxy — queryKey must include useProxy so this triggers refetch
     act(() => {
       useSettingsStore.setState({ useProxy: true });
     });
@@ -318,8 +307,6 @@ describe("useWooProducts", () => {
   });
 
   it("infers totalPages from array length when headers are stripped (regression #178)", async () => {
-    // Simulate CORS proxy stripping X-WP-TotalPages / X-WP-Total headers.
-    // Return exactly wooPerPage (10) items so the heuristic infers a next page.
     const products = Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
       name: `Product ${i + 1}`,
@@ -339,14 +326,11 @@ describe("useWooProducts", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // 10 items returned = wooPerPage => totalPages = page + 1 = 3
     expect(result.current.data?.totalPages).toBe(3);
     expect(result.current.data?.totalProducts).toBe(10);
   });
 
   it("infers last page when fewer items than wooPerPage and headers are stripped (regression #178)", async () => {
-    // Simulate CORS proxy stripping headers.
-    // Return fewer than wooPerPage (10) items so the heuristic infers this is the last page.
     const products = Array.from({ length: 3 }, (_, i) => ({
       id: i + 1,
       name: `Product ${i + 1}`,
@@ -366,7 +350,6 @@ describe("useWooProducts", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // 3 items returned < wooPerPage (10) => totalPages = page = 2
     expect(result.current.data?.totalPages).toBe(2);
     expect(result.current.data?.totalProducts).toBe(3);
   });
@@ -389,9 +372,6 @@ describe("useWooProducts", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // fetchWithProxy is called with init containing signal from TanStack Query.
-    // buildSignal merges it with the timeout, so the actual fetch receives
-    // a composite AbortSignal instance.
     const callArgs = mockFetch.mock.calls[0];
     expect(callArgs[1]).toHaveProperty("signal");
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
@@ -446,6 +426,82 @@ describe("normalizeRawProduct", () => {
   });
 });
 
+describe("validateCartPrices", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns empty mismatches when prices match", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([{ id: 1, price: "10.00" }]),
+    ));
+
+    const result = await validateCartPrices(
+      [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.mismatches).toHaveLength(0);
+  });
+
+  it("detects price mismatches", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([{ id: 1, price: "15.00" }]),
+    ));
+
+    const result = await validateCartPrices(
+      [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.mismatches).toHaveLength(1);
+    expect(result.mismatches[0]).toEqual({
+      id: 1,
+      name: "Widget",
+      cartPrice: 10,
+      serverPrice: 15,
+    });
+  });
+
+  it("throws on HTTP error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("Server Error", { status: 500 }),
+    ));
+
+    await expect(
+      validateCartPrices(
+        [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        "https://shop.example.com",
+        "ck_test",
+        "cs_test",
+      ),
+    ).rejects.toThrow("Price validation failed: HTTP 500");
+  });
+
+  it("throws on non-array response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "not found" }), { status: 200 }),
+    ));
+
+    await expect(
+      validateCartPrices(
+        [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        "https://shop.example.com",
+        "ck_test",
+        "cs_test",
+      ),
+    ).rejects.toThrow("Price validation failed: unexpected response format");
+  });
+});
+
 describe("useCheckout", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -476,9 +532,10 @@ describe("useCheckout", () => {
 
   it("submits an order with Basic Auth header in direct mode", async () => {
     const orderResponse = { id: 100, order_key: "wc_order_abc", payment_url: "https://shop.example.com/pay" };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(orderResponse), { status: 200 }),
-    ));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "10.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(orderResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useCheckout(), {
       wrapper: createWrapper(),
@@ -494,22 +551,25 @@ describe("useCheckout", () => {
 
     expect(order.id).toBe(100);
 
-    // Regression: credentials must NOT appear in the URL
-    const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    const calledUrl = callArgs?.[0] as string;
-    const calledInit = callArgs?.[1] as RequestInit | undefined;
+    // First call is price validation, second is order creation
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // Verify order call (second) uses Basic Auth, not URL credentials
+    const orderCallArgs = fetchMock.mock.calls[1];
+    const calledUrl = orderCallArgs?.[0] as string;
+    const calledInit = orderCallArgs?.[1] as RequestInit | undefined;
     expect(calledUrl).not.toContain("consumer_key");
     expect(calledUrl).not.toContain("consumer_secret");
-    // Credentials sent via Authorization header instead
     expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
     expect(calledInit?.method).toBe("POST");
   });
 
   it("sends valid COD payment method in order body (regression #161)", async () => {
     const orderResponse = { id: 300, order_key: "wc_order_cod", payment_url: "https://shop.example.com/pay" };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(orderResponse), { status: 200 }),
-    ));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "10.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(orderResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useCheckout(), {
       wrapper: createWrapper(),
@@ -523,8 +583,8 @@ describe("useCheckout", () => {
       },
     });
 
-    // Regression (#161): payment_method must not be empty string
-    const callInit = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    // Order call is the second fetch (after price validation)
+    const callInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
     const sentBody = JSON.parse(callInit.body as string);
     expect(sentBody.payment_method).toBe("cod");
     expect(sentBody.payment_method_title).toBe("\u8CA8\u5230\u4ED8\u6B3E");
@@ -532,10 +592,11 @@ describe("useCheckout", () => {
     expect(sentBody.payment_method_title).not.toBe("");
   });
 
-  it("throws on HTTP error", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ message: "Bad request" }), { status: 400 }),
-    ));
+  it("throws on HTTP error from order creation", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "5.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: "Bad request" }), { status: 400 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useCheckout(), {
       wrapper: createWrapper(),
@@ -569,15 +630,15 @@ describe("useCheckout", () => {
         },
       }),
     ).rejects.toThrow("Checkout is not available in proxy mode");
-    // No network request should have been made
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("invalidates woo-products query cache on successful checkout (regression #124)", async () => {
     const orderResponse = { id: 200, order_key: "wc_order_xyz", payment_url: "https://shop.example.com/pay" };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(orderResponse), { status: 200 }),
-    ));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "10.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(orderResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     const qc = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -596,7 +657,6 @@ describe("useCheckout", () => {
       },
     });
 
-    // onSuccess must invalidate woo-products cache so stock status refreshes
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ["woo-products"] }),
     );
@@ -666,11 +726,11 @@ describe("useCheckout", () => {
 
   it("throws when order response fails Zod validation (regression #192)", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    // Response missing required `id` field (number) — safeParse must fail
     const invalidOrder = { unexpected: true, status: "completed" };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(invalidOrder), { status: 200 }),
-    ));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "5.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(invalidOrder), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useCheckout(), {
       wrapper: createWrapper(),
@@ -686,10 +746,60 @@ describe("useCheckout", () => {
       }),
     ).rejects.toThrow("Invalid order response from WooCommerce");
 
-    // Regression (#192): console.error must log validation details
     expect(errorSpy).toHaveBeenCalledWith(
       "[Woo] Order response validation failed:",
       expect.anything(),
     );
+  });
+
+  /* -- Issue #222 Regression Tests -- */
+
+  it("throws when server price differs from cart price (regression #222)", async () => {
+    // Server returns price 15.00 but cart has price 10
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "15.00" }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+        },
+      }),
+    ).rejects.toThrow(/Price changed/);
+
+    // Only the price validation fetch should have been called;
+    // the order creation fetch must NOT be reached.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("proceeds to checkout when server prices match cart prices (regression #222)", async () => {
+    const orderResponse = { id: 500, order_key: "wc_order_match", payment_url: "https://shop.example.com/pay" };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "10.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify(orderResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    const order = await result.current.mutateAsync({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      billing: {
+        first_name: "A", last_name: "B", email: "a@b.com",
+        phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+      },
+    });
+
+    expect(order.id).toBe(500);
+    // Both price validation and order creation fetches should be called
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
