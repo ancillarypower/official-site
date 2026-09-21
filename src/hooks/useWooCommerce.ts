@@ -112,7 +112,11 @@ export function useWooProducts(page: number = 1) {
         totalProducts: totalProducts || parsed.data.length,
       };
     },
-    enabled: !!baseUrl && !!wooKey && !!wooSecret,
+    // Proxy mode does not send credentials (Issue #43), so only baseUrl
+    // is required. Direct mode needs all three WooCommerce settings.
+    enabled: useProxy
+      ? !!baseUrl
+      : !!baseUrl && !!wooKey && !!wooSecret,
   });
 }
 
