@@ -52,6 +52,31 @@ function fillAllBillingFields(container: HTMLElement) {
   // inputs[7] = country, already defaults to "TW"
 }
 
+/**
+ * Helper: replace window.location with a minimal mock that has a spyable
+ * assign(). jsdom's Location object is non-configurable, so vi.spyOn on
+ * location.assign throws TypeError. Returns { assignMock, restore }.
+ */
+function mockLocationAssign() {
+  const assignMock = vi.fn();
+  const savedLocation = window.location;
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    writable: true,
+    value: { assign: assignMock, href: savedLocation.href, origin: savedLocation.origin },
+  });
+  return {
+    assignMock,
+    restore: () => {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        writable: true,
+        value: savedLocation,
+      });
+    },
+  };
+}
+
 describe("CartPanel", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
@@ -454,18 +479,20 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
     });
     setWooConnected();
-    const assignSpy = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+
+    // jsdom Location is non-configurable; replace window.location entirely
+    const { assignMock, restore } = mockLocationAssign();
     const { container } = render(withProviders(<CartPanel />));
 
     fillAllBillingFields(container);
     fireEvent.click(screen.getByText("結帳"));
 
     await waitFor(() => {
-      expect(assignSpy).toHaveBeenCalledWith(
+      expect(assignMock).toHaveBeenCalledWith(
         "https://shop.example.com/checkout/order-pay/100/?key=wc_order_test",
       );
     });
-    assignSpy.mockRestore();
+    restore();
   });
 
   it("shows success state when checkout returns no payment_url (regression #241)", async () => {
@@ -477,7 +504,8 @@ describe("CartPanel", () => {
       items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
     });
     setWooConnected();
-    const assignSpy = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+
+    const { assignMock, restore } = mockLocationAssign();
     const { container } = render(withProviders(<CartPanel />));
 
     fillAllBillingFields(container);
@@ -486,7 +514,7 @@ describe("CartPanel", () => {
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
-    expect(assignSpy).not.toHaveBeenCalled();
-    assignSpy.mockRestore();
+    expect(assignMock).not.toHaveBeenCalled();
+    restore();
   });
 });
