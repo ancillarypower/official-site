@@ -72,7 +72,8 @@ function buildSignal(init?: RequestInit): AbortSignal {
  *   attempt JSON parsing. If parsing fails with `SyntaxError`, wrap it in
  *   a descriptive error.
  */
-export async function parseJsonResponse(response: Response): Promise<unknown> {
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+export async function parseJsonResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
 
   // HTML responses are a clear signal of a proxy error page
