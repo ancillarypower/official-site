@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useWordPress } from "@/hooks/useWordPress";
+import { useWordPress, useSinglePost } from "@/hooks/useWordPress";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -146,8 +146,37 @@ export default function ContentPage() {
     return posts;
   }, [data?.posts, sort]);
 
-  const selectedPost =
+  // Deep link resolution (Issue #250):
+  // 1. Try to find the post on the currently loaded page (instant, no API call).
+  // 2. If not found AND the list query has finished loading, fetch the single
+  //    post directly from the WP REST API via useSinglePost.
+  const localMatch =
     articleId !== null ? data?.posts.find((p) => p.id === articleId) : undefined;
+
+  const shouldFetchSingle =
+    articleId !== null && !isLoading && data !== undefined && !localMatch;
+
+  const {
+    data: remoteSinglePost,
+    isLoading: isSinglePostLoading,
+    error: singlePostError,
+  } = useSinglePost(shouldFetchSingle ? articleId : null);
+
+  const selectedPost = localMatch ?? remoteSinglePost ?? undefined;
+
+  // Article deep link: loading state while fetching single post
+  if (articleId !== null && shouldFetchSingle && isSinglePostLoading) {
+    return <LoadingSpinner />;
+  }
+
+  // Article deep link: post not found (404) or fetch error
+  if (articleId !== null && shouldFetchSingle && !selectedPost) {
+    if (singlePostError) {
+      return <FetchErrorState error={singlePostError} onRetry={refetch} />;
+    }
+    // remoteSinglePost === null means 404
+    return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
+  }
 
   if (selectedPost) {
     return (
