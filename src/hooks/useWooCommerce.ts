@@ -68,16 +68,28 @@ export function useWooProducts(page: number = 1) {
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const totalPages = parseInt(
+      const hasPageHeader =
+        response.headers.has("X-WP-TotalPages") ||
+        response.headers.has("x-wp-totalpages");
+
+      let totalPages = parseInt(
         response.headers.get("X-WP-TotalPages") ??
           response.headers.get("x-wp-totalpages") ?? "1",
       );
-      const totalProducts = parseInt(
+      let totalProducts = parseInt(
         response.headers.get("X-WP-Total") ??
           response.headers.get("x-wp-total") ?? "0",
       );
 
       const raw = await response.json();
+
+      // Fallback: when CORS proxy strips custom response headers,
+      // infer pagination from the response body length (Issue #178).
+      if (!hasPageHeader && Array.isArray(raw)) {
+        totalPages = raw.length >= wooPerPage ? page + 1 : page;
+        totalProducts = totalProducts || raw.length;
+      }
+
       const parsed = wooProductArraySchema.safeParse(raw);
 
       if (!parsed.success) {
