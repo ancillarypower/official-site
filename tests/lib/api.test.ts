@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams, ensureHttps } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, wooAuthParams, ensureHttps, parseJsonResponse } from "@/lib/api";
 
 describe("ensureHttps", () => {
   it("returns empty string unchanged", () => {
@@ -202,6 +202,61 @@ describe("wooAuthParams", () => {
     const params = wooAuthParams("ck_a&b=c", "cs_d+e");
     expect(params.consumer_key).toBe("ck_a&b=c");
     expect(params.consumer_secret).toBe("cs_d+e");
+  });
+});
+
+describe("parseJsonResponse", () => {
+  it("throws descriptive error when response content-type is text/html (regression #221)", async () => {
+    const htmlBody = "<html><body><h1>502 Bad Gateway</h1><p>The proxy server received an invalid response.</p></body></html>";
+    const response = new Response(htmlBody, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+
+    await expect(parseJsonResponse(response)).rejects.toThrow(
+      /Expected JSON response but received text\/html/,
+    );
+    // Should include a preview of the body
+    try {
+      const resp2 = new Response(htmlBody, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+      await parseJsonResponse(resp2);
+    } catch (err) {
+      expect((err as Error).message).toContain("502 Bad Gateway");
+      expect((err as Error).message).toContain("CORS proxy returned an error page");
+    }
+  });
+
+  it("returns parsed JSON when content-type includes application/json (regression #221)", async () => {
+    const response = new Response(JSON.stringify({ id: 1, title: "Test" }), {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8" },
+    });
+
+    const result = await parseJsonResponse(response);
+    expect(result).toEqual({ id: 1, title: "Test" });
+  });
+
+  it("attempts JSON parse when content-type header is missing (regression #221)", async () => {
+    // CORS proxies may strip Content-Type; valid JSON should still parse
+    const response = new Response(JSON.stringify([{ id: 1 }]), {
+      status: 200,
+    });
+
+    const result = await parseJsonResponse(response);
+    expect(result).toEqual([{ id: 1 }]);
+  });
+
+  it("wraps SyntaxError with diagnostic message when content-type is missing and body is not JSON (regression #221)", async () => {
+    const response = new Response("<html>Error</html>", {
+      status: 200,
+    });
+
+    await expect(parseJsonResponse(response)).rejects.toThrow(
+      /Expected JSON response but received non-JSON body/,
+    );
   });
 });
 

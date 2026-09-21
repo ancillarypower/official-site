@@ -56,6 +56,53 @@ function buildSignal(init?: RequestInit): AbortSignal {
 }
 
 /**
+ * Safely parse a JSON response body, guarding against non-JSON responses.
+ *
+ * CORS proxies (e.g. allorigins.win) sometimes return HTTP 200 with an
+ * HTML error page when the upstream API fails. Calling `response.json()`
+ * on such a response throws a meaningless `SyntaxError`. This helper
+ * detects HTML responses and produces a diagnostic error message that
+ * identifies the problem (Issue #221).
+ *
+ * Detection strategy:
+ * - `text/html` Content-Type: fail fast with a body preview. This is the
+ *   most common proxy error page format.
+ * - Any other Content-Type (including `text/plain`, which is the default
+ *   for `new Response(string)`, or missing headers from proxy stripping):
+ *   attempt JSON parsing. If parsing fails with `SyntaxError`, wrap it in
+ *   a descriptive error.
+ */
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+export async function parseJsonResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  // HTML responses are a clear signal of a proxy error page
+  if (contentType.includes("text/html")) {
+    const preview = (await response.text()).slice(0, 200);
+    throw new Error(
+      `Expected JSON response but received ${contentType}. ` +
+      `This usually means the CORS proxy returned an error page. ` +
+      `Preview: ${preview}`,
+    );
+  }
+
+  // For JSON, text/plain, missing, or any other content-type: try parsing
+  try {
+    return await response.json();
+  } catch (err) {
+    // Only wrap SyntaxError (malformed JSON); rethrow everything else
+    if (err instanceof SyntaxError) {
+      throw new Error(
+        `Expected JSON response but received non-JSON body. ` +
+        `This usually means the CORS proxy returned an error page. ` +
+        `Parse error: ${err.message}`,
+      );
+    }
+    throw err;
+  }
+}
+
+/**
  * Fetch with optional CORS proxy rotation.
  * Tries each proxy in turn until one succeeds.
  *

@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { fetchWithProxy, wpApiUrl } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, parseJsonResponse } from "@/lib/api";
 import { wpPostArraySchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -104,7 +104,7 @@ export function useWordPress(page: number = 1, search: string = "") {
         10,
       );
 
-      const raw = await response.json();
+      const raw = await parseJsonResponse(response);
 
       // Fallback: when CORS proxy strips custom response headers,
       // infer pagination from the response body length (Issue #178).
