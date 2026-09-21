@@ -56,6 +56,48 @@ function buildSignal(init?: RequestInit): AbortSignal {
 }
 
 /**
+ * Safely parse a JSON response body, guarding against non-JSON responses.
+ *
+ * CORS proxies (e.g. allorigins.win) sometimes return HTTP 200 with an
+ * HTML error page when the upstream API fails. Calling `response.json()`
+ * on such a response throws a meaningless `SyntaxError`. This helper
+ * checks the `Content-Type` header first and produces a diagnostic error
+ * message that identifies the problem (Issue #221).
+ *
+ * When the `Content-Type` header is missing (some CORS proxies strip all
+ * custom headers), the function attempts JSON parsing anyway and wraps
+ * any `SyntaxError` in a descriptive error with a body preview.
+ */
+export async function parseJsonResponse(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  // Content-Type present and clearly not JSON → fail fast with preview
+  if (contentType && !contentType.includes("application/json")) {
+    const preview = (await response.text()).slice(0, 200);
+    throw new Error(
+      `Expected JSON response but received ${contentType}. ` +
+      `This usually means the CORS proxy returned an error page. ` +
+      `Preview: ${preview}`,
+    );
+  }
+
+  // Content-Type is JSON or missing (proxy stripped headers) → try parsing
+  try {
+    return await response.json();
+  } catch (err) {
+    // Only wrap SyntaxError (malformed JSON); rethrow everything else
+    if (err instanceof SyntaxError) {
+      throw new Error(
+        `Expected JSON response but received non-JSON body. ` +
+        `This usually means the CORS proxy returned an error page. ` +
+        `Parse error: ${err.message}`,
+      );
+    }
+    throw err;
+  }
+}
+
+/**
  * Fetch with optional CORS proxy rotation.
  * Tries each proxy in turn until one succeeds.
  *
