@@ -43,7 +43,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           onClick={handleCopyLink}
           className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
         >
-          \uD83D\uDCCB {t("share_copy" as const)}
+          📋 {t("share_copy" as const)}
         </button>
 
         {supportsNativeShare && (
@@ -52,7 +52,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
             onClick={handleNativeShare}
             className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
           >
-            \uD83D\uDCE4 {t("share_native" as const)}
+            📤 {t("share_native" as const)}
           </button>
         )}
 
@@ -87,7 +87,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           href={`mailto:?subject=${encodedTitle}&body=${encodedUrl}`}
           className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
         >
-          \u2709\uFE0F {t("share_email" as const)}
+          ✉️ {t("share_email" as const)}
         </a>
       </div>
     </section>
