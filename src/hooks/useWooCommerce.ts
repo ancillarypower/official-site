@@ -5,6 +5,7 @@ import {
   wooAuthHeaders,
   parseJsonResponse,
 } from "@/lib/api";
+import { AppError } from "@/lib/errors";
 import { FETCH_TIMEOUT } from "@/lib/constants";
 import {
   wooProductArraySchema,
@@ -92,7 +93,10 @@ export function useWooProducts(page: number = 1) {
       if (!parsed.success) {
         console.warn("[Woo] Zod parse warning:", parsed.error);
         if (!Array.isArray(raw)) {
-          throw new Error("Unexpected API response: expected an array");
+          throw new AppError(
+            "error_api_unexpected_format",
+            "Unexpected API response: expected an array",
+          );
         }
         const products = (raw as Record<string, unknown>[]).map(
           normalizeRawProduct,
@@ -154,12 +158,20 @@ export async function validateCartPrices(
   });
 
   if (!response.ok) {
-    throw new Error(`Price validation failed: HTTP ${response.status}`);
+    throw new AppError(
+      "error_price_validation_failed",
+      `Price validation failed: HTTP ${response.status}`,
+      { detail: `HTTP ${response.status}` },
+    );
   }
 
   const raw = await response.json();
   if (!Array.isArray(raw)) {
-    throw new Error("Price validation failed: unexpected response format");
+    throw new AppError(
+      "error_price_validation_failed",
+      "Price validation failed: unexpected response format",
+      { detail: "unexpected response format" },
+    );
   }
 
   const serverPrices = new Map<number, number>();
@@ -225,14 +237,16 @@ export function useCheckout() {
   return useMutation<WooOrder, Error, CheckoutParams>({
     mutationFn: async ({ items, billing }) => {
       if (!baseUrl || !wooKey || !wooSecret) {
-        throw new Error(
+        throw new AppError(
+          "error_woo_not_configured",
           "WooCommerce is not fully configured. " +
             "Please provide the store URL, Consumer Key, and Consumer Secret in Settings.",
         );
       }
 
       if (useProxy) {
-        throw new Error(
+        throw new AppError(
+          "error_checkout_proxy_unavailable",
           "Checkout is not available in proxy mode. " +
             "CORS proxies cannot forward POST body or authentication securely. " +
             "Please disable the proxy or use a self-hosted backend proxy.",
@@ -255,16 +269,20 @@ export function useCheckout() {
         const details = mismatches
           .map((m) => `${m.name}: ${m.cartPrice} \u2192 ${m.serverPrice}`)
           .join(", ");
-        throw new Error(
+        throw new AppError(
+          "error_price_changed",
           `Price changed since items were added to cart. ` +
             `Please refresh and try again. Changed: ${details}`,
+          { details },
         );
       }
       if (unavailable.length > 0) {
         const names = unavailable.map((u) => u.name).join(", ");
-        throw new Error(
+        throw new AppError(
+          "error_items_out_of_stock",
           `The following items are out of stock: ${names}. ` +
             `Please remove them from your cart and try again.`,
+          { names },
         );
       }
 
@@ -298,7 +316,10 @@ export function useCheckout() {
       const parsed = wooOrderSchema.safeParse(raw);
       if (!parsed.success) {
         console.error("[Woo] Order response validation failed:", parsed.error);
-        throw new Error("Invalid order response from WooCommerce");
+        throw new AppError(
+          "error_order_response_invalid",
+          "Invalid order response from WooCommerce",
+        );
       }
       return parsed.data;
     },

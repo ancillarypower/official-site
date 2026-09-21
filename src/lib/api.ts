@@ -1,4 +1,5 @@
 import { CORS_PROXIES, FETCH_TIMEOUT } from "./constants";
+import { AppError } from "./errors";
 
 let proxyIndex = 0;
 
@@ -79,7 +80,8 @@ export async function parseJsonResponse(response: Response) {
   // HTML responses are a clear signal of a proxy error page
   if (contentType.includes("text/html")) {
     const preview = (await response.text()).slice(0, 200);
-    throw new Error(
+    throw new AppError(
+      "error_proxy_bad_response",
       `Expected JSON response but received ${contentType}. ` +
       `This usually means the CORS proxy returned an error page. ` +
       `Preview: ${preview}`,
@@ -92,7 +94,8 @@ export async function parseJsonResponse(response: Response) {
   } catch (err) {
     // Only wrap SyntaxError (malformed JSON); rethrow everything else
     if (err instanceof SyntaxError) {
-      throw new Error(
+      throw new AppError(
+        "error_proxy_bad_response",
         `Expected JSON response but received non-JSON body. ` +
         `This usually means the CORS proxy returned an error page. ` +
         `Parse error: ${err.message}`,
@@ -134,7 +137,8 @@ export async function fetchWithProxy(
   // third-party CORS proxies. The caller should omit credentials
   // for proxy-mode requests; this guard catches mistakes.
   if (url.includes("consumer_key") || url.includes("consumer_secret")) {
-    throw new Error(
+    throw new AppError(
+      "error_proxy_credential_blocked",
       "WooCommerce credentials must not be sent through CORS proxy. " +
         "Use direct mode or a self-hosted backend proxy.",
     );
@@ -172,7 +176,10 @@ export async function fetchWithProxy(
     }
   }
 
-  throw new Error(`All CORS proxies failed:\n${errors.join("\n")}`);
+  throw new AppError(
+    "error_proxy_all_failed",
+    `All CORS proxies failed:\n${errors.join("\n")}`,
+  );
 }
 
 /**
@@ -213,7 +220,8 @@ export function wooApiUrl(
   base = base.replace(/\/wp-json(\/.*)?$/, "");
 
   if (!base) {
-    throw new Error(
+    throw new AppError(
+      "error_woo_url_missing",
       "WooCommerce store URL is not configured. Please check Settings.",
     );
   }
@@ -222,8 +230,10 @@ export function wooApiUrl(
   try {
     url = new URL(`${base}/wp-json/wc/v3/${endpoint}`);
   } catch {
-    throw new Error(
+    throw new AppError(
+      "error_woo_url_invalid",
       `Invalid WooCommerce URL: "${base}". Please check Settings.`,
+      { url: base },
     );
   }
 

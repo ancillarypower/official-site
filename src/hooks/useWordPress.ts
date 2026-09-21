@@ -1,5 +1,6 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchWithProxy, wpApiUrl, parseJsonResponse } from "@/lib/api";
+import { AppError } from "@/lib/errors";
 import { wpPostArraySchema, wpPostSchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -118,7 +119,10 @@ export function useWordPress(page: number = 1, search: string = "") {
       if (!parsed.success) {
         console.warn("[WP] Zod parse warning:", parsed.error);
         if (!Array.isArray(raw)) {
-          throw new Error("Unexpected API response: expected an array");
+          throw new AppError(
+            "error_api_unexpected_format",
+            "Unexpected API response: expected an array",
+          );
         }
         const posts = (raw as Record<string, unknown>[]).map(normalizeRawPost);
         return { posts, totalPages, totalPosts };
@@ -164,7 +168,10 @@ export function useSinglePost(id: number | null) {
       if (!parsed.success) {
         console.warn("[WP] Single post Zod parse warning:", parsed.error);
         if (typeof raw !== "object" || raw === null) {
-          throw new Error("Unexpected API response: expected an object");
+          throw new AppError(
+            "error_api_unexpected_format",
+            "Unexpected API response: expected an object",
+          );
         }
         return normalizeRawPost(raw as Record<string, unknown>);
       }
