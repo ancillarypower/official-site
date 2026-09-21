@@ -3,6 +3,7 @@ import { useI18n } from "@/context/I18nContext";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
+import { AppError } from "@/lib/errors";
 import { formatPrice } from "@/lib/formatPrice";
 
 const inputCls = "rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none";
@@ -51,7 +52,17 @@ export function CartPanel() {
       }
       setOrderStatus("success");
     } catch (err) {
-      setOrderError(err instanceof Error ? err.message : "Checkout failed");
+      if (err instanceof AppError) {
+        let msg = t(err.code as Parameters<typeof t>[0]);
+        if (err.params) {
+          for (const [k, v] of Object.entries(err.params)) {
+            msg = msg.replaceAll(`{${k}}`, v);
+          }
+        }
+        setOrderError(msg);
+      } else {
+        setOrderError(err instanceof Error ? err.message : t("error_checkout_failed"));
+      }
       setOrderStatus("error");
     }
   }
