@@ -15,7 +15,7 @@ function createWrapper(queryClient?: QueryClient) {
 }
 
 /** Helper: build a successful price-check Response for the given items. */
-function makePriceCheckResponse(items: Array<{ id: number; price: string }>) {
+function makePriceCheckResponse(items: Array<{ id: number; price: string; stock_status?: string }>) {
   return new Response(JSON.stringify(items), { status: 200 });
 }
 
@@ -500,6 +500,48 @@ describe("validateCartPrices", () => {
       ),
     ).rejects.toThrow("Price validation failed: unexpected response format");
   });
+
+  /* -- Issue #243 Regression Tests -- */
+
+  it("detects out-of-stock items (regression #243)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([
+        { id: 1, price: "10.00", stock_status: "outofstock" },
+        { id: 2, price: "20.00", stock_status: "instock" },
+      ]),
+    ));
+
+    const result = await validateCartPrices(
+      [
+        { id: 1, name: "Sold Out Widget", price: 10, icon: null, img: null, qty: 1 },
+        { id: 2, name: "Available Widget", price: 20, icon: null, img: null, qty: 1 },
+      ],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.mismatches).toHaveLength(0);
+    expect(result.unavailable).toHaveLength(1);
+    expect(result.unavailable[0]).toEqual({ id: 1, name: "Sold Out Widget" });
+  });
+
+  it("returns empty unavailable when all items are in stock (regression #243)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([
+        { id: 1, price: "10.00", stock_status: "instock" },
+      ]),
+    ));
+
+    const result = await validateCartPrices(
+      [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.unavailable).toHaveLength(0);
+  });
 });
 
 describe("useCheckout", () => {
@@ -832,5 +874,38 @@ describe("useCheckout", () => {
     // AbortSignal.timeout should have been called for the order fetch.
     // validateCartPrices also calls it, so at least 2 invocations total.
     expect(timeoutSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  /* -- Issue #243 Regression Test -- */
+
+  it("throws when cart contains out-of-stock items (regression #243)", async () => {
+    // Server returns stock_status: outofstock for item 1, price matches
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([
+        { id: 1, price: "10.00", stock_status: "outofstock" },
+        { id: 2, price: "20.00", stock_status: "instock" },
+      ]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      result.current.mutateAsync({
+        items: [
+          { id: 1, name: "Sold Out Widget", price: 10, icon: null, img: null, qty: 1 },
+          { id: 2, name: "Available Widget", price: 20, icon: null, img: null, qty: 1 },
+        ],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+        },
+      }),
+    ).rejects.toThrow(/out of stock/);
+
+    // Only the price/stock validation fetch should have been called;
+    // the order creation fetch must NOT be reached.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
