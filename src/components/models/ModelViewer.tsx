@@ -4,6 +4,7 @@ import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "t
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
+import type { IfcWorkerMessage, IfcMeshData } from "@/workers/ifcWorker";
 
 interface ModelViewerProps {
   name: string;
@@ -90,9 +91,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let controls: OrbitControls | null = null;
     let dracoLoader: { dispose(): void } | null = null;
     let fontScaleHandler: (() => void) | null = null;
-    // Track IFC WASM instance for cleanup on early unmount (#173)
-    let ifcApiRef: { CloseModel: (id: number) => void } | null = null;
-    let ifcModelId: number | null = null;
+    // Track IFC Worker for cleanup on early unmount (#202)
+    let ifcWorker: Worker | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -273,148 +273,146 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           setStatus("ready");
         }
 
+        /**
+         * Rebuild Three.js BufferGeometry objects from Worker-returned
+         * typed arrays. This runs on the main thread but is fast because
+         * the heavy WASM parsing already happened in the Worker.
+         */
+        function buildGeometriesFromWorker(
+          meshes: IfcMeshData[],
+        ): { opaque: BufferGeometry[]; transparent: BufferGeometry[] } {
+          const opaque: BufferGeometry[] = [];
+          const transparent: BufferGeometry[] = [];
+
+          for (const m of meshes) {
+            const bufGeom = new THREE.BufferGeometry();
+            bufGeom.setAttribute(
+              "position",
+              new THREE.BufferAttribute(m.positions, 3),
+            );
+            bufGeom.setAttribute(
+              "normal",
+              new THREE.BufferAttribute(m.normals, 3),
+            );
+            bufGeom.setAttribute(
+              "color",
+              new THREE.BufferAttribute(m.colors, 4),
+            );
+            bufGeom.setIndex(
+              new THREE.BufferAttribute(m.indices, 1),
+            );
+
+            const matrix = new THREE.Matrix4().fromArray(
+              m.flatTransformation,
+            );
+            bufGeom.applyMatrix4(matrix);
+
+            if (m.transparent) {
+              transparent.push(bufGeom);
+            } else {
+              opaque.push(bufGeom);
+            }
+          }
+
+          return { opaque, transparent };
+        }
+
         const buf = data;
         if (ext === "ifc") {
-          const WebIFC = await import("web-ifc");
           const { mergeGeometries } = await import(
             "three/examples/jsm/utils/BufferGeometryUtils.js"
           );
           if (disposed) return;
 
-          const ifcApi = new WebIFC.IfcAPI();
-          ifcApiRef = ifcApi;
-          ifcApi.SetWasmPath(IFC_WASM_CDN, true);
-          await ifcApi.Init();
-          if (disposed) { return; }
+          // Offload WASM processing to a dedicated Web Worker (#202)
+          const worker = new Worker(
+            new URL("../../workers/ifcWorker.ts", import.meta.url),
+            { type: "module" },
+          );
+          ifcWorker = worker;
 
-          const modelID = ifcApi.OpenModel(new Uint8Array(buf), {
-            COORDINATE_TO_ORIGIN: true,
-          });
-          ifcModelId = modelID;
+          worker.postMessage(
+            { buffer: buf, wasmCdn: IFC_WASM_CDN },
+            [buf],
+          );
 
-          if (modelID === -1) {
-            ifcApiRef = null;
-            ifcModelId = null;
-            throw new Error("Failed to open IFC file: unsupported schema or invalid data");
-          }
+          worker.onmessage = (e: MessageEvent<IfcWorkerMessage>) => {
+            // Worker finished; clear ref so cleanup skips terminate
+            ifcWorker = null;
+            worker.terminate();
 
-          const opaqueGeometries: BufferGeometry[] = [];
-          const transparentGeometries: BufferGeometry[] = [];
-          const tmpColor = new THREE.Color();
+            if (disposed) return;
 
-          ifcApi.StreamAllMeshes(modelID, (flatMesh) => {
-            const placedGeometries = flatMesh.geometries;
-            for (let i = 0; i < placedGeometries.size(); i++) {
-              let geometry: ReturnType<typeof ifcApi.GetGeometry> | null = null;
-              try {
-                const pg = placedGeometries.get(i);
-                geometry = ifcApi.GetGeometry(modelID, pg.geometryExpressID);
-                const vertexData = ifcApi.GetVertexArray(
-                  geometry.GetVertexData(),
-                  geometry.GetVertexDataSize(),
-                );
-                const indexData = ifcApi.GetIndexArray(
-                  geometry.GetIndexData(),
-                  geometry.GetIndexDataSize(),
-                );
+            const msg = e.data;
+            if (msg.type === "error") {
+              setErrorMsg(msg.message);
+              setStatus("error");
+              return;
+            }
 
-                const vertexCount = vertexData.length / 6;
-                const positions = new Float32Array(vertexCount * 3);
-                const normals = new Float32Array(vertexCount * 3);
-                const colors = new Float32Array(vertexCount * 4);
+            try {
+              const { opaque: opaqueGeometries, transparent: transparentGeometries } =
+                buildGeometriesFromWorker(msg.meshes);
 
-                tmpColor.setRGB(pg.color.x, pg.color.y, pg.color.z, THREE.SRGBColorSpace);
+              const group = new THREE.Group();
 
-                for (let v = 0; v < vertexCount; v++) {
-                  const src = v * 6;
-                  const dst3 = v * 3;
-                  const dst4 = v * 4;
-
-                  positions[dst3] = vertexData[src]!;
-                  positions[dst3 + 1] = vertexData[src + 1]!;
-                  positions[dst3 + 2] = vertexData[src + 2]!;
-
-                  normals[dst3] = vertexData[src + 3]!;
-                  normals[dst3 + 1] = vertexData[src + 4]!;
-                  normals[dst3 + 2] = vertexData[src + 5]!;
-
-                  colors[dst4] = tmpColor.r;
-                  colors[dst4 + 1] = tmpColor.g;
-                  colors[dst4 + 2] = tmpColor.b;
-                  colors[dst4 + 3] = pg.color.w;
-                }
-
-                const bufGeom = new THREE.BufferGeometry();
-                bufGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-                bufGeom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-                bufGeom.setAttribute("color", new THREE.BufferAttribute(colors, 4));
-                bufGeom.setIndex(new THREE.BufferAttribute(indexData, 1));
-
-                const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
-                bufGeom.applyMatrix4(matrix);
-
-                if (pg.color.w !== 1) {
-                  transparentGeometries.push(bufGeom);
-                } else {
-                  opaqueGeometries.push(bufGeom);
-                }
-              } catch (meshErr) {
-                console.warn("[IFC] Skipping corrupted mesh:", meshErr);
-              } finally {
-                if (geometry) {
-                  (geometry as unknown as { delete: () => void }).delete();
+              if (opaqueGeometries.length > 0) {
+                const merged = mergeGeometries(opaqueGeometries);
+                // Release source GPU buffers after merge (#193)
+                for (const geom of opaqueGeometries) geom.dispose();
+                if (merged) {
+                  group.add(
+                    new THREE.Mesh(
+                      merged,
+                      new THREE.MeshPhongMaterial({
+                        side: THREE.DoubleSide,
+                        vertexColors: true,
+                      }),
+                    ),
+                  );
                 }
               }
+
+              if (transparentGeometries.length > 0) {
+                const merged = mergeGeometries(transparentGeometries);
+                // Release source GPU buffers after merge (#193)
+                for (const geom of transparentGeometries) geom.dispose();
+                if (merged) {
+                  group.add(
+                    new THREE.Mesh(
+                      merged,
+                      new THREE.MeshPhongMaterial({
+                        side: THREE.DoubleSide,
+                        vertexColors: true,
+                        transparent: true,
+                      }),
+                    ),
+                  );
+                }
+              }
+
+              if (group.children.length === 0) {
+                throw new Error("No visible geometry in IFC file");
+              }
+
+              fitToView(group);
+            } catch (err) {
+              if (!disposed) {
+                setErrorMsg(
+                  err instanceof Error ? err.message : "IFC processing failed",
+                );
+                setStatus("error");
+              }
             }
-          });
+          };
 
-          ifcApi.CloseModel(modelID);
-          // Normal flow: model closed, clear refs so cleanup skips (#173)
-          ifcApiRef = null;
-          ifcModelId = null;
-
-          const group = new THREE.Group();
-
-          if (opaqueGeometries.length > 0) {
-            const merged = mergeGeometries(opaqueGeometries);
-            // Release source GPU buffers after merge (#193)
-            for (const geom of opaqueGeometries) geom.dispose();
-            if (merged) {
-              group.add(
-                new THREE.Mesh(
-                  merged,
-                  new THREE.MeshPhongMaterial({
-                    side: THREE.DoubleSide,
-                    vertexColors: true,
-                  }),
-                ),
-              );
+          worker.onerror = (e: ErrorEvent) => {
+            ifcWorker = null;
+            if (!disposed) {
+              setErrorMsg(e.message || "IFC Worker crashed");
+              setStatus("error");
             }
-          }
-
-          if (transparentGeometries.length > 0) {
-            const merged = mergeGeometries(transparentGeometries);
-            // Release source GPU buffers after merge (#193)
-            for (const geom of transparentGeometries) geom.dispose();
-            if (merged) {
-              group.add(
-                new THREE.Mesh(
-                  merged,
-                  new THREE.MeshPhongMaterial({
-                    side: THREE.DoubleSide,
-                    vertexColors: true,
-                    transparent: true,
-                  }),
-                ),
-              );
-            }
-          }
-
-          if (group.children.length === 0) {
-            throw new Error("No visible geometry in IFC file");
-          }
-
-          fitToView(group);
+          };
         } else if (ext === "glb" || ext === "gltf") {
           const loader = new GLTFLoader();
           const draco = new DRACOLoader();
@@ -487,11 +485,11 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       }
       disposeSceneResources(scene);
       dracoLoader?.dispose();
-      // Release IFC WASM heap if unmounted during processing (#173)
-      if (ifcApiRef) {
-        try { ifcApiRef.CloseModel(ifcModelId!); } catch { /* model may already be closed */ }
-        ifcApiRef = null;
-        ifcModelId = null;
+      // Terminate IFC Worker if still running (#202)
+      // Worker termination releases WASM linear memory automatically
+      if (ifcWorker) {
+        ifcWorker.terminate();
+        ifcWorker = null;
       }
       controls?.dispose();
       resetViewpointRef.current = null;
