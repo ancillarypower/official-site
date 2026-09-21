@@ -132,7 +132,7 @@ export function CartPanel() {
               <p className="mt-1 text-[0.7rem] leading-relaxed text-tertiary">{t(wooConnected ? "checkout_note" : "checkout_no_woo")}</p>
             </div>
             {orderError && <div className="rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger">{orderError}</div>}
-            <button onClick={handleCheckout} disabled={!wooConnected || isPending} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? t("cart_checkout_processing") : t("cart_checkout")}</button>
+            <button onClick={handleCheckout} disabled={!wooConnected || isPending || orderStatus === "success"} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? t("cart_checkout_processing") : t("cart_checkout")}</button>
             {orderStatus === "success" && <button onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">{t("cart_clear_all")}</button>}
           </>
         )}

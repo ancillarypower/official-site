@@ -517,4 +517,35 @@ describe("CartPanel", () => {
     expect(assignMock).not.toHaveBeenCalled();
     restore();
   });
+
+  /* ── Issue #242 Regression Test ── */
+
+  it("disables checkout button after successful order (regression #242)", async () => {
+    mockCheckout.mockResolvedValueOnce({
+      id: 300,
+      order_key: "wc_order_no_pay_242",
+    });
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    fillAllBillingFields(container);
+
+    const checkoutBtn = screen.getByText("結帳");
+    expect(checkoutBtn).not.toBeDisabled();
+
+    fireEvent.click(checkoutBtn);
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+
+    // After successful checkout, orderStatus becomes "success" and the
+    // button's disabled condition includes orderStatus === "success".
+    await waitFor(() => {
+      expect(screen.getByText("結帳")).toBeDisabled();
+    });
+  });
 });
