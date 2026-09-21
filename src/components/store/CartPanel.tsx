@@ -53,13 +53,7 @@ export function CartPanel() {
       setOrderStatus("success");
     } catch (err) {
       if (err instanceof AppError) {
-        let msg = t(err.code as Parameters<typeof t>[0]);
-        if (err.params) {
-          for (const [k, v] of Object.entries(err.params)) {
-            msg = msg.replaceAll(`{${k}}`, v);
-          }
-        }
-        setOrderError(msg);
+        setOrderError(t("error_unhandled"));
       } else {
         setOrderError(err instanceof Error ? err.message : t("error_checkout_failed"));
       }
@@ -74,10 +68,10 @@ export function CartPanel() {
         <div className="flex items-center gap-2">
           {items.length > 0 && (
             <button onClick={handleClearAll} className="rounded-md px-2 py-1 text-xs text-secondary transition-colors hover:bg-surface-sunken hover:text-danger" aria-label={t("cart_clear_all")}>
-              \uD83D\uDDD1 {t("cart_clear_all")}
+              🗑 {t("cart_clear_all")}
             </button>
           )}
-          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>\u2715</button>
+          <button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>✕</button>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
@@ -86,14 +80,14 @@ export function CartPanel() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 border-b border-border-subtle pb-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-surface-sunken text-lg">
-                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "\uD83D\uDCE6"}
+                  {item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "📦"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{item.name}</div>
                   <div className="text-[0.725rem] text-tertiary">{formatPrice(item.price, lang)}</div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>\u2212</button>
+                  <button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>−</button>
                   <span className="min-w-5 text-center text-sm font-semibold tabular-nums">{item.qty}</span>
                   <button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_increase_qty")} title={t("a11y_increase_qty")}>+</button>
                 </div>
