@@ -106,7 +106,8 @@ describe("CartPanel checkout success flow", () => {
     fillAllBillingFields(container);
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
     await waitFor(() => {
-      expect(screen.getByText("Checkout failed")).toBeInTheDocument();
+      // Non-Error rejections now display the i18n generic error message
+      expect(screen.getByText(/\u767C\u751F\u975E\u9810\u671F\u932F\u8AA4/)).toBeInTheDocument();
     });
   });
 
