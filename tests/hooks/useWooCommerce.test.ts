@@ -61,6 +61,28 @@ describe("useWooProducts", () => {
     expect(result.current.data).toBeUndefined();
   });
 
+  it("is enabled in proxy mode without credentials (regression #219)", async () => {
+    // Proxy mode does not send credentials (Issue #43), so wooKey and
+    // wooSecret should not gate the query. Only baseUrl is required.
+    useSettingsStore.setState({ useProxy: true, wooKey: "", wooSecret: "" });
+    const products = [
+      { id: 1, name: "Public Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockResponse = new Response(JSON.stringify(products), {
+      status: 200,
+      headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.products).toHaveLength(1);
+    expect(result.current.data?.products[0]?.name).toBe("Public Widget");
+  });
+
   it("fetches products with Basic Auth header in direct mode", async () => {
     const products = [
       { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "<p>desc</p>", stock_status: "instock", images: [] },
