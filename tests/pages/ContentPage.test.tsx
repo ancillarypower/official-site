@@ -11,12 +11,14 @@ const mockPosts = [
   { id: 3, title: "Gamma Article", date: "2026-03-15T00:00:00", name: "gamma" },
 ];
 
-const { mockUseWordPress } = vi.hoisted(() => ({
+const { mockUseWordPress, mockUseSinglePost } = vi.hoisted(() => ({
   mockUseWordPress: vi.fn(),
+  mockUseSinglePost: vi.fn(),
 }));
 
 vi.mock("@/hooks/useWordPress", () => ({
   useWordPress: (...args: unknown[]) => mockUseWordPress(...args),
+  useSinglePost: (...args: unknown[]) => mockUseSinglePost(...args),
   normalizeRawPost: vi.fn((p: Record<string, unknown>) => p),
 }));
 
@@ -38,6 +40,7 @@ function renderPage(route = "/") {
 describe("ContentPage", () => {
   beforeEach(() => {
     mockUseWordPress.mockClear();
+    mockUseSinglePost.mockClear();
     useSettingsStore.setState({ contentType: "posts", perPage: 20 });
     mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
@@ -46,6 +49,12 @@ describe("ContentPage", () => {
       isPlaceholderData: false,
       error: null,
       refetch: vi.fn(),
+    });
+    // Default: useSinglePost disabled / no data
+    mockUseSinglePost.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null,
     });
   });
 
@@ -106,10 +115,41 @@ describe("ContentPage", () => {
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
 
-  it("falls back to list when article id does not exist", () => {
+  it("shows not-found state when article id does not exist on any page (regression #250)", () => {
+    // useSinglePost returns null (404 from API)
+    mockUseSinglePost.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    });
     renderPage("/?article=999");
-    expect(screen.getByText("1/2")).toBeInTheDocument();
-    expect(screen.getByText("Post Alpha")).toBeInTheDocument();
+    // Should show EmptyState instead of silently falling back to list
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Post Alpha")).not.toBeInTheDocument();
+  });
+
+  it("fetches single post from API when not on current page (regression #250)", () => {
+    // Post 42 is not in mockPosts (current page), useSinglePost returns it
+    mockUseSinglePost.mockReturnValue({
+      data: { id: 42, title: "Remote Post", date: "2026-08-01T00:00:00", name: "remote-post" },
+      isLoading: false,
+      error: null,
+    });
+    renderPage("/?article=42");
+    // Should render ArticleView (no pagination visible)
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+    // useSinglePost should have been called with articleId 42
+    expect(mockUseSinglePost).toHaveBeenCalledWith(42);
+  });
+
+  it("shows loading spinner while fetching single post for deep link (regression #250)", () => {
+    mockUseSinglePost.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+    renderPage("/?article=42");
+    expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("navigates to article view on card click", () => {
