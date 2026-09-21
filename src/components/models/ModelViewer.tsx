@@ -53,6 +53,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   // Track fullscreen state via Fullscreen API events
   useEffect(() => {
@@ -63,6 +64,23 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
+  }, []);
+
+  // Defer WebGL init until container scrolls into viewport (#203)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const toggleFullscreen = useCallback(() => {
@@ -79,6 +97,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   }, []);
 
   useEffect(() => {
+    if (!isVisible) return;
     const el = containerRef.current;
     if (!el) return;
     let disposed = false;
@@ -500,7 +519,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         renderer.domElement.parentNode?.removeChild(renderer.domElement);
       }
     };
-  }, [ext, modelId]);
+  }, [ext, modelId, isVisible]);
 
   return (
     <div
