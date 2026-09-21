@@ -548,4 +548,70 @@ describe("CartPanel", () => {
       expect(screen.getByText("結帳")).toBeDisabled();
     });
   });
+
+  /* ── Issue #262 Regression Tests ── */
+
+  it("blocks checkout with invalid email format (regression #262)", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "notanemail" } });
+    fireEvent.change(inputs[3]!, { target: { value: "0912345678" } });
+    fireEvent.change(inputs[4]!, { target: { value: "123 Main St" } });
+    fireEvent.change(inputs[5]!, { target: { value: "Taipei" } });
+    fireEvent.change(inputs[6]!, { target: { value: "100" } });
+
+    fireEvent.click(screen.getByText("結帳"));
+
+    expect(mockCheckout).not.toHaveBeenCalled();
+    expect(screen.getByText(/請輸入有效的 Email 地址/)).toBeInTheDocument();
+  });
+
+  it("blocks checkout with invalid country code (regression #262)", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+    fireEvent.change(inputs[1]!, { target: { value: "Doe" } });
+    fireEvent.change(inputs[2]!, { target: { value: "john@example.com" } });
+    fireEvent.change(inputs[3]!, { target: { value: "0912345678" } });
+    fireEvent.change(inputs[4]!, { target: { value: "123 Main St" } });
+    fireEvent.change(inputs[5]!, { target: { value: "Taipei" } });
+    fireEvent.change(inputs[6]!, { target: { value: "100" } });
+    fireEvent.change(inputs[7]!, { target: { value: "Taiwan" } });
+
+    fireEvent.click(screen.getByText("結帳"));
+
+    expect(mockCheckout).not.toHaveBeenCalled();
+    expect(screen.getByText(/國家代碼必須為 2 個字母/)).toBeInTheDocument();
+  });
+
+  it("clears field error when user corrects input (regression #262)", () => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+    });
+    setWooConnected();
+    const { container } = render(withProviders(<CartPanel />));
+
+    fireEvent.click(screen.getByText("結帳"));
+
+    const errorsBefore = screen.getAllByText(/此欄位為必填/);
+    expect(errorsBefore.length).toBe(7);
+
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[0]!, { target: { value: "John" } });
+
+    const errorsAfter = screen.getAllByText(/此欄位為必填/);
+    expect(errorsAfter.length).toBe(6);
+  });
 });
