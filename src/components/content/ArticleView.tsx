@@ -4,6 +4,7 @@ import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
 import { decodeHtml } from "@/lib/utils";
+import { ShareButtons } from "@/components/content/ShareButtons";
 
 const PURIFY_CONFIG = {
   FORBID_TAGS: ["style", "form", "input", "button", "select", "textarea", "fieldset"],
@@ -39,6 +40,7 @@ export function ArticleView({ post, onBack }: ArticleViewProps) {
         {categories.length > 0 && (<div className="mb-8 flex flex-wrap gap-1.5">{categories.map((cat) => (<span key={cat} className="rounded bg-accent-subtle px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide text-accent uppercase">{cat}</span>))}</div>)}
         {imgData && <img src={imgData.url} alt={imgData.alt} className="mb-9 aspect-video w-full rounded-xl object-cover" loading="lazy" decoding="async" />}
         {content && <div className="article-body font-serif text-[1.1em] leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, PURIFY_CONFIG) }} />}
+        <ShareButtons url={typeof window !== "undefined" ? window.location.href : ""} title={title} />
       </article>
     </div>
   );
