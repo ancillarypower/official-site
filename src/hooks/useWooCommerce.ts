@@ -48,7 +48,7 @@ export function useWooProducts(page: number = 1) {
 
   return useQuery<WooQueryResult>({
     queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page, useProxy],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
         page: String(page),
@@ -60,10 +60,13 @@ export function useWooProducts(page: number = 1) {
       // Proxy mode: no credentials — public CORS proxies cannot securely
       // relay authentication (Issue #43). Unauthenticated requests may
       // still succeed if the WooCommerce store allows public product access.
+      // Both modes forward the TanStack Query cancellation signal so that
+      // page navigation aborts in-flight requests (Issue #205).
       const response = useProxy
-        ? await fetchWithProxy(url, true)
+        ? await fetchWithProxy(url, true, { signal })
         : await fetchWithProxy(url, false, {
             headers: wooAuthHeaders(wooKey, wooSecret),
+            signal,
           });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
