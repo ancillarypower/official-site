@@ -55,6 +55,14 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
+  // Keep a mutable ref to `t` so the heavy WebGL useEffect can read the
+  // latest translation function without listing it as a dependency (which
+  // would tear down and rebuild the entire 3D scene on every language switch).
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   // Track fullscreen state via Fullscreen API events
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -164,7 +172,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           e.preventDefault();
           cancelAnimationFrame(animId);
           setStatus("error");
-          setErrorMsg(t("models_gpu_lost"));
+          setErrorMsg(tRef.current("models_gpu_lost"));
         };
 
         ctxRestoredHandler = () => {
