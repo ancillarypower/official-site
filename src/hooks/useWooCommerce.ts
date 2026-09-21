@@ -184,7 +184,11 @@ export function useCheckout() {
 
       const raw = await response.json();
       const parsed = wooOrderSchema.safeParse(raw);
-      return parsed.success ? parsed.data : (raw as WooOrder);
+      if (!parsed.success) {
+        console.error("[Woo] Order response validation failed:", parsed.error);
+        throw new Error("Invalid order response from WooCommerce");
+      }
+      return parsed.data;
     },
     onSuccess: () => {
       // Invalidate product cache so stock status refreshes immediately
