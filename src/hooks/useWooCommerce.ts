@@ -113,12 +113,13 @@ export function useWooProducts(page: number = 1) {
 }
 
 /**
- * Validate that cart item prices still match WooCommerce server prices.
+ * Validate that cart item prices still match WooCommerce server prices
+ * and that all items are still in stock.
  *
- * Fetches the latest product prices in a single batch request and compares
- * them against the locally persisted cart prices. Returns any mismatches so
- * the caller can warn the user before submitting an order with a different
- * total than displayed (Issue #222).
+ * Fetches the latest product prices and stock status in a single batch
+ * request and compares them against the locally persisted cart data.
+ * Returns any price mismatches and out-of-stock items so the caller can
+ * warn the user before submitting an order (Issue #222, Issue #243).
  *
  * Uses integer-cent comparison (Math.round(price * 100)) to avoid
  * floating-point precision issues (same strategy as cartStore.totalPrice).
@@ -135,12 +136,16 @@ export async function validateCartPrices(
     cartPrice: number;
     serverPrice: number;
   }>;
+  unavailable: Array<{
+    id: number;
+    name: string;
+  }>;
 }> {
   const ids = items.map((i) => i.id).join(",");
   const url = wooApiUrl(baseUrl, "products", {
     include: ids,
     per_page: String(items.length),
-    _fields: "id,price",
+    _fields: "id,price,stock_status",
   });
 
   const response = await fetch(url, {
@@ -158,8 +163,12 @@ export async function validateCartPrices(
   }
 
   const serverPrices = new Map<number, number>();
-  for (const p of raw as Array<{ id: number; price: string }>) {
+  const serverStockStatus = new Map<number, string>();
+  for (const p of raw as Array<{ id: number; price: string; stock_status?: string }>) {
     serverPrices.set(p.id, parseFloat(p.price));
+    if (p.stock_status) {
+      serverStockStatus.set(p.id, p.stock_status);
+    }
   }
 
   const mismatches: Array<{
@@ -181,7 +190,15 @@ export async function validateCartPrices(
     }
   }
 
-  return { mismatches };
+  const unavailable: Array<{ id: number; name: string }> = [];
+  for (const item of items) {
+    const status = serverStockStatus.get(item.id);
+    if (status === "outofstock") {
+      unavailable.push({ id: item.id, name: item.name });
+    }
+  }
+
+  return { mismatches, unavailable };
 }
 
 interface CheckoutParams {
@@ -222,11 +239,13 @@ export function useCheckout() {
         );
       }
 
-      // Validate cart prices against server before submitting order.
-      // Cart items store a price snapshot from when they were added; if the
-      // server price has changed since then, the displayed total differs
-      // from the amount WooCommerce will actually charge (Issue #222).
-      const { mismatches } = await validateCartPrices(
+      // Validate cart prices and stock status against server before
+      // submitting order. Cart items store a price snapshot from when
+      // they were added; if the server price has changed since then, the
+      // displayed total differs from the amount WooCommerce will actually
+      // charge (Issue #222). Items may also have gone out of stock since
+      // being added to the cart (Issue #243).
+      const { mismatches, unavailable } = await validateCartPrices(
         items,
         baseUrl,
         wooKey,
@@ -239,6 +258,13 @@ export function useCheckout() {
         throw new Error(
           `Price changed since items were added to cart. ` +
             `Please refresh and try again. Changed: ${details}`,
+        );
+      }
+      if (unavailable.length > 0) {
+        const names = unavailable.map((u) => u.name).join(", ");
+        throw new Error(
+          `The following items are out of stock: ${names}. ` +
+            `Please remove them from your cart and try again.`,
         );
       }
 
