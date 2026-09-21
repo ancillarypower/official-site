@@ -268,13 +268,31 @@ describe("fetchWithProxy", () => {
     ).rejects.toThrow(/All CORS proxies failed/);
   });
 
-  it("returns 404 responses without trying next proxy", async () => {
+  it("treats proxy 404 as failure and rotates to next proxy (regression #176)", async () => {
+    const notFound = new Response("Not Found", { status: 404 });
+    const okResponse = new Response("ok", { status: 200 });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(notFound)
+      .mockResolvedValueOnce(okResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await fetchWithProxy("https://api.test.com/missing", true);
+    expect(result.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws when all proxies return 404 (regression #176)", async () => {
     const notFound = new Response("Not Found", { status: 404 });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(notFound));
 
-    const result = await fetchWithProxy("https://api.test.com/missing", true);
-    expect(result.status).toBe(404);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    try {
+      await fetchWithProxy("https://api.test.com/missing", true);
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      const msg = (err as Error).message;
+      expect(msg).toMatch(/All CORS proxies failed/);
+      expect(msg).toContain("HTTP 404");
+    }
   });
 
   it("falls back to next proxy when first returns server error", async () => {

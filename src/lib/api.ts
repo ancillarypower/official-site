@@ -103,7 +103,7 @@ export async function fetchWithProxy(
       const response = await fetch(proxy + encodeURIComponent(url), {
         signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
-      if (response.ok || response.status === 404) {
+      if (response.ok) {
         proxyIndex = idx;
         return response;
       }
