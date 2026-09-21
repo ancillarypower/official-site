@@ -44,7 +44,11 @@ export function CartPanel() {
       return;
     }
     try {
-      await checkout({ items, billing });
+      const order = await checkout({ items, billing });
+      if (order.payment_url) {
+        window.location.assign(order.payment_url);
+        return;
+      }
       setOrderStatus("success");
     } catch (err) {
       setOrderError(err instanceof Error ? err.message : "Checkout failed");
