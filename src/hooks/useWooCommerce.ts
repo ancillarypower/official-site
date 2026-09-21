@@ -3,6 +3,7 @@ import {
   fetchWithProxy,
   wooApiUrl,
   wooAuthHeaders,
+  parseJsonResponse,
 } from "@/lib/api";
 import {
   wooProductArraySchema,
@@ -84,7 +85,7 @@ export function useWooProducts(page: number = 1) {
           response.headers.get("x-wp-total") ?? "0",
       );
 
-      const raw = await response.json();
+      const raw = await parseJsonResponse(response);
 
       // Fallback: when CORS proxy strips custom response headers,
       // infer pagination from the response body length (Issue #178).
