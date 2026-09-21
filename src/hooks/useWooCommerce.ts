@@ -260,6 +260,7 @@ export function useCheckout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
 
       if (!response.ok) {
