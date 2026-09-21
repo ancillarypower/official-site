@@ -6,11 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  coverage-badge:
+  test-coverage:
     runs-on: ubuntu-latest
+    outputs:
+      coverage_pct: ${{ steps.threshold.outputs.coverage_pct }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -32,13 +34,14 @@ jobs:
         run: pnpm test:coverage
 
       - name: Check coverage threshold
+        id: threshold
         run: |
           PCT=$(node --input-type=commonjs -e "
             const fs = require('fs');
             const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
             console.log(Math.round(summary.total.lines.pct));
           ")
-          echo "COVERAGE_PCT=$PCT" >> "$GITHUB_ENV"
+          echo "coverage_pct=$PCT" >> "$GITHUB_OUTPUT"
           echo "Coverage: ${PCT}%"
           if [ "$PCT" -lt 90 ]; then
             echo "::error::Coverage ${PCT}% is below the 90% threshold"
@@ -47,12 +50,13 @@ jobs:
 
       - name: Generate badge SVG
         run: |
-          if [ "$COVERAGE_PCT" -ge 80 ]; then COLOR="brightgreen"
-          elif [ "$COVERAGE_PCT" -ge 60 ]; then COLOR="yellow"
+          PCT="${{ steps.threshold.outputs.coverage_pct }}"
+          if [ "$PCT" -ge 80 ]; then COLOR="brightgreen"
+          elif [ "$PCT" -ge 60 ]; then COLOR="yellow"
           else COLOR="red"; fi
 
           mkdir -p .badges
-          curl -sfL "https://img.shields.io/badge/coverage-${COVERAGE_PCT}%25-${COLOR}?style=flat-square" \
+          curl -sfL "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}?style=flat-square" \
             -o .badges/coverage.svg
 
           if [ ! -s .badges/coverage.svg ]; then
@@ -60,8 +64,28 @@ jobs:
             exit 1
           fi
 
+      - name: Upload badge artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-badge
+          path: .badges/coverage.svg
+          retention-days: 1
+
+  push-badge:
+    needs: test-coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download badge artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: coverage-badge
+          path: .badges
+
       - name: Push badge to badges branch
         run: |
+          COVERAGE_PCT="${{ needs.test-coverage.outputs.coverage_pct }}"
           cd .badges
           git init
           git config user.name "github-actions[bot]"
