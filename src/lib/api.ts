@@ -61,18 +61,22 @@ function buildSignal(init?: RequestInit): AbortSignal {
  * CORS proxies (e.g. allorigins.win) sometimes return HTTP 200 with an
  * HTML error page when the upstream API fails. Calling `response.json()`
  * on such a response throws a meaningless `SyntaxError`. This helper
- * checks the `Content-Type` header first and produces a diagnostic error
- * message that identifies the problem (Issue #221).
+ * detects HTML responses and produces a diagnostic error message that
+ * identifies the problem (Issue #221).
  *
- * When the `Content-Type` header is missing (some CORS proxies strip all
- * custom headers), the function attempts JSON parsing anyway and wraps
- * any `SyntaxError` in a descriptive error with a body preview.
+ * Detection strategy:
+ * - `text/html` Content-Type: fail fast with a body preview. This is the
+ *   most common proxy error page format.
+ * - Any other Content-Type (including `text/plain`, which is the default
+ *   for `new Response(string)`, or missing headers from proxy stripping):
+ *   attempt JSON parsing. If parsing fails with `SyntaxError`, wrap it in
+ *   a descriptive error.
  */
 export async function parseJsonResponse(response: Response): Promise<unknown> {
   const contentType = response.headers.get("content-type") ?? "";
 
-  // Content-Type present and clearly not JSON → fail fast with preview
-  if (contentType && !contentType.includes("application/json")) {
+  // HTML responses are a clear signal of a proxy error page
+  if (contentType.includes("text/html")) {
     const preview = (await response.text()).slice(0, 200);
     throw new Error(
       `Expected JSON response but received ${contentType}. ` +
@@ -81,7 +85,7 @@ export async function parseJsonResponse(response: Response): Promise<unknown> {
     );
   }
 
-  // Content-Type is JSON or missing (proxy stripped headers) → try parsing
+  // For JSON, text/plain, missing, or any other content-type: try parsing
   try {
     return await response.json();
   } catch (err) {
