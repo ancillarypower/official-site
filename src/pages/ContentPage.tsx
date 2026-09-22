@@ -180,10 +180,15 @@ export default function ContentPage() {
   }
 
   // Article deep link: fetch error or post not found (404)
+  // Check singlePostError first: TanStack Query leaves data as undefined
+  // (not null) on failure, so the === null guard alone would miss errors.
+  // Keep === null (strict) for 404 to avoid catching undefined from
+  // disabled/pending query states that rely on localMatch fallback.
   if (articleId !== null && !isSinglePostLoading) {
     if (singlePostError) {
-      return <FetchErrorState error={singlePostError} onRetry={refetchSinglePost} />;    }
-    if (remoteSinglePost == null) {
+      return <FetchErrorState error={singlePostError} onRetry={refetchSinglePost} />;
+    }
+    if (remoteSinglePost === null) {
       return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
     }
   }
