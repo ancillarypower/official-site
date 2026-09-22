@@ -376,6 +376,52 @@ describe("useWooProducts", () => {
     expect(callArgs[1]).toHaveProperty("signal");
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
   });
+
+  /* -- Issue #275 Regression Tests -- */
+
+  it("passes search parameter to WooCommerce API URL (regression #275)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWooProducts(1, "Widget"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("search=Widget");
+  });
+
+  it("omits search parameter when empty (regression #275)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWooProducts(1, ""), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).not.toContain("search=");
+  });
 });
 
 describe("normalizeRawProduct", () => {
