@@ -415,6 +415,33 @@ describe("ContentPage", () => {
     expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc");
   });
 
+  // --- _fields bandwidth optimization regression tests (#277) ---
+
+  it("always fetches full post via useSinglePost for article view (regression #277)", () => {
+    // Post 1 exists on the current page (localMatch), but useSinglePost
+    // should still be called with articleId to fetch the full content
+    // (list queries now exclude content via _fields parameter).
+    renderPage("/?article=1");
+    expect(mockUseSinglePost).toHaveBeenCalledWith(1);
+  });
+
+  it("renders article preview from list data while useSinglePost loads (regression #277)", () => {
+    // Post 1 exists on the current page as localMatch (preview data).
+    // While useSinglePost is loading, ContentPage should render ArticleView
+    // using the localMatch preview (title, image, metadata) instead of
+    // showing a loading spinner.
+    mockUseSinglePost.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+    renderPage("/?article=1");
+    // Should NOT show loading spinner (localMatch provides instant preview)
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    // Should NOT show pagination (we're in article view)
+    expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
   // --- Focus management regression tests (#149) ---
 
   it("focuses #main-content when returning from article view (regression #149)", () => {
