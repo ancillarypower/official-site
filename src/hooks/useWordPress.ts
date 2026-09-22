@@ -11,6 +11,14 @@ interface WpQueryResult {
 }
 
 /**
+ * Fields requested from the WordPress REST API for list views.
+ *
+ * Excludes `content` (only needed by ArticleView via useSinglePost)
+ * to reduce response payload by an estimated 5-10x (Issue #277).
+ */
+const LIST_FIELDS = "id,date,title,excerpt,name,source_url,media_type,_embedded";
+
+/**
  * Safely parse a raw `_embedded` value into the shape expected by WpPost.
  * Unlike the previous `as WpPost["_embedded"]` type assertion, this validates
  * each nested structure (author, wp:featuredmedia, wp:term) at runtime.
@@ -90,7 +98,7 @@ export function useWordPress(
     queryFn: async ({ signal }) => {
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}${searchParam}`;
+      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}&_fields=${LIST_FIELDS}${searchParam}`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
