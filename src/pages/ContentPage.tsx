@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWordPress, useSinglePost } from "@/hooks/useWordPress";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -12,7 +12,6 @@ import { ContentToolbar } from "@/components/ui/ContentToolbar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FetchErrorState } from "@/components/ui/FetchErrorState";
-import { getPostTitle } from "@/lib/types";
 
 const SORT_OPTIONS = [
   { value: "date_desc", labelKey: "sort_date_desc" },
@@ -20,6 +19,14 @@ const SORT_OPTIONS = [
   { value: "title_asc", labelKey: "sort_title_asc" },
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
+
+/** Map UI sort values to WordPress REST API orderby/order parameters. */
+const SORT_MAP: Record<string, { orderby: string; order: string }> = {
+  date_desc: { orderby: "date", order: "desc" },
+  date_asc: { orderby: "date", order: "asc" },
+  title_asc: { orderby: "title", order: "asc" },
+  title_desc: { orderby: "title", order: "desc" },
+};
 
 function parsePageParam(value: string | null): number {
   const raw = Number(value);
@@ -123,28 +130,19 @@ export default function ContentPage() {
     }, { replace: true });
   };
 
-  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useWordPress(page, debouncedSearch);
+  // Delegate sorting to WordPress REST API (Issue #276).
+  // Client-side sorting only affected the current page; server-side sorting
+  // ensures cross-page consistency.
+  const sortParams = SORT_MAP[sort] ?? SORT_MAP.date_desc;
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useWordPress(
+    page,
+    debouncedSearch,
+    sortParams.orderby,
+    sortParams.order,
+  );
 
-  // Client-side sort only; search is delegated to WP REST API `search` param.
-  const filteredPosts = useMemo(() => {
-    if (!data?.posts) return [];
-    const posts = [...data.posts];
-    switch (sort) {
-      case "date_desc":
-        posts.sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
-        break;
-      case "date_asc":
-        posts.sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-        break;
-      case "title_asc":
-        posts.sort((a, b) => getPostTitle(a).localeCompare(getPostTitle(b)));
-        break;
-      case "title_desc":
-        posts.sort((a, b) => getPostTitle(b).localeCompare(getPostTitle(a)));
-        break;
-    }
-    return posts;
-  }, [data?.posts, sort]);
+  // Posts are already sorted by the API; no client-side re-sorting needed.
+  const posts = data?.posts ?? [];
 
   // Deep link resolution (Issue #250):
   // 1. Try to find the post on the currently loaded page (instant, no API call).
@@ -217,9 +215,9 @@ export default function ContentPage() {
       />
       <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
         <PostGrid
-          posts={filteredPosts}
+          posts={posts}
           onSelectPost={(i) => {
-            const post = filteredPosts[i];
+            const post = posts[i];
             if (post) setSearchParams(prev => {
               const next = new URLSearchParams(prev);
               next.set("article", String(post.id));
