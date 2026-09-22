@@ -308,7 +308,16 @@ describe("fetchWithProxy", () => {
     ).rejects.toThrow(/All CORS proxies failed/);
   });
 
-  it("treats proxy 404 as failure and rotates to next proxy (regression #176)", async () => {
+  it("returns upstream 404 response instead of throwing (regression #176 updated for #271)", async () => {
+    const notFound = new Response("Not Found", { status: 404 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(notFound));
+
+    const result = await fetchWithProxy("https://api.test.com/missing", true);
+    // With #271 fix, upstream HTTP responses are returned, not thrown
+    expect(result.status).toBe(404);
+  });
+
+  it("still rotates to next proxy on non-ok response before returning last upstream (regression #176 + #271)", async () => {
     const notFound = new Response("Not Found", { status: 404 });
     const okResponse = new Response("ok", { status: 200 });
     const mockFetch = vi.fn()
@@ -317,22 +326,9 @@ describe("fetchWithProxy", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const result = await fetchWithProxy("https://api.test.com/missing", true);
+    // Second proxy returned ok, so we get the ok response
     expect(result.status).toBe(200);
     expect(mockFetch).toHaveBeenCalledTimes(2);
-  });
-
-  it("throws when all proxies return 404 (regression #176)", async () => {
-    const notFound = new Response("Not Found", { status: 404 });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(notFound));
-
-    try {
-      await fetchWithProxy("https://api.test.com/missing", true);
-      expect.unreachable("should have thrown");
-    } catch (err) {
-      const msg = (err as Error).message;
-      expect(msg).toMatch(/All CORS proxies failed/);
-      expect(msg).toContain("HTTP 404");
-    }
   });
 
   it("falls back to next proxy when first returns server error", async () => {
@@ -473,18 +469,13 @@ describe("fetchWithProxy", () => {
     }
   });
 
-  it("includes HTTP status code when proxies return server errors (regression #87)", async () => {
+  it("returns upstream server error response instead of throwing (regression #87 updated for #271)", async () => {
     const serverError = new Response("Error", { status: 500 });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(serverError));
 
-    try {
-      await fetchWithProxy("https://api.test.com/data", true);
-      expect.unreachable("should have thrown");
-    } catch (err) {
-      const msg = (err as Error).message;
-      expect(msg).toMatch(/All CORS proxies failed/);
-      expect(msg).toContain("HTTP 500");
-    }
+    // With #271 fix, upstream HTTP 500 is returned, not thrown
+    const result = await fetchWithProxy("https://api.test.com/data", true);
+    expect(result.status).toBe(500);
   });
 
   // --- Regression tests for Issue #205: AbortSignal in proxy mode ---
@@ -535,5 +526,45 @@ describe("fetchWithProxy", () => {
     const callArgs = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(callArgs[1]).toHaveProperty("signal");
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  // --- Regression tests for Issue #271: upstream error discrimination ---
+
+  it("returns upstream API error response instead of throwing when all proxies get HTTP error (regression #271)", async () => {
+    const forbidden = new Response('{"code":"rest_forbidden","message":"Forbidden"}', {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(forbidden));
+
+    const result = await fetchWithProxy("https://api.test.com/data", true);
+    // Upstream 403 is returned, not thrown as "All CORS proxies failed"
+    expect(result.status).toBe(403);
+    const body = await result.json();
+    expect(body.code).toBe("rest_forbidden");
+  });
+
+  it("still throws when all proxies have network errors only (regression #271)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    await expect(
+      fetchWithProxy("https://api.test.com/data", true),
+    ).rejects.toThrow(/All CORS proxies failed/);
+  });
+
+  it("returns upstream response even when some proxies have network errors (regression #271)", async () => {
+    const serverError = new Response('{"code":"internal_error"}', {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+    const mockFetch = vi.fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce(serverError);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await fetchWithProxy("https://api.test.com/data", true);
+    // First proxy had network error, second returned 500 — return the 500
+    expect(result.status).toBe(500);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });
