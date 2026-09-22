@@ -255,4 +255,72 @@ describe("settingsStore", () => {
     expect(useSettingsStore.getState().wooKey).toBe("");
     expect(useSettingsStore.getState().wooSecret).toBe("");
   });
+
+  // --- Zod validation regression: #448 ---
+
+  it("rejects corrupted contentType from localStorage and falls back to defaults (regression #448)", async () => {
+    // Corrupted localStorage: invalid contentType, negative perPage,
+    // unknown theme, out-of-range fontScale.  Zod safeParse should fail
+    // and the merge callback should discard the entire blob.
+    localStorage.setItem(
+      "ap-settings",
+      JSON.stringify({
+        state: {
+          contentType: "INVALID",
+          perPage: -5,
+          wooPerPage: 999,
+          theme: "neon",
+          fontScale: 99,
+          wpUrl: "https://corrupted.example.com",
+          wooUrl: "",
+          wooUseSameUrl: true,
+          useProxy: false,
+        },
+        version: 1,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    const s = useSettingsStore.getState();
+    // All fields should be defaults because the blob failed validation
+    expect(s.contentType).toBe("posts");
+    expect(s.perPage).toBe(20);
+    expect(s.wooPerPage).toBe(20);
+    expect(s.theme).toBe("light");
+    expect(s.fontScale).toBe(1);
+    // wpUrl should NOT be the corrupted value
+    expect(s.wpUrl).not.toBe("https://corrupted.example.com");
+  });
+
+  it("accepts valid persisted settings after Zod validation (regression #448)", async () => {
+    // Valid localStorage: all fields within allowed constraints.
+    // Zod safeParse should succeed and merge should restore them.
+    localStorage.setItem(
+      "ap-settings",
+      JSON.stringify({
+        state: {
+          contentType: "pages",
+          perPage: 50,
+          wooPerPage: 30,
+          theme: "dark",
+          fontScale: 1.2,
+          wpUrl: "https://valid.example.com",
+          wooUrl: "https://woo.example.com",
+          wooUseSameUrl: false,
+          useProxy: true,
+        },
+        version: 1,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    const s = useSettingsStore.getState();
+    expect(s.contentType).toBe("pages");
+    expect(s.perPage).toBe(50);
+    expect(s.wooPerPage).toBe(30);
+    expect(s.theme).toBe("dark");
+    expect(s.fontScale).toBe(1.2);
+    expect(s.wpUrl).toBe("https://valid.example.com");
+    expect(s.wooUrl).toBe("https://woo.example.com");
+    expect(s.wooUseSameUrl).toBe(false);
+    expect(s.useProxy).toBe(true);
+  });
 });
