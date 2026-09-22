@@ -6,6 +6,7 @@ import { I18nProvider } from "@/context/I18nContext";
 import { CartPanel } from "@/components/store/CartPanel";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { AppError } from "@/lib/errors";
 
 const { mockCheckout } = vi.hoisted(() => ({
   mockCheckout: vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" }),
@@ -130,5 +131,27 @@ describe("CartPanel checkout success flow", () => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
     expect(screen.queryByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).not.toBeInTheDocument();
+  });
+
+  it("displays translated AppError message during checkout instead of generic error (regression #460)", async () => {
+    // Mock checkout to throw an AppError with a known i18n code
+    mockCheckout.mockRejectedValueOnce(
+      new AppError("error_price_changed", "Price changed fallback", { details: "Widget: 10 \u2192 15" }),
+    );
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      // The error message should contain the translated text for
+      // error_price_changed, NOT the generic error_unhandled translation.
+      // zh.error_price_changed includes "\u8CFC\u7269\u8ECA\u4E2D\u90E8\u5206\u5546\u54C1\u50F9\u683C\u5DF2\u8B8A\u52D5"
+      // zh.error_unhandled is "\u767C\u751F\u975E\u9810\u671F\u7684\u932F\u8AA4"
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      // Must NOT show the generic unhandled error
+      expect(errorEl!.textContent).not.toContain("\u767C\u751F\u975E\u9810\u671F\u7684\u932F\u8AA4");
+      // Must show the translated price_changed message (contains the interpolated details)
+      expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
+    });
   });
 });
