@@ -5,6 +5,7 @@ import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
 import type { IfcWorkerMessage, IfcMeshData } from "@/workers/ifcWorker";
+import type { ModelParseMessage } from "@/workers/modelParseWorker";
 
 interface ModelViewerProps {
   name: string;
@@ -120,6 +121,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let fontScaleHandler: (() => void) | null = null;
     // Track IFC Worker for cleanup on early unmount (#202)
     let ifcWorker: Worker | null = null;
+    // Track OBJ/STL Worker for cleanup on early unmount (#447)
+    let modelParseWorker: Worker | null = null;
 
     async function init() {
       if (!el || disposed) return;
@@ -490,30 +493,104 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
               }
             },
           );
-        } else if (ext === "obj") {
-          const { OBJLoader } = await import(
-            "three/examples/jsm/loaders/OBJLoader.js"
+        } else if (ext === "obj" || ext === "stl") {
+          // Offload OBJ/STL parsing to a dedicated Web Worker (#447)
+          const worker = new Worker(
+            new URL("../../workers/modelParseWorker.ts", import.meta.url),
+            { type: "module" },
           );
-          fitToView(
-            new OBJLoader().parse(
-              new TextDecoder().decode(new Uint8Array(buf)),
-            ),
+          modelParseWorker = worker;
+
+          worker.postMessage(
+            { format: ext as "obj" | "stl", buffer: buf },
+            [buf],
           );
-        } else if (ext === "stl") {
-          const { STLLoader } = await import(
-            "three/examples/jsm/loaders/STLLoader.js"
-          );
-          const stlGeometry = new STLLoader().parse(buf);
-          fitToView(
-            new THREE.Mesh(
-              stlGeometry,
-              new THREE.MeshStandardMaterial({
-                color: 0x8899aa,
-                metalness: 0.3,
-                roughness: 0.6,
-              }),
-            ),
-          );
+
+          worker.onmessage = (ev: MessageEvent<ModelParseMessage>) => {
+            modelParseWorker = null;
+            worker.terminate();
+
+            if (disposed) return;
+
+            const msg = ev.data;
+            if (msg.type === "error") {
+              setErrorMsg(msg.message);
+              setStatus("error");
+              return;
+            }
+
+            try {
+              if (ext === "stl") {
+                // Single geometry -> Mesh with MeshStandardMaterial
+                const md = msg.meshes[0]!;
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute(
+                  "position",
+                  new THREE.BufferAttribute(md.positions, 3),
+                );
+                if (md.normals) {
+                  geom.setAttribute(
+                    "normal",
+                    new THREE.BufferAttribute(md.normals, 3),
+                  );
+                }
+                if (md.indices) {
+                  geom.setIndex(new THREE.BufferAttribute(md.indices, 1));
+                }
+                fitToView(
+                  new THREE.Mesh(
+                    geom,
+                    new THREE.MeshStandardMaterial({
+                      color: 0x8899aa,
+                      metalness: 0.3,
+                      roughness: 0.6,
+                    }),
+                  ),
+                );
+              } else {
+                // OBJ -> Group of Meshes with MeshPhongMaterial
+                const group = new THREE.Group();
+                for (const md of msg.meshes) {
+                  const geom = new THREE.BufferGeometry();
+                  geom.setAttribute(
+                    "position",
+                    new THREE.BufferAttribute(md.positions, 3),
+                  );
+                  if (md.normals) {
+                    geom.setAttribute(
+                      "normal",
+                      new THREE.BufferAttribute(md.normals, 3),
+                    );
+                  }
+                  if (md.indices) {
+                    geom.setIndex(new THREE.BufferAttribute(md.indices, 1));
+                  }
+                  group.add(
+                    new THREE.Mesh(
+                      geom,
+                      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide }),
+                    ),
+                  );
+                }
+                fitToView(group);
+              }
+            } catch (err) {
+              if (!disposed) {
+                setErrorMsg(
+                  err instanceof Error ? err.message : "Model reconstruction failed",
+                );
+                setStatus("error");
+              }
+            }
+          };
+
+          worker.onerror = (ev: ErrorEvent) => {
+            modelParseWorker = null;
+            if (!disposed) {
+              setErrorMsg(ev.message || "Model parse Worker crashed");
+              setStatus("error");
+            }
+          };
         }
       } catch (err) {
         if (!disposed) {
@@ -539,6 +616,11 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
       if (ifcWorker) {
         ifcWorker.terminate();
         ifcWorker = null;
+      }
+      // Terminate model parse Worker if still running (#447)
+      if (modelParseWorker) {
+        modelParseWorker.terminate();
+        modelParseWorker = null;
       }
       controls?.dispose();
       resetViewpointRef.current = null;

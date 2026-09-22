@@ -1,8 +1,11 @@
 /**
- * Regression tests for lazy 3D loader imports (#305).
+ * Regression tests for lazy 3D loader imports (#305) and
+ * Worker-based OBJ/STL parsing (#447).
  *
  * Verify that each format branch only imports its own loader,
- * not all four loaders unconditionally.
+ * not all four loaders unconditionally. OBJ/STL are fully
+ * offloaded to a Web Worker and import zero loaders on the
+ * main thread.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -81,6 +84,38 @@ vi.mock("three/examples/jsm/utils/BufferGeometryUtils.js", () => ({
   mergeGeometries: vi.fn().mockReturnValue({}),
 }));
 
+// --- Worker mock for OBJ/STL (#447) ---
+const MOCK_MODEL_MESHES = [
+  {
+    positions: new Float32Array([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+    normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
+    indices: null,
+  },
+];
+
+let lastWorkerInstance: { terminate: ReturnType<typeof vi.fn> } | null = null;
+
+class MockWorker {
+  onmessage: ((e: { data: unknown }) => void) | null = null;
+  onerror: ((e: unknown) => void) | null = null;
+  terminate = vi.fn();
+
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    lastWorkerInstance = this;
+  }
+
+  postMessage(msg?: unknown) {
+    const data = msg && typeof msg === "object" && "format" in msg
+      ? { type: "result", meshes: MOCK_MODEL_MESHES }
+      : { type: "result", meshes: [] };
+    setTimeout(() => {
+      this.onmessage?.({ data });
+    }, 0);
+  }
+}
+// --- end Worker mock ---
+
 // --- IntersectionObserver mock ---
 class MockIntersectionObserver {
   private _callback: (entries: Array<{ isIntersecting: boolean }>) => void;
@@ -94,9 +129,11 @@ class MockIntersectionObserver {
   });
 }
 
-describe("ModelViewer lazy loader imports (#305)", () => {
+describe("ModelViewer lazy loader imports (#305, #447)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    lastWorkerInstance = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
@@ -104,23 +141,27 @@ describe("ModelViewer lazy loader imports (#305)", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  it("loads STL model without importing GLTFLoader or OBJLoader (regression #305)", async () => {
+  it("loads STL model via Worker without importing any loader on main thread (regression #305, #447)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
 
-    expect(stlLoaderCtor).toHaveBeenCalled();
+    // STL is fully offloaded to Worker (#447) \u2014 zero loaders on main thread
+    expect(stlLoaderCtor).not.toHaveBeenCalled();
     expect(gltfLoaderCtor).not.toHaveBeenCalled();
     expect(objLoaderCtor).not.toHaveBeenCalled();
+    expect(lastWorkerInstance).not.toBeNull();
   });
 
-  it("loads OBJ model without importing GLTFLoader or STLLoader (regression #305)", async () => {
+  it("loads OBJ model via Worker without importing any loader on main thread (regression #305, #447)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.obj" ext="obj" modelId={1} /></I18nProvider>);
     await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
 
-    expect(objLoaderCtor).toHaveBeenCalled();
+    // OBJ is fully offloaded to Worker (#447) \u2014 zero loaders on main thread
+    expect(objLoaderCtor).not.toHaveBeenCalled();
     expect(gltfLoaderCtor).not.toHaveBeenCalled();
     expect(stlLoaderCtor).not.toHaveBeenCalled();
+    expect(lastWorkerInstance).not.toBeNull();
   });
 });
