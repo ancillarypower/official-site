@@ -1,3 +1,5 @@
+import DOMPurify from "dompurify";
+
 /**
  * Common HTML named entities lookup table.
  * Covers the most frequent entities found in WordPress REST API output
@@ -57,4 +59,23 @@ export function decodeHtml(html: string): string {
     const key = `&${named};`;
     return NAMED_ENTITIES[key] ?? match;
   });
+}
+
+/**
+ * Strip HTML tags from a string using DOM parsing.
+ *
+ * Uses DOMPurify to sanitize the input first (defense in depth),
+ * then extracts text content via the DOM. This correctly handles
+ * all HTML structures including attributes containing `>`, unclosed
+ * tags, and nested special characters -- unlike the regex anti-pattern
+ * `/<[^>]*>/g` which silently corrupts such input (Issue #299).
+ *
+ * The DOM's `textContent` property also decodes HTML entities
+ * automatically, so a separate `decodeHtml()` call is unnecessary.
+ */
+export function stripHtml(html: string): string {
+  if (!html) return "";
+  const el = document.createElement("div");
+  el.innerHTML = DOMPurify.sanitize(html);
+  return el.textContent ?? "";
 }

@@ -11,7 +11,7 @@ import { ContentToolbar } from "@/components/ui/ContentToolbar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { FetchErrorState } from "@/components/ui/FetchErrorState";
 import { SAMPLE_PRODUCTS } from "@/lib/constants";
-import { decodeHtml } from "@/lib/utils";
+import { decodeHtml, stripHtml } from "@/lib/utils";
 import type { DisplayProduct } from "@/lib/types";
 
 const SORT_OPTIONS = [
@@ -113,7 +113,7 @@ export default function StorePage() {
   const products: DisplayProduct[] = useMemo(() => {
     if (isLoading || isError) return [];
     if (wooData) {
-      return wooData.products.map((p) => ({ id: p.id, name: decodeHtml(p.name), desc: decodeHtml(p.short_description.replace(/<[^>]*>/g, "")), price: parseFloat(p.price) || 0, regularPrice: parseFloat(p.regular_price) || 0, salePrice: p.sale_price ? parseFloat(p.sale_price) : null, img: p.images[0]?.src ?? null, icon: null, stockStatus: p.stock_status }));
+      return wooData.products.map((p) => ({ id: p.id, name: decodeHtml(p.name), desc: stripHtml(p.short_description), price: parseFloat(p.price) || 0, regularPrice: parseFloat(p.regular_price) || 0, salePrice: p.sale_price ? parseFloat(p.sale_price) : null, img: p.images[0]?.src ?? null, icon: null, stockStatus: p.stock_status }));
     }
     return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as const), desc: t(`product_${sp.id}_desc` as const), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
   }, [wooData, t, isLoading, isError]);
