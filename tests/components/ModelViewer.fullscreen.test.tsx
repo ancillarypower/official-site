@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
+// Polyfill Fullscreen API for jsdom (#451)
+if (!Element.prototype.requestFullscreen) {
+  Element.prototype.requestFullscreen = function () { return Promise.resolve(); } as () => Promise<void>;
+}
+if (!document.exitFullscreen) {
+  document.exitFullscreen = function () { return Promise.resolve(); } as () => Promise<void>;
+}
+
 vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
