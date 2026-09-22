@@ -167,6 +167,7 @@ export default function ContentPage() {
     data: remoteSinglePost,
     isLoading: isSinglePostLoading,
     error: singlePostError,
+    refetch: refetchSinglePost,
   } = useSinglePost(articleId);
 
   // Prefer the full single post; fall back to localMatch as instant preview
@@ -178,13 +179,13 @@ export default function ContentPage() {
     return <LoadingSpinner />;
   }
 
-  // Article deep link: post not found (404) or fetch error
-  if (articleId !== null && !isSinglePostLoading && remoteSinglePost === null) {
+  // Article deep link: fetch error or post not found (404)
+  if (articleId !== null && !isSinglePostLoading) {
     if (singlePostError) {
-      return <FetchErrorState error={singlePostError} onRetry={refetch} />;
+      return <FetchErrorState error={singlePostError} onRetry={refetchSinglePost} />;    }
+    if (remoteSinglePost == null) {
+      return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
     }
-    // remoteSinglePost === null means 404
-    return <EmptyState icon="\ud83d\udced" title={t("no_results")} />;
   }
 
   if (selectedPost) {
