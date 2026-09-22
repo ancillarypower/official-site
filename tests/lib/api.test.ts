@@ -530,18 +530,31 @@ describe("fetchWithProxy", () => {
 
   // --- Regression tests for Issue #271: upstream error discrimination ---
 
-  it("returns upstream API error response instead of throwing when all proxies get HTTP error (regression #271)", async () => {
-    const forbidden = new Response('{"code":"rest_forbidden","message":"Forbidden"}', {
+  it("tries all proxies and returns the last upstream response (regression #271)", async () => {
+    // Use distinct responses per proxy to verify all are attempted
+    // and the last upstream response is returned
+    const firstProxyResponse = new Response('{"code":"rest_forbidden","proxy":"first"}', {
       status: 403,
       headers: { "content-type": "application/json" },
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(forbidden));
+    const secondProxyResponse = new Response('{"code":"rest_forbidden","proxy":"second"}', {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(firstProxyResponse)
+      .mockResolvedValueOnce(secondProxyResponse);
+    vi.stubGlobal("fetch", mockFetch);
 
     const result = await fetchWithProxy("https://api.test.com/data", true);
+    // Both proxies were attempted
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     // Upstream 403 is returned, not thrown as "All CORS proxies failed"
     expect(result.status).toBe(403);
+    // The returned response is from the last proxy attempt
     const body = await result.json();
     expect(body.code).toBe("rest_forbidden");
+    expect(body.proxy).toBe("second");
   });
 
   it("still throws when all proxies have network errors only (regression #271)", async () => {
