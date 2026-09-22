@@ -155,6 +155,8 @@ export const zh = {
   checkout_field_required: "此欄位為必填",
   checkout_invalid_email: "請輸入有效的 Email 地址",
   checkout_invalid_country: "國家代碼必須為 2 個字母（如 TW）",
+  checkout_shipping: "寄送資訊",
+  checkout_ship_to_billing: "寄送地址與帳單地址相同",
   order_success_title: "\u2713 訂單建立成功！",
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
