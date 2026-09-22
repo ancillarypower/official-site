@@ -85,7 +85,11 @@ export function CartPanel() {
         if (order.payment_url) { window.location.assign(order.payment_url); return; }
         setOrderStatus("success");
       } catch (err) {
-        setOrderError(err instanceof AppError ? t("error_unhandled") : err instanceof Error ? err.message : t("error_unhandled"));
+        if (err instanceof AppError) {
+          setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
+        } else {
+          setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
+        }
         setOrderStatus("error");
       }
     } else {
@@ -94,7 +98,11 @@ export function CartPanel() {
         if (order.payment_url) { window.location.assign(order.payment_url); return; }
         setOrderStatus("success");
       } catch (err) {
-        setOrderError(err instanceof AppError ? t("error_unhandled") : err instanceof Error ? err.message : t("error_unhandled"));
+        if (err instanceof AppError) {
+          setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
+        } else {
+          setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
+        }
         setOrderStatus("error");
       }
     }
