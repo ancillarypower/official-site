@@ -5,6 +5,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
+import { MAX_BATCH_FILES } from "@/lib/constants";
 import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
 import { computeFileHash } from "@/lib/hash";
 import type { ModelMeta } from "@/lib/types";
@@ -137,6 +138,13 @@ export default function ModelsPage() {
   }, []);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
+    // Guard: cap batch size to prevent UI freezes and IndexedDB quota
+    // exhaustion when users drop hundreds of small files (Issue #301).
+    if (files.length > MAX_BATCH_FILES) {
+      toast.warning(t("models_batch_limit", { n: MAX_BATCH_FILES }));
+      files = files.slice(0, MAX_BATCH_FILES);
+    }
+
     setIsUploading(true);
     try {
       // Read current models from IndexedDB (canonical source of truth)

@@ -10,6 +10,9 @@ export const FETCH_TIMEOUT = 15_000;
 /** Maximum allowed model file size in bytes (100 MB) */
 export const MAX_MODEL_SIZE = 100 * 1024 * 1024;
 
+/** Maximum number of files per single upload batch */
+export const MAX_BATCH_FILES = 20;
+
 /** three.js Draco decoder CDN path */
 export const DRACO_CDN =
   "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/";
