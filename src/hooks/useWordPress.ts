@@ -82,11 +82,20 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
   };
 }
 
+/**
+ * Fetch paginated WordPress content for list views.
+ *
+ * @param enabled - Pass `false` to disable the query entirely (e.g. when
+ *   viewing a single article and the list fetch is unnecessary). Defaults
+ *   to `true`. TanStack Query manages cache lifecycle automatically:
+ *   cached data is retained and served instantly when re-enabled (Issue #437).
+ */
 export function useWordPress(
   page: number = 1,
   search: string = "",
   orderby: string = "date",
   order: string = "desc",
+  enabled: boolean = true,
 ) {
   const wpUrl = useSettingsStore((s) => s.wpUrl);
   const contentType = useSettingsStore((s) => s.contentType);
@@ -143,7 +152,7 @@ export function useWordPress(
 
       return { posts: parsed.data, totalPages, totalPosts: totalPosts || parsed.data.length };
     },
-    enabled: !!wpUrl,
+    enabled: !!wpUrl && enabled,
     placeholderData: keepPreviousData,
   });
 }

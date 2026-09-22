@@ -138,11 +138,17 @@ export default function ContentPage() {
   // ensures cross-page consistency.
   // Literal DEFAULT_SORT fallback avoids noUncheckedIndexedAccess union with undefined.
   const sortParams = SORT_MAP[sort] ?? DEFAULT_SORT;
+
+  // Skip the list query entirely when viewing a single article (Issue #437).
+  // Only useSinglePost needs to fire; the list fetch is wasted bandwidth.
+  // TanStack Query retains cached list data, so navigating back to the list
+  // serves cached results instantly (or triggers a background refetch if stale).
   const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useWordPress(
     page,
     debouncedSearch,
     sortParams.orderby,
     sortParams.order,
+    articleId === null,
   );
 
   // Posts are already sorted by the API; no client-side re-sorting needed.
