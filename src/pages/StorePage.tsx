@@ -1,7 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useWooProducts } from "@/hooks/useWooCommerce";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { ProductGrid } from "@/components/store/ProductGrid";
@@ -35,13 +36,41 @@ export default function StorePage() {
   const wooSecret = useSettingsStore((s) => s.wooSecret);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
-  const [filter, setFilter] = useState("");
-  const [sort, setSort] = useState("default");
-  const { data: wooData, isLoading, isError, error, refetch } = useWooProducts(page);
+
+  // Sync filter and sort to URL search params so they survive navigation
+  // and browser refresh (Issue #275). Default values are omitted from URL.
+  const filter = searchParams.get("q") ?? "";
+  const sort = searchParams.get("sort") ?? "default";
+
+  const setFilter = useCallback((value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set("q", value);
+      else next.delete("q");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setSort = useCallback((value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value && value !== "default") next.set("sort", value);
+      else next.delete("sort");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Debounce search input before sending to WooCommerce REST API (300 ms).
+  const debouncedSearch = useDebouncedValue(filter, 300);
+
+  const { data: wooData, isLoading, isError, error, refetch, isFetching, isPlaceholderData } = useWooProducts(page, debouncedSearch);
   const usingSamples = !wooData && !isLoading && !isError;
 
   // Reset page to 1 when wooPerPage or WooCommerce connection settings change
-  // (not on mount). usePrevious ref pattern: mount -> ref === current -> skip;
+  // (not on mount). Also reset filter and sort when connection settings change.
+  // usePrevious ref pattern: mount -> ref === current -> skip;
   // value change -> ref !== current -> reset page. StrictMode-safe.
   const prevWooPerPage = useRef(wooPerPage);
   const prevBaseUrl = useRef(baseUrl);
@@ -58,6 +87,10 @@ export default function StorePage() {
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
         next.delete("page");
+        if (baseUrlChanged || wooKeyChanged || wooSecretChanged) {
+          next.delete("q");
+          next.delete("sort");
+        }
         return next;
       }, { replace: true });
     }
@@ -85,10 +118,10 @@ export default function StorePage() {
     return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as const), desc: t(`product_${sp.id}_desc` as const), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
   }, [wooData, t, isLoading, isError]);
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-    const q = filter.toLowerCase().trim();
-    if (q) result = result.filter((p) => p.name.toLowerCase().includes(q));
+  // Client-side sort only; search is delegated to WooCommerce REST API
+  // `search` param via useWooProducts (Issue #275).
+  const sortedProducts = useMemo(() => {
+    const result = [...products];
     switch (sort) {
       case "price_asc": result.sort((a, b) => a.price - b.price); break;
       case "price_desc": result.sort((a, b) => b.price - a.price); break;
@@ -96,7 +129,7 @@ export default function StorePage() {
       case "title_desc": result.sort((a, b) => b.name.localeCompare(a.name)); break;
     }
     return result;
-  }, [products, filter, sort]);
+  }, [products, sort]);
 
   const totalProducts = wooData?.totalProducts ?? SAMPLE_PRODUCTS.length;
 
@@ -106,6 +139,9 @@ export default function StorePage() {
         <h2 className="text-lg font-bold">{t("store_title")}</h2>
         <span className="text-xs text-tertiary">{t("store_products", { n: totalProducts })}</span>
         {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">\uD83D\uDD17 WooCommerce</span>}
+        {isFetching && isPlaceholderData && (
+          <span className="text-xs text-tertiary animate-pulse">{t("loading")}</span>
+        )}
       </div>
       {isLoading ? (
         <LoadingSpinner />
@@ -113,8 +149,10 @@ export default function StorePage() {
         <FetchErrorState error={error} onRetry={() => refetch()} />
       ) : (
         <>
-          <ContentToolbar filterValue={filter} onFilterChange={(v) => { setFilter(v); if (page !== 1) setPage(1); }} sortValue={sort} onSortChange={(v) => { setSort(v); if (page !== 1) setPage(1); }} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
-          <ProductGrid products={filteredProducts} />
+          <ContentToolbar filterValue={filter} onFilterChange={setFilter} sortValue={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
+          <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
+            <ProductGrid products={sortedProducts} />
+          </div>
           {!usingSamples && wooData && <Pagination currentPage={page} totalPages={wooData.totalPages} onPageChange={setPage} />}
         </>
       )}

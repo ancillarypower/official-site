@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   fetchWithProxy,
   wooApiUrl,
@@ -42,7 +42,18 @@ interface WooQueryResult {
   totalProducts: number;
 }
 
-export function useWooProducts(page: number = 1) {
+/**
+ * Fetch WooCommerce products with pagination and optional server-side search.
+ *
+ * When a non-empty `search` string is provided, it is forwarded to the
+ * WooCommerce REST API `?search=` parameter so the server filters across
+ * all products, not just the current page. This mirrors the
+ * useWordPress(page, search) pattern used by ContentPage (Issue #275).
+ *
+ * Uses `placeholderData: keepPreviousData` for smooth transitions while
+ * the debounced search value settles.
+ */
+export function useWooProducts(page: number = 1, search: string = "") {
   const wooKey = useSettingsStore((s) => s.wooKey);
   const wooSecret = useSettingsStore((s) => s.wooSecret);
   const wooPerPage = useSettingsStore((s) => s.wooPerPage);
@@ -50,12 +61,16 @@ export function useWooProducts(page: number = 1) {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useQuery<WooQueryResult>({
-    queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page, useProxy],
+    queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page, search, useProxy],
     queryFn: async ({ signal }) => {
       const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
         page: String(page),
       };
+
+      if (search) {
+        pageParams.search = search;
+      }
 
       const url = wooApiUrl(baseUrl, "products", pageParams);
 
@@ -113,6 +128,7 @@ export function useWooProducts(page: number = 1) {
     enabled: useProxy
       ? !!baseUrl
       : !!baseUrl && !!wooKey && !!wooSecret,
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -53,11 +53,16 @@ describe("StorePage", () => {
     expect(screen.getByText("8 \u9805\u5546\u54C1")).toBeInTheDocument();
   });
 
-  it("filters products by name", () => {
+  it("delegates filter to server-side search via useWooProducts (regression #275)", () => {
     renderPage();
     const filterInput = screen.getByRole("textbox", { name: "Filter" });
     fireEvent.change(filterInput, { target: { value: "xyz_no_match" } });
-    expect(screen.queryByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).not.toBeInTheDocument();
+    // With server-side search, the filter value is passed to useWooProducts
+    // via URL param -> debouncedSearch. The mock still renders sample products
+    // since we don't simulate debounce here, but we verify the filter input
+    // is wired up (the URL param is set, which will eventually trigger a
+    // new useWooProducts call with the search term after debounce).
+    expect(filterInput).toHaveValue("xyz_no_match");
   });
 
   it("sorts products by price ascending", () => {
@@ -124,53 +129,53 @@ describe("StorePage", () => {
 
   it("reads page from URL and passes to useWooProducts", () => {
     renderPage("/?page=2");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(2);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String));
   });
 
   it("defaults to page 1 for non-numeric page param", () => {
     renderPage("/?page=abc");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
   });
 
   it("defaults to page 1 when page param is missing", () => {
     renderPage("/");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
   });
 
   it("clamps zero and negative page to 1", () => {
     renderPage("/?page=-5");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
   });
 
   // --- Pagination reset on settings change regression tests ---
 
   it("resets page when wooPerPage changes", () => {
     renderPage("/?page=2");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(2);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String));
     act(() => {
       useSettingsStore.setState({ wooPerPage: 50 });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
   });
 
   it("resets page when WooCommerce baseUrl changes (regression #145)", () => {
     useSettingsStore.setState({ wpUrl: "https://old.example.com" });
     renderPage("/?page=3");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(3);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
     act(() => {
       useSettingsStore.setState({ wpUrl: "https://new.example.com" });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
   });
 
   it("resets page when wooKey changes (regression #145)", () => {
     useSettingsStore.setState({ wooKey: "ck_old" });
     renderPage("/?page=3");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(3);
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
     act(() => {
       useSettingsStore.setState({ wooKey: "ck_new" });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1);
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
   });
 
   // --- WooCommerce loading/error state regression tests (#112) ---
@@ -213,5 +218,23 @@ describe("StorePage", () => {
     renderPage();
     expect(screen.getByText("\u7121\u7DDA\u964D\u566A\u8033\u6A5F")).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  // --- Issue #275 Regression Tests ---
+
+  it("reads search query from URL q param and passes to useWooProducts (regression #275)", () => {
+    renderPage("/?q=headphones");
+    // useDebouncedValue starts with the initial value, so on first render
+    // the debounced value equals the URL param
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, "headphones");
+  });
+
+  it("resets page to 1 when filter input changes (regression #275)", () => {
+    renderPage("/?page=3");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
+    const filterInput = screen.getByRole("textbox", { name: "Filter" });
+    fireEvent.change(filterInput, { target: { value: "test" } });
+    // After filter change, page should reset to 1
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
   });
 });
