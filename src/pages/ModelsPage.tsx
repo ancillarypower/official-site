@@ -5,6 +5,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
+import { MAX_BATCH_FILES } from "@/lib/constants";
 import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
 import { computeFileHash } from "@/lib/hash";
 import type { ModelMeta } from "@/lib/types";
@@ -137,6 +138,13 @@ export default function ModelsPage() {
   }, []);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
+    // Guard: cap batch size to prevent UI freezes and IndexedDB quota
+    // exhaustion when users drop hundreds of small files (Issue #301).
+    if (files.length > MAX_BATCH_FILES) {
+      toast.warning(t("models_batch_limit", { n: MAX_BATCH_FILES }));
+      files = files.slice(0, MAX_BATCH_FILES);
+    }
+
     setIsUploading(true);
     try {
       // Read current models from IndexedDB (canonical source of truth)
@@ -379,7 +387,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            💾 {t("models_persisted")}
+            \uD83D\uDCBE {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -431,7 +439,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              🗑 {t("models_delete_all")}
+              \uD83D\uDDD1 {t("models_delete_all")}
             </button>
           </div>
           {isCustomSort && (
