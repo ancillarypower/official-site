@@ -20,6 +20,9 @@ const SORT_OPTIONS = [
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
 
+/** Default sort parameters matching WordPress REST API defaults. */
+const DEFAULT_SORT = { orderby: "date", order: "desc" } as const;
+
 /** Map UI sort values to WordPress REST API orderby/order parameters. */
 const SORT_MAP: Record<string, { orderby: string; order: string }> = {
   date_desc: { orderby: "date", order: "desc" },
@@ -133,7 +136,8 @@ export default function ContentPage() {
   // Delegate sorting to WordPress REST API (Issue #276).
   // Client-side sorting only affected the current page; server-side sorting
   // ensures cross-page consistency.
-  const sortParams = SORT_MAP[sort] ?? SORT_MAP.date_desc;
+  // Literal DEFAULT_SORT fallback avoids noUncheckedIndexedAccess union with undefined.
+  const sortParams = SORT_MAP[sort] ?? DEFAULT_SORT;
   const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useWordPress(
     page,
     debouncedSearch,
