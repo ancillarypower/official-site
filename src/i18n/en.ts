@@ -60,6 +60,7 @@ export const en: Record<TranslationKey, string> = {
   models_uploading: "Saving models...",
   models_fullscreen: "Fullscreen",
   models_exit_fullscreen: "Exit Fullscreen",
+  models_fullscreen_unavailable: "Fullscreen is not available in this environment",
   models_reset_viewpoint: "Reset Viewpoint",
   models_remove_label: "Remove \"{name}\"",
   models_select_label: "Select \"{name}\"",
