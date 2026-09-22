@@ -8,8 +8,11 @@ vi.mock("@/components/models/ModelViewer", () => ({
     createElement("div", { "data-testid": "model-viewer" }, props.name),
 }));
 
-const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: mockToastError } }));
+const { mockToastError, mockToastWarning } = vi.hoisted(() => ({
+  mockToastError: vi.fn(),
+  mockToastWarning: vi.fn(),
+}));
+vi.mock("sonner", () => ({ toast: { error: mockToastError, warning: mockToastWarning } }));
 
 const mockSaveModel = vi.fn().mockResolvedValue(1);
 const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
@@ -504,6 +507,42 @@ describe("ModelsPage", () => {
 
     // getAllModelMeta should NOT have been called again
     expect(mockGetAllModelMeta).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression test: batch upload exceeding MAX_BATCH_FILES is truncated (Issue #301)
+  it("truncates file batch exceeding MAX_BATCH_FILES and shows warning (regression #301)", async () => {
+    // Generate 25 files (MAX_BATCH_FILES = 20)
+    const files: File[] = [];
+    for (let i = 0; i < 25; i++) {
+      files.push(new File(["data"], `model-${i}.glb`, { type: "model/gltf-binary" }));
+    }
+
+    // Auto-increment IDs for saveModel
+    let nextId = 1;
+    mockSaveModel.mockImplementation(() => Promise.resolve(nextId++));
+
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
+    });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const dt = new DataTransfer();
+    for (const f of files) dt.items.add(f);
+    fireEvent.change(fileInput, { target: { files: dt.files } });
+
+    // toast.warning should have been called with the batch limit message
+    await waitFor(() => {
+      expect(mockToastWarning).toHaveBeenCalled();
+    });
+    expect(mockToastWarning).toHaveBeenCalledWith(
+      expect.stringContaining("20")
+    );
+
+    // saveModel should have been called at most 20 times (truncated)
+    await waitFor(() => {
+      expect(mockSaveModel.mock.calls.length).toBeLessThanOrEqual(20);
+    });
   });
 
 });
