@@ -57,6 +57,7 @@ export const zh = {
   models_uploading: "正在儲存模型...",
   models_fullscreen: "全螢幕檢視",
   models_exit_fullscreen: "離開全螢幕",
+  models_fullscreen_unavailable: "目前環境不支援全螢幕功能",
   models_reset_viewpoint: "重設視角",
   models_remove_label: "移除「{name}」",
   models_select_label: "選取「{name}」",

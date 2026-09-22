@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/context/I18nContext";
+import { toast } from "sonner";
 import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
@@ -45,6 +46,9 @@ function disposeSceneResources(s: Scene | null): void {
   });
   (s.environment as { dispose?: () => void } | null)?.dispose?.();
 }
+
+/** Feature-detect Fullscreen API once at module load (#451) */
+const supportsFullscreen = !!document.documentElement?.requestFullscreen;
 
 export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -94,12 +98,13 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
   const toggleFullscreen = useCallback(() => {
     if (!wrapperRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      wrapperRef.current.requestFullscreen();
-    }
-  }, []);
+    const promise = document.fullscreenElement
+      ? document.exitFullscreen()
+      : wrapperRef.current.requestFullscreen();
+    promise.catch(() => {
+      toast.error(t("models_fullscreen_unavailable"));
+    });
+  }, [t]);
 
   const handleResetViewpoint = useCallback(() => {
     resetViewpointRef.current?.();
@@ -665,14 +670,16 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           >
             {"\u21BA"}
           </button>
-          <button
-            onClick={toggleFullscreen}
-            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
-            aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
-            title={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
-          >
-            {isFullscreen ? "\u2715" : "\u26F6"}
-          </button>
+          {supportsFullscreen && (
+            <button
+              onClick={toggleFullscreen}
+              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded bg-surface-raised/80 text-sm text-tertiary backdrop-blur-sm transition-colors hover:bg-surface-sunken"
+              aria-label={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+              title={isFullscreen ? t("models_exit_fullscreen") : t("models_fullscreen")}
+            >
+              {isFullscreen ? "\u2715" : "\u26F6"}
+            </button>
+          )}
         </>
       )}
     </div>
