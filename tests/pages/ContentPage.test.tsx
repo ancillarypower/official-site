@@ -90,7 +90,7 @@ describe("ContentPage", () => {
     fireEvent.change(sortSelect, { target: { value: "title_asc" } });
     expect(screen.getByText("Gamma Article")).toBeInTheDocument();
     // Server-side sorting: verify API params passed (regression #276)
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc", true);
   });
 
   it("sorts by title descending", () => {
@@ -99,7 +99,7 @@ describe("ContentPage", () => {
     fireEvent.change(sortSelect, { target: { value: "title_desc" } });
     expect(screen.getByText("Post Beta")).toBeInTheDocument();
     // Server-side sorting: verify API params passed (regression #276)
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc", true);
   });
 
   it("sorts by date ascending", () => {
@@ -108,7 +108,7 @@ describe("ContentPage", () => {
     fireEvent.change(sortSelect, { target: { value: "date_asc" } });
     expect(screen.getByText("Post Beta")).toBeInTheDocument();
     // Server-side sorting: verify API params passed (regression #276)
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "asc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "asc", true);
   });
 
   it("renders article view when article param matches a post id", () => {
@@ -181,59 +181,59 @@ describe("ContentPage", () => {
 
   it("reads page from URL and passes to useWordPress", () => {
     renderPage("/?page=2");
-    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc", true);
   });
 
   it("defaults to page 1 when page param is missing", () => {
     renderPage("/");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
   });
 
   it("defaults to page 1 for non-numeric page param", () => {
     renderPage("/?page=abc");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
   });
 
   it("floors fractional page param", () => {
     renderPage("/?page=2.9");
-    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc", true);
   });
 
   it("clamps zero and negative page to 1", () => {
     renderPage("/?page=0");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
   });
 
   it("preserves page param when selecting an article", () => {
     renderPage("/?page=2");
     fireEvent.click(screen.getByText("Post Alpha"));
-    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(2, "", "date", "desc", true);
   });
 
   // --- Pagination reset on settings change regression tests ---
 
   it("resets page when contentType changes", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc", true);
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", true);
   });
 
   it("resets page when perPage changes", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc", true);
     act(() => {
       useSettingsStore.setState({ perPage: 50 });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", true);
   });
 
   it("does not reset page on initial mount", () => {
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc");
-    expect(mockUseWordPress).not.toHaveBeenCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc", true);
+    expect(mockUseWordPress).not.toHaveBeenCalledWith(1, "", "date", "desc", true);
   });
 
   // --- Pagination reset on wpUrl change regression tests (#144) ---
@@ -241,11 +241,11 @@ describe("ContentPage", () => {
   it("resets page when wpUrl changes (regression #144)", () => {
     useSettingsStore.setState({ wpUrl: "https://old.example.com" });
     renderPage("/?page=3");
-    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc", true);
     act(() => {
       useSettingsStore.setState({ wpUrl: "https://new.example.com" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", true);
   });
 
   it("resets filter and sort when wpUrl changes (regression #144)", () => {
@@ -351,14 +351,14 @@ describe("ContentPage", () => {
 
     it("delegates search to WordPress REST API via debounced query", () => {
       renderPage();
-      expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc");
+      expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
       fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "gamma" } });
       // Before debounce fires, still called with empty search
-      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc");
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", true);
       act(() => {
         vi.advanceTimersByTime(300);
       });
-      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "gamma", "date", "desc");
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "gamma", "date", "desc", true);
     });
 
     it("does not pass search to API before debounce delay", () => {
@@ -367,18 +367,18 @@ describe("ContentPage", () => {
       act(() => {
         vi.advanceTimersByTime(200);
       });
-      expect(mockUseWordPress).not.toHaveBeenCalledWith(expect.anything(), "test", expect.anything(), expect.anything());
+      expect(mockUseWordPress).not.toHaveBeenCalledWith(expect.anything(), "test", expect.anything(), expect.anything(), expect.anything());
     });
 
     it("resets page to 1 when search input changes", () => {
       renderPage("/?page=3");
-      expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc");
+      expect(mockUseWordPress).toHaveBeenCalledWith(3, "", "date", "desc", true);
       fireEvent.change(screen.getByPlaceholderText("\u641C\u5C0B..."), { target: { value: "energy" } });
       // onFilterChange calls setPage(1) immediately
       act(() => {
         vi.advanceTimersByTime(300);
       });
-      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "energy", "date", "desc");
+      expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "energy", "date", "desc", true);
     });
   });
 
@@ -386,33 +386,33 @@ describe("ContentPage", () => {
 
   it("delegates sorting to WordPress REST API via orderby/order parameters (regression #276)", () => {
     renderPage();
-    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
     const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
     fireEvent.change(sortSelect, { target: { value: "title_asc" } });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc", true);
   });
 
   it("resets sort params to default when contentType changes (regression #276)", () => {
     renderPage();
     const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
     fireEvent.change(sortSelect, { target: { value: "title_asc" } });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "asc", true);
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", true);
   });
 
   it("preserves sort params in URL across article navigation (regression #276)", () => {
     renderPage("/?sort=title_desc");
-    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "title", "desc");
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "title", "desc", true);
     // Navigate to article view
     fireEvent.click(screen.getByText("Post Alpha"));
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
     // Navigate back to list
     fireEvent.click(screen.getByText(/\u2190/));
     // Sort params preserved via URL
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc", true);
   });
 
   // --- _fields bandwidth optimization regression tests (#277) ---
@@ -440,6 +440,22 @@ describe("ContentPage", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     // Should NOT show pagination (we're in article view)
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
+  });
+
+  // --- Skip list query when viewing article regression tests (#437) ---
+
+  it("disables list query when article param is set (regression #437)", () => {
+    renderPage("/?article=1");
+    // useWordPress should be called with enabled=false (articleId !== null)
+    expect(mockUseWordPress).toHaveBeenCalledWith(
+      expect.any(Number), expect.any(String), expect.any(String), expect.any(String), false,
+    );
+  });
+
+  it("enables list query when no article param (regression #437)", () => {
+    renderPage("/");
+    // useWordPress should be called with enabled=true (articleId === null)
+    expect(mockUseWordPress).toHaveBeenCalledWith(1, "", "date", "desc", true);
   });
 
   // --- Focus management regression tests (#149) ---

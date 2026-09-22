@@ -433,4 +433,29 @@ describe("useWordPress hook", () => {
     const fields = fieldsMatch![1]!.split(",");
     expect(fields).not.toContain("content");
   });
+
+  // --- enabled parameter regression tests (#437) ---
+
+  it("disables query when enabled is false (regression #437)", () => {
+    const { result } = renderHook(() => useWordPress(1, "", "date", "desc", false), {
+      wrapper: createWrapper(),
+    });
+    // Query should not be loading or fetching when disabled
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it("defaults enabled to true when omitted (regression #437)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    ));
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    // Query should start fetching (enabled defaults to true)
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
 });
