@@ -243,5 +243,17 @@ describe("SettingsPanel", () => {
       act(() => { vi.advanceTimersByTime(200); });
       expect(useSettingsStore.getState().wpUrl).toBe("https://ab");
     });
+
+    it("flushes pending debounced URL to store on unmount (regression #450)", () => {
+      const { unmount } = render(withProviders(<SettingsPanel />));
+      const urlInput = screen.getByDisplayValue("https://test.example.com");
+      fireEvent.change(urlInput, { target: { value: "https://flush.test" } });
+      act(() => { vi.advanceTimersByTime(100); });
+      // Debounce hasn't fired yet (100ms < 500ms)
+      expect(useSettingsStore.getState().wpUrl).toBe("https://test.example.com");
+      // Unmount triggers flush via cleanup ref
+      unmount();
+      expect(useSettingsStore.getState().wpUrl).toBe("https://flush.test");
+    });
   });
 });
