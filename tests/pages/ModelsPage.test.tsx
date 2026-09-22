@@ -511,10 +511,10 @@ describe("ModelsPage", () => {
 
   // Regression test: batch upload exceeding MAX_BATCH_FILES is truncated (Issue #301)
   it("truncates file batch exceeding MAX_BATCH_FILES and shows warning (regression #301)", async () => {
-    // Generate 25 files (MAX_BATCH_FILES = 20)
+    // Generate 25 files with UNIQUE content to avoid hash-duplicate guard
     const files: File[] = [];
     for (let i = 0; i < 25; i++) {
-      files.push(new File(["data"], `model-${i}.glb`, { type: "model/gltf-binary" }));
+      files.push(new File([`data-${i}`], `model-${i}.glb`, { type: "model/gltf-binary" }));
     }
 
     // Auto-increment IDs for saveModel
@@ -526,10 +526,10 @@ describe("ModelsPage", () => {
       expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
     });
 
+    // Use plain array instead of DataTransfer (jsdom does not
+    // populate DataTransfer.files from items.add)
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const dt = new DataTransfer();
-    for (const f of files) dt.items.add(f);
-    fireEvent.change(fileInput, { target: { files: dt.files } });
+    fireEvent.change(fileInput, { target: { files } });
 
     // toast.warning should have been called with the batch limit message
     await waitFor(() => {
