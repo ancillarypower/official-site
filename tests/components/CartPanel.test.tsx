@@ -330,7 +330,8 @@ describe("CartPanel", () => {
       { name: "country", autocomplete: "country" },
     ];
 
-    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    // Exclude the ship-to-billing checkbox from the billing input count
+    const inputs = container.querySelectorAll<HTMLInputElement>("input:not([type='checkbox'])");
     expect(inputs.length).toBe(expected.length);
 
     expected.forEach((spec, i) => {
@@ -362,14 +363,18 @@ describe("CartPanel", () => {
       "國家代碼",
     ];
 
-    const labels = container.querySelectorAll<HTMLLabelElement>("label");
-    expect(labels.length).toBe(expectedLabels.length);
+    // Filter billing labels (those containing a span + text input, not the checkbox label)
+    const allLabels = container.querySelectorAll<HTMLLabelElement>("label");
+    const billingLabels = Array.from(allLabels).filter(
+      (l) => l.querySelector("span") !== null && l.querySelector("input:not([type='checkbox'])") !== null,
+    );
+    expect(billingLabels.length).toBe(expectedLabels.length);
 
     expectedLabels.forEach((text, i) => {
-      const span = labels[i]!.querySelector("span");
+      const span = billingLabels[i]!.querySelector("span");
       expect(span).not.toBeNull();
       expect(span!.textContent).toBe(text);
-      expect(labels[i]!.querySelector("input")).not.toBeNull();
+      expect(billingLabels[i]!.querySelector("input")).not.toBeNull();
     });
   });
 

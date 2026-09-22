@@ -229,6 +229,19 @@ export async function validateCartPrices(
   return { mismatches, unavailable };
 }
 
+/**
+ * Shipping address fields accepted by WooCommerce.
+ * Excludes email and phone which are billing-only (Issue #285).
+ */
+export interface ShippingAddress {
+  first_name: string;
+  last_name: string;
+  address_1: string;
+  city: string;
+  postcode: string;
+  country: string;
+}
+
 interface CheckoutParams {
   items: CartItem[];
   billing: {
@@ -241,6 +254,8 @@ interface CheckoutParams {
     postcode: string;
     country: string;
   };
+  /** Optional separate shipping address. When omitted, derived from billing (sans email/phone). */
+  shipping?: ShippingAddress;
 }
 
 export function useCheckout() {
@@ -251,7 +266,7 @@ export function useCheckout() {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useMutation<WooOrder, Error, CheckoutParams>({
-    mutationFn: async ({ items, billing }) => {
+    mutationFn: async ({ items, billing, shipping }) => {
       if (!baseUrl || !wooKey || !wooSecret) {
         throw new AppError(
           "error_woo_not_configured",
@@ -302,12 +317,23 @@ export function useCheckout() {
         );
       }
 
+      // Derive shipping from billing when not explicitly provided,
+      // excluding email and phone which are billing-only (Issue #285).
+      const resolvedShipping: ShippingAddress = shipping ?? {
+        first_name: billing.first_name,
+        last_name: billing.last_name,
+        address_1: billing.address_1,
+        city: billing.city,
+        postcode: billing.postcode,
+        country: billing.country,
+      };
+
       const body = {
         payment_method: "cod",
         payment_method_title: "\u8CA8\u5230\u4ED8\u6B3E",
         set_paid: false,
         billing,
-        shipping: billing,
+        shipping: resolvedShipping,
         line_items: items.map((item) => ({ product_id: item.id, quantity: item.qty })),
         status: "pending",
       };

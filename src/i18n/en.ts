@@ -158,6 +158,8 @@ export const en: Record<TranslationKey, string> = {
   checkout_field_required: "This field is required",
   checkout_invalid_email: "Please enter a valid email address",
   checkout_invalid_country: "Country code must be 2 letters (e.g. TW)",
+  checkout_shipping: "Shipping Information",
+  checkout_ship_to_billing: "Ship to billing address",
   order_success_title: "\u2713 Order Created!",
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",
