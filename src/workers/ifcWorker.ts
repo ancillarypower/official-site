@@ -34,6 +34,13 @@ export interface IfcWorkerError {
 
 export type IfcWorkerMessage = IfcWorkerResult | IfcWorkerError;
 
+/**
+ * WASM initialization timeout in milliseconds.
+ * WASM download + compilation is heavier than a typical fetch,
+ * so we use 30 seconds instead of the default 15-second FETCH_TIMEOUT.
+ */
+const WASM_INIT_TIMEOUT = 30_000;
+
 // TypeScript DOM lib types `self` as Window by default.
 // Override postMessage to match DedicatedWorkerGlobalScope signature.
 const _postMessage = self.postMessage as unknown as (
@@ -51,7 +58,20 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
     const WebIFC = await import("web-ifc");
     ifcApi = new WebIFC.IfcAPI();
     ifcApi.SetWasmPath(wasmCdn, true);
-    await ifcApi.Init();
+
+    // Race Init() against a timeout to prevent indefinite hang (#265)
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error("IFC WASM initialization timed out (30s)")),
+        WASM_INIT_TIMEOUT,
+      );
+    });
+    try {
+      await Promise.race([ifcApi.Init(), timeoutPromise]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     modelID = ifcApi.OpenModel(new Uint8Array(buffer), {
       COORDINATE_TO_ORIGIN: true,
