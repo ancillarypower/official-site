@@ -125,6 +125,22 @@ describe("StorePage", () => {
     expect(screen.queryByText(/&amp;/)).not.toBeInTheDocument();
   });
 
+  it("decodes HTML entities in WooCommerce product names (regression #286)", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: {
+        products: [
+          { id: 3, name: "Tom &amp; Jerry&#8217;s Shop", short_description: "<p>desc</p>", price: "19.99", regular_price: "19.99", sale_price: "", images: [], stock_status: "instock" },
+        ],
+        totalProducts: 1,
+        totalPages: 1,
+      },
+    });
+    renderPage();
+    expect(screen.getByText("Tom & Jerry\u2019s Shop")).toBeInTheDocument();
+    expect(screen.queryByText(/&amp;/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/&#8217;/)).not.toBeInTheDocument();
+  });
+
   // --- Pagination URL sync regression tests ---
 
   it("reads page from URL and passes to useWooProducts", () => {

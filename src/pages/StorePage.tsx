@@ -113,7 +113,7 @@ export default function StorePage() {
   const products: DisplayProduct[] = useMemo(() => {
     if (isLoading || isError) return [];
     if (wooData) {
-      return wooData.products.map((p) => ({ id: p.id, name: p.name, desc: decodeHtml(p.short_description.replace(/<[^>]*>/g, "")), price: parseFloat(p.price) || 0, regularPrice: parseFloat(p.regular_price) || 0, salePrice: p.sale_price ? parseFloat(p.sale_price) : null, img: p.images[0]?.src ?? null, icon: null, stockStatus: p.stock_status }));
+      return wooData.products.map((p) => ({ id: p.id, name: decodeHtml(p.name), desc: decodeHtml(p.short_description.replace(/<[^>]*>/g, "")), price: parseFloat(p.price) || 0, regularPrice: parseFloat(p.regular_price) || 0, salePrice: p.sale_price ? parseFloat(p.sale_price) : null, img: p.images[0]?.src ?? null, icon: null, stockStatus: p.stock_status }));
     }
     return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as const), desc: t(`product_${sp.id}_desc` as const), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
   }, [wooData, t, isLoading, isError]);
