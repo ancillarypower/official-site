@@ -40,12 +40,12 @@ export const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
 
 /** Sample products (used when WooCommerce is not connected) */
 export const SAMPLE_PRODUCTS = [
-  { id: 1, price: 299.99, icon: "\uD83C\uDFA7" },
-  { id: 2, price: 159, icon: "\u2328\uFE0F" },
-  { id: 3, price: 89.99, icon: "\uD83D\uDCF7" },
-  { id: 4, price: 199.99, icon: "\uD83D\uDD0C" },
-  { id: 5, price: 49.99, icon: "\uD83D\uDDB1\uFE0F" },
-  { id: 6, price: 179.99, icon: "\uD83D\uDCBE" },
-  { id: 7, price: 69.99, icon: "\uD83D\uDCA1" },
-  { id: 8, price: 54.99, icon: "\uD83D\uDD06" },
+  { id: 1, price: 299.99, icon: "🎧" },
+  { id: 2, price: 159, icon: "⌨️" },
+  { id: 3, price: 89.99, icon: "📷" },
+  { id: 4, price: 199.99, icon: "🔌" },
+  { id: 5, price: 49.99, icon: "🖱️" },
+  { id: 6, price: 179.99, icon: "💾" },
+  { id: 7, price: 69.99, icon: "💡" },
+  { id: 8, price: 54.99, icon: "🔆" },
 ] as const;
