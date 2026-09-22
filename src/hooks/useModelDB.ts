@@ -41,18 +41,32 @@ export async function getAllModels(): Promise<ModelRecord[]> {
 
 /**
  * Retrieve metadata for all stored models without retaining ArrayBuffer
- * references in the returned array. IndexedDB always loads the full record
- * (including data), but we strip it immediately so the caller's state does
- * not keep the heavy payload alive in memory.
+ * references in the returned array.
+ *
+ * Uses a cursor to iterate records one at a time instead of bulk-loading
+ * via getAll(). While the idb library still deserializes the full record
+ * per cursor step, each previous record becomes eligible for garbage
+ * collection as the cursor advances, keeping peak memory at ~1 record
+ * rather than all records simultaneously (Issue #269).
  */
 export async function getAllModelMeta(): Promise<ModelMeta[]> {
   const db = await getDB();
-  const all = await db.getAll(STORE_NAME);
-  return all.map(({ id, name, size, ext, timestamp, hash, updatedAt }) => ({
-    id, name, size, ext, timestamp,
-    ...(hash != null && { hash }),
-    ...(updatedAt != null && { updatedAt }),
-  }));
+  const tx = db.transaction(STORE_NAME, "readonly");
+  const store = tx.objectStore(STORE_NAME);
+  const metas: ModelMeta[] = [];
+
+  let cursor = await store.openCursor();
+  while (cursor) {
+    const { id, name, size, ext, timestamp, hash, updatedAt } = cursor.value;
+    metas.push({
+      id, name, size, ext, timestamp,
+      ...(hash != null && { hash }),
+      ...(updatedAt != null && { updatedAt }),
+    });
+    cursor = await cursor.continue();
+  }
+
+  return metas;
 }
 
 /**

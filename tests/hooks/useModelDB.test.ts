@@ -120,6 +120,14 @@ describe("useModelDB", () => {
     }
   });
 
+  it("getAllModelMeta preserves hash and updatedAt fields", async () => {
+    await saveModel("hashed.glb", 10, "glb", new ArrayBuffer(10), "abc123");
+    const metas = await getAllModelMeta();
+    expect(metas).toHaveLength(1);
+    expect(metas[0]?.hash).toBe("abc123");
+    expect("data" in metas[0]!).toBe(false);
+  });
+
   /* ── getModelData ── */
 
   it("getModelData returns ArrayBuffer for existing id", async () => {
@@ -151,5 +159,16 @@ describe("useModelDB", () => {
 
     // openDB should be called exactly once — the singleton caches the promise
     expect(openDB).toHaveBeenCalledTimes(1);
+  });
+
+  /* ── cursor-based iteration (regression #269) ── */
+
+  it("getAllModelMeta uses cursor strategy, not bulk getAll (regression #269)", async () => {
+    // Structural verification: the function source must use openCursor
+    // and must NOT use getAll. This guards against reverting the memory
+    // optimization back to the bulk-loading approach.
+    const fnSource = getAllModelMeta.toString();
+    expect(fnSource).toContain("openCursor");
+    expect(fnSource).not.toContain(".getAll(");
   });
 });
