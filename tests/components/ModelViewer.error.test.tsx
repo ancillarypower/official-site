@@ -22,6 +22,10 @@ vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+
 vi.mock("web-ifc", () => ({
   IfcAPI: vi.fn().mockImplementation(() => ({
     SetWasmPath: vi.fn(), Init: vi.fn(), OpenModel: vi.fn().mockReturnValue(0),
