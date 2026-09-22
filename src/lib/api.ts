@@ -120,6 +120,13 @@ export async function parseJsonResponse(response: Response) {
  * Proxy mode does NOT forward `init` because public CORS proxies cannot
  * relay custom request headers to the origin server.
  *
+ * **Error discrimination (Issue #271):** In proxy mode, if every proxy
+ * attempt fails but at least one returned an HTTP response (e.g. 403,
+ * 500), the last such response is returned to the caller instead of
+ * throwing the generic "All CORS proxies failed" error. This lets
+ * callers distinguish upstream API errors from proxy infrastructure
+ * failures (network errors, timeouts).
+ *
  * **Security:** Throws if the URL contains WooCommerce credentials
  * (`consumer_key` / `consumer_secret`) and proxy mode is enabled,
  * preventing credential leakage to third-party CORS proxy services.
@@ -146,6 +153,7 @@ export async function fetchWithProxy(
 
   const callerSignal = init?.signal;
   const errors: string[] = [];
+  let lastUpstreamResponse: Response | null = null;
 
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     // Stop rotation immediately if the caller cancelled (Issue #205)
@@ -164,6 +172,8 @@ export async function fetchWithProxy(
         proxyIndex = idx;
         return response;
       }
+      // Non-ok HTTP response: track as upstream API error (Issue #271)
+      lastUpstreamResponse = response;
       errors.push(`${proxy}: HTTP ${response.status}`);
     } catch (err) {
       // Caller abort: stop rotation immediately (Issue #205)
@@ -175,6 +185,12 @@ export async function fetchWithProxy(
       );
     }
   }
+
+  // If at least one proxy returned an HTTP response (even non-ok),
+  // return it so callers can inspect the actual status code and body.
+  // This distinguishes upstream API errors (403, 500) from proxy
+  // infrastructure failures (network errors, timeouts). (Issue #271)
+  if (lastUpstreamResponse) return lastUpstreamResponse;
 
   throw new AppError(
     "error_proxy_all_failed",
