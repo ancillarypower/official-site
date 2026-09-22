@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
 vi.mock("@/hooks/useModelDB", () => ({
@@ -679,7 +679,7 @@ describe("ModelViewer OBJ/STL Worker offload (#447)", () => {
   });
 });
 
-describe("ModelViewer Fullscreen API detection (#451)", () => {
+describe("ModelViewer Fullscreen API rejection handling (#451)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     workerAutoRespond = true;
@@ -695,31 +695,25 @@ describe("ModelViewer Fullscreen API detection (#451)", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  it("hides fullscreen button when Fullscreen API is unsupported (regression #451)", async () => {
-    // Remove requestFullscreen to simulate unsupported browser
-    const original = document.documentElement.requestFullscreen;
-    Object.defineProperty(document.documentElement, "requestFullscreen", {
-      value: undefined,
-      configurable: true,
-      writable: true,
-    });
+  it("shows toast error when fullscreen request is rejected by browser policy (regression #451)", async () => {
+    // Mock requestFullscreen to reject (simulating browser policy denial)
+    const mockRequestFs = vi.fn().mockRejectedValue(new Error("not allowed"));
+    Element.prototype.requestFullscreen = mockRequestFs;
+    Object.defineProperty(document, "fullscreenElement", { value: null, writable: true, configurable: true });
 
-    // Re-import to pick up the module-level constant
-    vi.resetModules();
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
     await waitFor(() => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // Fullscreen button should not be rendered
-    expect(screen.queryByLabelText(/\u5168\u87a2\u5e55/)).toBeNull();
+    // Click the fullscreen button
+    fireEvent.click(screen.getByLabelText(/\u5168\u87a2\u5e55/));
 
-    // Restore
-    Object.defineProperty(document.documentElement, "requestFullscreen", {
-      value: original,
-      configurable: true,
-      writable: true,
+    // Verify toast.error was called after the promise rejects
+    const { toast } = await import("sonner");
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
     });
   });
 });
