@@ -33,6 +33,18 @@ export function SettingsPanel() {
   const [localWooSecret, setLocalWooSecret] = useState(s.wooSecret);
   const [localWooUrl, setLocalWooUrl] = useState(s.wooUrl);
 
+  // --- Refs tracking latest local values for unmount flush (#450) ---
+  const localWpUrlRef = useRef(localWpUrl);
+  const localWooKeyRef = useRef(localWooKey);
+  const localWooSecretRef = useRef(localWooSecret);
+  const localWooUrlRef = useRef(localWooUrl);
+
+  // Keep refs in sync with local state
+  localWpUrlRef.current = localWpUrl;
+  localWooKeyRef.current = localWooKey;
+  localWooSecretRef.current = localWooSecret;
+  localWooUrlRef.current = localWooUrl;
+
   // --- Show/hide toggles for credential inputs ---
   const [showKey, setShowKey] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
@@ -46,6 +58,18 @@ export function SettingsPanel() {
   useEffect(() => { storeSetWooKey(debouncedWooKey); }, [debouncedWooKey, storeSetWooKey]);
   useEffect(() => { storeSetWooSecret(debouncedWooSecret); }, [debouncedWooSecret, storeSetWooSecret]);
   useEffect(() => { storeSetWooUrl(debouncedWooUrl); }, [debouncedWooUrl, storeSetWooUrl]);
+
+  // Flush pending debounced values to store on unmount (#450).
+  // Zustand setters are idempotent — flushing the same value the
+  // debounce already wrote is a harmless no-op.
+  useEffect(() => {
+    return () => {
+      storeSetWpUrl(localWpUrlRef.current);
+      storeSetWooKey(localWooKeyRef.current);
+      storeSetWooSecret(localWooSecretRef.current);
+      storeSetWooUrl(localWooUrlRef.current);
+    };
+  }, [storeSetWpUrl, storeSetWooKey, storeSetWooSecret, storeSetWooUrl]);
 
   // --- Arrow key navigation for theme radio group (WAI-ARIA Radio Group Pattern) ---
   const radioGroupRef = useRef<HTMLDivElement>(null);
