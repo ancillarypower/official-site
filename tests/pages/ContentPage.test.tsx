@@ -158,6 +158,32 @@ describe("ContentPage", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
+  it("shows error state with correct retry when deep-linked article fetch fails (regression #449)", () => {
+    const mockRefetchSingle = vi.fn();
+    const mockListRefetch = vi.fn();
+    mockUseWordPress.mockReturnValue({
+      data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
+      isLoading: false,
+      isFetching: false,
+      isPlaceholderData: false,
+      error: null,
+      refetch: mockListRefetch,
+    });
+    mockUseSinglePost.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error("Network error"),
+      refetch: mockRefetchSingle,
+    });
+    renderPage("/?article=999");
+    // Should show FetchErrorState with retry button, not EmptyState
+    expect(screen.getByText("\u91cd\u8a66")).toBeInTheDocument();
+    // Click retry should invoke useSinglePost's refetch, not the list query's
+    fireEvent.click(screen.getByText("\u91cd\u8a66"));
+    expect(mockRefetchSingle).toHaveBeenCalled();
+    expect(mockListRefetch).not.toHaveBeenCalled();
+  });
+
   it("navigates to article view on card click", () => {
     renderPage();
     fireEvent.click(screen.getByText("Post Alpha"));
