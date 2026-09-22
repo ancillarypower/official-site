@@ -226,6 +226,15 @@ export async function validateCartPrices(
     }
   }
 
+  // Detect products missing from server response (deleted, private, or
+  // permission-filtered). Requested via `include` but not returned by
+  // WooCommerce — treat as unavailable (Issue #446).
+  for (const item of items) {
+    if (!serverPrices.has(item.id)) {
+      unavailable.push({ id: item.id, name: item.name });
+    }
+  }
+
   return { mismatches, unavailable };
 }
 

@@ -588,6 +588,51 @@ describe("validateCartPrices", () => {
 
     expect(result.unavailable).toHaveLength(0);
   });
+
+  /* -- Issue #446 Regression Tests -- */
+
+  it("treats products missing from server response as unavailable (regression #446)", async () => {
+    // Server only returns product 1; product 2 is missing (deleted/private/filtered)
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([{ id: 1, price: "10.00", stock_status: "instock" }]),
+    ));
+
+    const result = await validateCartPrices(
+      [
+        { id: 1, name: "Widget A", price: 10, icon: null, img: null, qty: 1 },
+        { id: 2, name: "Widget B", price: 20, icon: null, img: null, qty: 1 },
+      ],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.mismatches).toHaveLength(0);
+    expect(result.unavailable).toHaveLength(1);
+    expect(result.unavailable[0]).toEqual({ id: 2, name: "Widget B" });
+  });
+
+  it("returns empty unavailable when all cart products are present in server response (regression #446)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      makePriceCheckResponse([
+        { id: 1, price: "10.00", stock_status: "instock" },
+        { id: 2, price: "20.00", stock_status: "instock" },
+      ]),
+    ));
+
+    const result = await validateCartPrices(
+      [
+        { id: 1, name: "Widget A", price: 10, icon: null, img: null, qty: 1 },
+        { id: 2, name: "Widget B", price: 20, icon: null, img: null, qty: 1 },
+      ],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    expect(result.mismatches).toHaveLength(0);
+    expect(result.unavailable).toHaveLength(0);
+  });
 });
 
 describe("useCheckout", () => {
