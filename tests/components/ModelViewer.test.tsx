@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/context/I18nContext";
 
+// Polyfill Fullscreen API for jsdom — must run at module scope before
+// ModelViewer is first imported so the module-level supportsFullscreen
+// constant evaluates to true (#451)
+if (!Element.prototype.requestFullscreen) {
+  Element.prototype.requestFullscreen = function () { return Promise.resolve(); } as () => Promise<void>;
+}
+if (!document.exitFullscreen) {
+  document.exitFullscreen = function () { return Promise.resolve(); } as () => Promise<void>;
+}
+
 vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
@@ -65,10 +75,8 @@ class MockWorker {
     if (workerResponseOverride) {
       data = workerResponseOverride;
     } else if (msg && typeof msg === "object" && "format" in msg) {
-      // OBJ/STL model parse Worker (#447)
       data = { type: "result", meshes: MOCK_MODEL_MESHES };
     } else {
-      // IFC Worker (receives { buffer, wasmCdn })
       data = { type: "result", meshes: MOCK_IFC_MESHES };
     }
     setTimeout(() => {
@@ -76,9 +84,7 @@ class MockWorker {
     }, 0);
   }
 }
-// --- end IFC Worker mock ---
 
-// --- IntersectionObserver mock (#203) ---
 let ioAutoTrigger = true;
 let lastIOCallback: ((entries: Array<{ isIntersecting: boolean }>) => void) | null = null;
 const mockIODisconnect = vi.fn();
@@ -99,7 +105,6 @@ class MockIntersectionObserver {
     }
   });
 }
-// --- end IntersectionObserver mock ---
 
 const mockTraverse = vi.fn();
 const mockControlsDispose = vi.fn();
@@ -275,26 +280,16 @@ describe("ModelViewer GPU resource cleanup (#74)", () => {
 
   it("traverses scene to dispose GPU resources on unmount", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(mockTraverse).toHaveBeenCalled();
   });
 
   it("disposes OrbitControls on unmount", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(mockControlsDispose).toHaveBeenCalled();
   });
@@ -314,13 +309,8 @@ describe("ModelViewer DRACOLoader cleanup (#105)", () => {
 
   it("disposes DRACOLoader on unmount when loading GLB", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     unmount();
     expect(mockDracoDispose).toHaveBeenCalled();
   });
@@ -340,39 +330,23 @@ describe("ModelViewer WebGL context loss recovery", () => {
 
   it("shows GPU error and stops animation when WebGL context is lost", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { container } = render(
-      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { container } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     const canvas = container.querySelector("canvas")!;
     const event = new Event("webglcontextlost", { cancelable: true });
     canvas.dispatchEvent(event);
-
     expect(event.defaultPrevented).toBe(true);
     expect(cancelAnimationFrame).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(screen.getByText(/GPU/)).toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.getByText(/GPU/)).toBeInTheDocument(); });
   });
 
   it("does not throw when context lost fires after unmount", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { container, unmount } = render(
-      <I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { container, unmount } = render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     const canvas = container.querySelector("canvas")!;
     unmount();
-
-    expect(() => {
-      canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
-    }).not.toThrow();
+    expect(() => { canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true })); }).not.toThrow();
   });
 });
 
@@ -391,22 +365,16 @@ describe("ModelViewer viewpoint reset (#336)", () => {
   it("renders reset viewpoint button when model is ready", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     expect(screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/)).toBeInTheDocument();
   });
 
   it("calls camera.position.set again on reset button click", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     const callsBefore = mockCameraPositionSet.mock.calls.length;
-    const resetBtn = screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/);
-    resetBtn.click();
+    screen.getByLabelText(/\u91cd\u8a2d\u8996\u89d2/).click();
     expect(mockCameraPositionSet.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });
@@ -426,15 +394,10 @@ describe("ModelViewer font scale resize (#110)", () => {
   it("resizes renderer on fontscalechange event", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     mockRendererSetSize.mockClear();
     mockUpdateProjectionMatrix.mockClear();
-
     window.dispatchEvent(new CustomEvent("fontscalechange"));
-
     expect(mockRendererSetSize).toHaveBeenCalledTimes(1);
     expect(mockUpdateProjectionMatrix).toHaveBeenCalledTimes(1);
   });
@@ -458,15 +421,9 @@ describe("ModelViewer IFC Worker lifecycle (#173)", () => {
 
   it("terminates Worker once after normal IFC processing and does not re-terminate on unmount (regression #173)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
-
     unmount();
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
@@ -490,13 +447,9 @@ describe("ModelViewer IFC Worker error handling (#190)", () => {
 
   it("shows error state when IFC Worker reports error (regression #190)", async () => {
     workerResponseOverride = { type: "error", message: "Corrupted IFC data" };
-
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Corrupted IFC data/)).toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.getByText(/Corrupted IFC data/)).toBeInTheDocument(); });
   });
 });
 
@@ -520,17 +473,12 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
     const THREE = await import("three");
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
-
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     const bgInstances = vi.mocked(THREE.BufferGeometry).mock.results
       .filter((r) => r.type === "return")
       .map((r) => r.value as { dispose: ReturnType<typeof vi.fn> });
     expect(bgInstances.length).toBe(2);
-    for (const geom of bgInstances) {
-      expect(geom.dispose).toHaveBeenCalledTimes(1);
-    }
+    for (const geom of bgInstances) { expect(geom.dispose).toHaveBeenCalledTimes(1); }
   });
 });
 
@@ -552,18 +500,10 @@ describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
 
   it("terminates IFC Worker on unmount during active processing (regression #202)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
-    );
-
-    await waitFor(() => {
-      expect(lastWorkerInstance).not.toBeNull();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(lastWorkerInstance).not.toBeNull(); });
     expect(mockWorkerTerminate).not.toHaveBeenCalled();
-
     unmount();
-
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
 });
@@ -583,18 +523,10 @@ describe("ModelViewer IntersectionObserver deferred init (#203)", () => {
   it("does not create WebGLRenderer until container is visible (regression #203)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
-
     await new Promise((r) => setTimeout(r, 50));
-
     expect(mockWebGLRenderer).not.toHaveBeenCalled();
-
-    await act(async () => {
-      lastIOCallback?.([{ isIntersecting: true }]);
-    });
-
-    await waitFor(() => {
-      expect(mockWebGLRenderer).toHaveBeenCalledTimes(1);
-    });
+    await act(async () => { lastIOCallback?.([{ isIntersecting: true }]); });
+    await waitFor(() => { expect(mockWebGLRenderer).toHaveBeenCalledTimes(1); });
   });
 });
 
@@ -616,13 +548,9 @@ describe("ModelViewer IFC WASM timeout (#265)", () => {
 
   it("shows error state when IFC Worker reports WASM timeout (regression #265)", async () => {
     workerResponseOverride = { type: "error", message: "IFC WASM initialization timed out (30s)" };
-
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
-
-    await waitFor(() => {
-      expect(screen.getByText(/IFC WASM initialization timed out/)).toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.getByText(/IFC WASM initialization timed out/)).toBeInTheDocument(); });
   });
 });
 
@@ -645,9 +573,7 @@ describe("ModelViewer OBJ/STL Worker offload (#447)", () => {
   it("OBJ parsing uses Web Worker instead of main thread (regression #447)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.obj" ext="obj" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     expect(lastWorkerInstance).not.toBeNull();
     expect(mockWorkerTerminate).toHaveBeenCalled();
   });
@@ -655,9 +581,7 @@ describe("ModelViewer OBJ/STL Worker offload (#447)", () => {
   it("STL parsing uses Web Worker instead of main thread (regression #447)", async () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
     expect(lastWorkerInstance).not.toBeNull();
     expect(mockWorkerTerminate).toHaveBeenCalled();
   });
@@ -665,14 +589,8 @@ describe("ModelViewer OBJ/STL Worker offload (#447)", () => {
   it("terminates model parse Worker on unmount during active processing (regression #447)", async () => {
     workerAutoRespond = false;
     const { ModelViewer } = await import("@/components/models/ModelViewer");
-    const { unmount } = render(
-      <I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>,
-    );
-
-    await waitFor(() => {
-      expect(lastWorkerInstance).not.toBeNull();
-    });
-
+    const { unmount } = render(<I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(lastWorkerInstance).not.toBeNull(); });
     expect(mockWorkerTerminate).not.toHaveBeenCalled();
     unmount();
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
@@ -696,24 +614,17 @@ describe("ModelViewer Fullscreen API rejection handling (#451)", () => {
   });
 
   it("shows toast error when fullscreen request is rejected by browser policy (regression #451)", async () => {
-    // Mock requestFullscreen to reject (simulating browser policy denial)
     const mockRequestFs = vi.fn().mockRejectedValue(new Error("not allowed"));
     Element.prototype.requestFullscreen = mockRequestFs;
     Object.defineProperty(document, "fullscreenElement", { value: null, writable: true, configurable: true });
 
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
-    });
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
 
-    // Click the fullscreen button
     fireEvent.click(screen.getByLabelText(/\u5168\u87a2\u5e55/));
 
-    // Verify toast.error was called after the promise rejects
     const { toast } = await import("sonner");
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalled();
-    });
+    await waitFor(() => { expect(toast.error).toHaveBeenCalled(); });
   });
 });
