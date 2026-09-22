@@ -179,6 +179,14 @@ describe("ArticleView", () => {
     expect(articleBody!.innerHTML).toContain("Safe paragraph");
   });
 
+  it("hero image uses eager loading and high fetch priority (regression #268)", () => {
+    const { container } = render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("loading", "eager");
+    expect(img).toHaveAttribute("fetchPriority", "high");
+  });
+
   it("renders share buttons section at bottom of article (regression #424)", () => {
     render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
     expect(screen.getByText(/\u5206\u4eab\u9019\u7bc7\u6587\u7ae0/)).toBeInTheDocument();
