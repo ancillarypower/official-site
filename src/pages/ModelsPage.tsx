@@ -102,6 +102,11 @@ export default function ModelsPage() {
   const dragSourceRef = useRef<number | null>(null);
   const dragTargetRef = useRef<number | null>(null);
 
+  // Ref to hold latest t so the mount-only useEffect can show
+  // the current translation without re-triggering (Issue #289).
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const isCustomSort = sortKey === "custom";
   const allExpanded = models.length > 0 && expandedIds.size === models.length;
 
@@ -127,9 +132,9 @@ export default function ModelsPage() {
       })
       .catch((err) => {
         console.warn("[ModelsPage] IndexedDB unavailable:", err);
-        toast.error(t("models_db_error"));
+        toast.error(tRef.current("models_db_error"));
       });
-  }, [t]);
+  }, []);
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
     setIsUploading(true);

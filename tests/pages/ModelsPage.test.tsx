@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createElement } from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { I18nProvider } from "@/context/I18nContext";
+import { I18nProvider, useI18n } from "@/context/I18nContext";
 
 vi.mock("@/components/models/ModelViewer", () => ({
   ModelViewer: (props: { name: string }) =>
@@ -401,7 +401,7 @@ describe("ModelsPage", () => {
       expect(screen.getByLabelText(/\u9078\u53D6\u300Ccube\.glb\u300D/)).toBeInTheDocument();
     });
 
-    // Select "Name A→Z" sort option
+    // Select "Name A\u2192Z" sort option
     const sortSelect = screen.getByRole("combobox");
     fireEvent.change(sortSelect, { target: { value: "name_asc" } });
 
@@ -470,6 +470,40 @@ describe("ModelsPage", () => {
       // Order remains alphabetical despite drag attempt
       expect(order).toEqual(["cube.glb", "plane.stl", "sphere.obj"]);
     });
+  });
+
+  // Regression test: language switch does not re-trigger IndexedDB read (Issue #289)
+  it("language switch does not re-trigger IndexedDB read (regression #289)", async () => {
+    mockGetAllModelMeta.mockResolvedValue(sampleModels);
+
+    // Wrapper that exposes language toggle for testing
+    function LangToggleWrapper() {
+      const { toggleLang } = useI18n();
+      return (
+        <>
+          <button data-testid="toggle-lang" onClick={toggleLang}>Toggle</button>
+          <ModelsPage />
+        </>
+      );
+    }
+
+    render(<I18nProvider><LangToggleWrapper /></I18nProvider>);
+
+    // Wait for initial mount to complete
+    await waitFor(() => {
+      expect(mockGetAllModelMeta).toHaveBeenCalledTimes(1);
+    });
+
+    // Switch language (zh -> en)
+    fireEvent.click(screen.getByTestId("toggle-lang"));
+
+    // Wait for re-render with English UI text
+    await waitFor(() => {
+      expect(screen.getByText("3D Models")).toBeInTheDocument();
+    });
+
+    // getAllModelMeta should NOT have been called again
+    expect(mockGetAllModelMeta).toHaveBeenCalledTimes(1);
   });
 
 });
