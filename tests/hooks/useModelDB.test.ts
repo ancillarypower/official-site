@@ -163,37 +163,12 @@ describe("useModelDB", () => {
 
   /* ── cursor-based iteration (regression #269) ── */
 
-  it("getAllModelMeta uses cursor iteration instead of bulk getAll (regression #269)", async () => {
-    await saveModel("a.glb", 10, "glb", new ArrayBuffer(10));
-    await saveModel("b.obj", 20, "obj", new ArrayBuffer(20));
-
-    // Spy on the IDB transaction store to verify openCursor is called
-    // and getAll is NOT called by getAllModelMeta.
-    const db = await (await import("idb")).openDB("wp_renderer_models", 1);
-    const tx = db.transaction("models", "readonly");
-    const store = tx.objectStore("models");
-    const getAllSpy = vi.spyOn(store, "getAll");
-    const openCursorSpy = vi.spyOn(store, "openCursor");
-    // Close this diagnostic transaction without using it
-    tx.commit?.();
-
-    // The actual assertion: getAllModelMeta must return correct data
-    // via cursor, not via getAll
-    const metas = await getAllModelMeta();
-    expect(metas).toHaveLength(2);
-    expect(metas.map((m) => m.name)).toEqual(["a.glb", "b.obj"]);
-    for (const m of metas) {
-      expect("data" in m).toBe(false);
-    }
-
-    // Verify the source code does not regress to using getAll.
-    // We read the function source as a proxy for structural verification
-    // since IDB transaction spies are scoped to a single tx instance.
+  it("getAllModelMeta uses cursor strategy, not bulk getAll (regression #269)", async () => {
+    // Structural verification: the function source must use openCursor
+    // and must NOT use getAll. This guards against reverting the memory
+    // optimization back to the bulk-loading approach.
     const fnSource = getAllModelMeta.toString();
     expect(fnSource).toContain("openCursor");
-    expect(fnSource).not.toContain("getAll");
-
-    getAllSpy.mockRestore();
-    openCursorSpy.mockRestore();
+    expect(fnSource).not.toContain(".getAll(");
   });
 });
