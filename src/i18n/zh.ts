@@ -289,6 +289,20 @@ export const zh = {
   error_reload: "重新載入頁面",
   error_unhandled: "發生非預期錯誤，請稍後再試",
 
+  // AppError codes (Issue #452)
+  error_proxy_bad_response: "代理伺服器回傳無效回應，請稍後再試",
+  error_proxy_credential_blocked: "不可透過第三方代理傳送 WooCommerce 憑證，請關閉代理或使用自架代理",
+  error_proxy_all_failed: "所有代理伺服器均無法連線，請稍後再試",
+  error_woo_url_missing: "尚未設定 WooCommerce 商店網址，請至設定頁面填入",
+  error_woo_url_invalid: "WooCommerce 網址格式無效，請確認設定",
+  error_api_unexpected_format: "API 回應格式異常，請稍後再試",
+  error_price_validation_failed: "商品價格驗證失敗：{detail}",
+  error_woo_not_configured: "WooCommerce 尚未完成設定，請填入商店網址、Consumer Key 與 Consumer Secret",
+  error_checkout_proxy_unavailable: "代理模式下無法結帳，請關閉代理或使用自架代理",
+  error_price_changed: "購物車中部分商品價格已變動：{details}。請重新整理後再試",
+  error_items_out_of_stock: "以下商品已售罄或無法購買：{names}。請從購物車中移除後重試",
+  error_order_response_invalid: "訂單回應格式異常，請聯繫客服確認訂單狀態",
+
   // Fetch error
   error_fetch_network: "無法連線至 WordPress",
   error_fetch_network_desc: "請在設定中啟用 CORS 代理，或確認網址是否正確",
