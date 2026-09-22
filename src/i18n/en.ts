@@ -265,6 +265,20 @@ export const en: Record<TranslationKey, string> = {
   error_reload: "Reload Page",
   error_unhandled: "An unexpected error occurred. Please try again later.",
 
+  // AppError codes (Issue #452)
+  error_proxy_bad_response: "Proxy returned an invalid response. Please try again later.",
+  error_proxy_credential_blocked: "WooCommerce credentials must not be sent through a third-party proxy. Disable proxy or use a self-hosted proxy.",
+  error_proxy_all_failed: "All proxy servers are unreachable. Please try again later.",
+  error_woo_url_missing: "WooCommerce store URL is not configured. Please check Settings.",
+  error_woo_url_invalid: "Invalid WooCommerce URL. Please check Settings.",
+  error_api_unexpected_format: "Unexpected API response format. Please try again later.",
+  error_price_validation_failed: "Product price validation failed: {detail}",
+  error_woo_not_configured: "WooCommerce is not fully configured. Please provide the store URL, Consumer Key, and Consumer Secret in Settings.",
+  error_checkout_proxy_unavailable: "Checkout is not available in proxy mode. Disable proxy or use a self-hosted proxy.",
+  error_price_changed: "Prices have changed since items were added to cart: {details}. Please refresh and try again.",
+  error_items_out_of_stock: "The following items are out of stock: {names}. Please remove them from your cart and try again.",
+  error_order_response_invalid: "Invalid order response. Please contact support to verify your order status.",
+
   // Fetch error
   error_fetch_network: "Unable to connect to WordPress",
   error_fetch_network_desc: "Try enabling CORS proxy in Settings, or verify the site URL",
