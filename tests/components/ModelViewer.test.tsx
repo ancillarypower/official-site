@@ -33,6 +33,15 @@ const MOCK_IFC_MESHES = [
   },
 ];
 
+// OBJ/STL Worker mock data (#447)
+const MOCK_MODEL_MESHES = [
+  {
+    positions: new Float32Array([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+    normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
+    indices: null,
+  },
+];
+
 let workerAutoRespond = true;
 let workerResponseOverride: unknown = null;
 
@@ -46,9 +55,18 @@ class MockWorker {
     lastWorkerInstance = this;
   }
 
-  postMessage() {
+  postMessage(msg?: unknown) {
     if (!workerAutoRespond) return;
-    const data = workerResponseOverride ?? { type: "result", meshes: MOCK_IFC_MESHES };
+    let data;
+    if (workerResponseOverride) {
+      data = workerResponseOverride;
+    } else if (msg && typeof msg === "object" && "format" in msg) {
+      // OBJ/STL model parse Worker (#447)
+      data = { type: "result", meshes: MOCK_MODEL_MESHES };
+    } else {
+      // IFC Worker (receives { buffer, wasmCdn })
+      data = { type: "result", meshes: MOCK_IFC_MESHES };
+    }
     setTimeout(() => {
       this.onmessage?.({ data });
     }, 0);
@@ -186,8 +204,12 @@ describe("ModelViewer IFC support", () => {
 describe("ModelViewer GLB/OBJ/STL support", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
     ioAutoTrigger = true;
     lastIOCallback = null;
+    vi.stubGlobal("Worker", MockWorker);
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
@@ -404,11 +426,9 @@ describe("ModelViewer font scale resize (#110)", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // Clear call history from init setSize calls
     mockRendererSetSize.mockClear();
     mockUpdateProjectionMatrix.mockClear();
 
-    // Dispatch fontscalechange event
     window.dispatchEvent(new CustomEvent("fontscalechange"));
 
     expect(mockRendererSetSize).toHaveBeenCalledTimes(1);
@@ -441,11 +461,8 @@ describe("ModelViewer IFC Worker lifecycle (#173)", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // Normal flow: Worker.terminate() called once in onmessage handler
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
 
-    // Unmount: cleanup should NOT re-terminate because ifcWorker was
-    // nulled after the onmessage handler called terminate
     unmount();
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
@@ -503,8 +520,6 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
       expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
     });
 
-    // Worker returns 2 meshes (1 opaque + 1 transparent),
-    // each rebuilt as BufferGeometry that should be disposed after mergeGeometries
     const bgInstances = vi.mocked(THREE.BufferGeometry).mock.results
       .filter((r) => r.type === "return")
       .map((r) => r.value as { dispose: ReturnType<typeof vi.fn> });
@@ -518,7 +533,7 @@ describe("ModelViewer IFC BufferGeometry dispose (#193)", () => {
 describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    workerAutoRespond = false; // Worker does NOT auto-respond
+    workerAutoRespond = false;
     workerResponseOverride = null;
     lastWorkerInstance = null;
     ioAutoTrigger = true;
@@ -537,18 +552,14 @@ describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
       <I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>,
     );
 
-    // Wait for Worker to be created (init is async)
     await waitFor(() => {
       expect(lastWorkerInstance).not.toBeNull();
     });
 
-    // Worker has NOT responded yet (workerAutoRespond = false)
     expect(mockWorkerTerminate).not.toHaveBeenCalled();
 
-    // Unmount while Worker is still processing
     unmount();
 
-    // Cleanup should terminate the active Worker
     expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
 });
@@ -556,7 +567,7 @@ describe("ModelViewer IFC Worker unmount during processing (#202)", () => {
 describe("ModelViewer IntersectionObserver deferred init (#203)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    ioAutoTrigger = false; // Do NOT auto-trigger for this test suite
+    ioAutoTrigger = false;
     lastIOCallback = null;
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
     vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
@@ -569,18 +580,14 @@ describe("ModelViewer IntersectionObserver deferred init (#203)", () => {
     const { ModelViewer } = await import("@/components/models/ModelViewer");
     render(<I18nProvider><ModelViewer name="t.glb" ext="glb" modelId={1} /></I18nProvider>);
 
-    // Allow any pending microtasks/timers to flush
     await new Promise((r) => setTimeout(r, 50));
 
-    // Not visible yet \u2014 WebGLRenderer should NOT have been called
     expect(mockWebGLRenderer).not.toHaveBeenCalled();
 
-    // Simulate scroll into viewport
     await act(async () => {
       lastIOCallback?.([{ isIntersecting: true }]);
     });
 
-    // Now init should run and create a renderer
     await waitFor(() => {
       expect(mockWebGLRenderer).toHaveBeenCalledTimes(1);
     });
@@ -612,5 +619,58 @@ describe("ModelViewer IFC WASM timeout (#265)", () => {
     await waitFor(() => {
       expect(screen.getByText(/IFC WASM initialization timed out/)).toBeInTheDocument();
     });
+  });
+});
+
+describe("ModelViewer OBJ/STL Worker offload (#447)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("OBJ parsing uses Web Worker instead of main thread (regression #447)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.obj" ext="obj" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+    expect(lastWorkerInstance).not.toBeNull();
+    expect(mockWorkerTerminate).toHaveBeenCalled();
+  });
+
+  it("STL parsing uses Web Worker instead of main thread (regression #447)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument();
+    });
+    expect(lastWorkerInstance).not.toBeNull();
+    expect(mockWorkerTerminate).toHaveBeenCalled();
+  });
+
+  it("terminates model parse Worker on unmount during active processing (regression #447)", async () => {
+    workerAutoRespond = false;
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(
+      <I18nProvider><ModelViewer name="t.stl" ext="stl" modelId={1} /></I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(lastWorkerInstance).not.toBeNull();
+    });
+
+    expect(mockWorkerTerminate).not.toHaveBeenCalled();
+    unmount();
+    expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
   });
 });
