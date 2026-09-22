@@ -377,16 +377,21 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
               return;
             }
 
-            try {
-              const { opaque: opaqueGeometries, transparent: transparentGeometries } =
-                buildGeometriesFromWorker(msg.meshes);
+            // Hoist for cleanup access in catch (#291)
+            let opaqueGeometries: BufferGeometry[] = [];
+            let transparentGeometries: BufferGeometry[] = [];
+            const group = new THREE.Group();
 
-              const group = new THREE.Group();
+            try {
+              const result = buildGeometriesFromWorker(msg.meshes);
+              opaqueGeometries = result.opaque;
+              transparentGeometries = result.transparent;
 
               if (opaqueGeometries.length > 0) {
                 const merged = mergeGeometries(opaqueGeometries);
                 // Release source GPU buffers after merge (#193)
                 for (const geom of opaqueGeometries) geom.dispose();
+                opaqueGeometries = []; // Mark as cleaned (#291)
                 if (merged) {
                   group.add(
                     new THREE.Mesh(
@@ -404,6 +409,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
                 const merged = mergeGeometries(transparentGeometries);
                 // Release source GPU buffers after merge (#193)
                 for (const geom of transparentGeometries) geom.dispose();
+                transparentGeometries = []; // Mark as cleaned (#291)
                 if (merged) {
                   group.add(
                     new THREE.Mesh(
@@ -424,6 +430,22 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
               fitToView(group);
             } catch (err) {
+              // Dispose leaked intermediate BufferGeometry objects (#291)
+              for (const g of [...opaqueGeometries, ...transparentGeometries]) {
+                g.dispose();
+              }
+              // Dispose merged geometries/materials in group not yet in scene
+              for (const child of group.children) {
+                if ("isMesh" in child && (child as { isMesh: boolean }).isMesh) {
+                  const mesh = child as unknown as {
+                    geometry?: { dispose: () => void };
+                    material?: { dispose: () => void };
+                  };
+                  mesh.geometry?.dispose();
+                  mesh.material?.dispose();
+                }
+              }
+
               if (!disposed) {
                 setErrorMsg(
                   err instanceof Error ? err.message : "IFC processing failed",
