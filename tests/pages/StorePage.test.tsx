@@ -141,6 +141,25 @@ describe("StorePage", () => {
     expect(screen.queryByText(/&#8217;/)).not.toBeInTheDocument();
   });
 
+  it("strips complex HTML without regex artifacts (regression #299)", () => {
+    mockUseWooProducts.mockReturnValue({
+      data: {
+        products: [
+          { id: 4, name: "Complex Product", short_description: '<a title="5 > 3">link</a><p>text &amp; more</p>', price: "9.99", regular_price: "9.99", sale_price: "", images: [], stock_status: "instock" },
+        ],
+        totalProducts: 1,
+        totalPages: 1,
+      },
+    });
+    renderPage();
+    // DOM-based stripHtml correctly extracts text from all tag structures;
+    // the old regex /<[^>]*>/g would leave '3">link' artifacts here.
+    expect(screen.getByText(/linktext & more/)).toBeInTheDocument();
+    // No residual `>` from attribute values or unresolved entities
+    expect(screen.queryByText(/3">/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/&amp;/)).not.toBeInTheDocument();
+  });
+
   // --- Pagination URL sync regression tests ---
 
   it("reads page from URL and passes to useWooProducts", () => {
