@@ -398,4 +398,39 @@ describe("useWordPress hook", () => {
     expect(calledUrl).toContain("orderby=date");
     expect(calledUrl).toContain("order=desc");
   });
+
+  // --- _fields bandwidth optimization regression tests (#277) ---
+
+  it("includes _fields parameter in list query URL (regression #277)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("_fields=id,date,title,excerpt,name,source_url,media_type,_embedded");
+  });
+
+  it("excludes content field from _fields parameter (regression #277)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    const fieldsMatch = calledUrl.match(/_fields=([^&]*)/);
+    expect(fieldsMatch).not.toBeNull();
+    const fields = fieldsMatch![1]!.split(",");
+    expect(fields).not.toContain("content");
+  });
 });
