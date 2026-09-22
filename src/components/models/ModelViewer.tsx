@@ -137,18 +137,6 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         const { OrbitControls: OC } = await import(
           "three/examples/jsm/controls/OrbitControls.js"
         );
-        const { GLTFLoader } = await import(
-          "three/examples/jsm/loaders/GLTFLoader.js"
-        );
-        const { DRACOLoader } = await import(
-          "three/examples/jsm/loaders/DRACOLoader.js"
-        );
-        const { OBJLoader } = await import(
-          "three/examples/jsm/loaders/OBJLoader.js"
-        );
-        const { STLLoader } = await import(
-          "three/examples/jsm/loaders/STLLoader.js"
-        );
         const { RoomEnvironment } = await import(
           "three/examples/jsm/environments/RoomEnvironment.js"
         );
@@ -463,6 +451,12 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
             }
           };
         } else if (ext === "glb" || ext === "gltf") {
+          const { GLTFLoader } = await import(
+            "three/examples/jsm/loaders/GLTFLoader.js"
+          );
+          const { DRACOLoader } = await import(
+            "three/examples/jsm/loaders/DRACOLoader.js"
+          );
           const loader = new GLTFLoader();
           const draco = new DRACOLoader();
           draco.setDecoderPath(DRACO_CDN);
@@ -497,12 +491,18 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
             },
           );
         } else if (ext === "obj") {
+          const { OBJLoader } = await import(
+            "three/examples/jsm/loaders/OBJLoader.js"
+          );
           fitToView(
             new OBJLoader().parse(
               new TextDecoder().decode(new Uint8Array(buf)),
             ),
           );
         } else if (ext === "stl") {
+          const { STLLoader } = await import(
+            "three/examples/jsm/loaders/STLLoader.js"
+          );
           const stlGeometry = new STLLoader().parse(buf);
           fitToView(
             new THREE.Mesh(
