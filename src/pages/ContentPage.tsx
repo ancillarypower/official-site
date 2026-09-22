@@ -148,31 +148,32 @@ export default function ContentPage() {
   // Posts are already sorted by the API; no client-side re-sorting needed.
   const posts = data?.posts ?? [];
 
-  // Deep link resolution (Issue #250):
-  // 1. Try to find the post on the currently loaded page (instant, no API call).
-  // 2. If not found AND the list query has finished loading, fetch the single
-  //    post directly from the WP REST API via useSinglePost.
+  // Article view resolution (Issue #277 + #250):
+  // List queries now use _fields and exclude `content`, so localMatch only
+  // provides metadata (title, image, date, author) for an instant preview.
+  // Always fetch the full post (with content) via useSinglePost.
   const localMatch =
     articleId !== null ? data?.posts.find((p) => p.id === articleId) : undefined;
 
-  const shouldFetchSingle =
-    articleId !== null && !isLoading && data !== undefined && !localMatch;
-
+  // Always fetch the full single post when articleId is set (Issue #277).
+  // useSinglePost is disabled when id is null, so this is a no-op in list view.
   const {
     data: remoteSinglePost,
     isLoading: isSinglePostLoading,
     error: singlePostError,
-  } = useSinglePost(shouldFetchSingle ? articleId : null);
+  } = useSinglePost(articleId);
 
-  const selectedPost = localMatch ?? remoteSinglePost ?? undefined;
+  // Prefer the full single post; fall back to localMatch as instant preview
+  // while useSinglePost is still loading (shows title, image, metadata).
+  const selectedPost = remoteSinglePost ?? localMatch ?? undefined;
 
-  // Article deep link: loading state while fetching single post
-  if (articleId !== null && shouldFetchSingle && isSinglePostLoading) {
+  // Article deep link: loading state (only when no local preview available)
+  if (articleId !== null && isSinglePostLoading && !localMatch) {
     return <LoadingSpinner />;
   }
 
   // Article deep link: post not found (404) or fetch error
-  if (articleId !== null && shouldFetchSingle && !selectedPost) {
+  if (articleId !== null && !isSinglePostLoading && remoteSinglePost === null) {
     if (singlePostError) {
       return <FetchErrorState error={singlePostError} onRetry={refetch} />;
     }
