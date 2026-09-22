@@ -366,4 +366,36 @@ describe("useWordPress hook", () => {
     expect(callArgs[1]).toHaveProperty("signal");
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
   });
+
+  it("passes orderby and order parameters to WordPress REST API URL (regression #276)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1, "", "title", "asc"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("orderby=title");
+    expect(calledUrl).toContain("order=asc");
+  });
+
+  it("uses default date/desc sort when parameters omitted (regression #276)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("orderby=date");
+    expect(calledUrl).toContain("order=desc");
+  });
 });

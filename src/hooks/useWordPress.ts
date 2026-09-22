@@ -74,18 +74,23 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
   };
 }
 
-export function useWordPress(page: number = 1, search: string = "") {
+export function useWordPress(
+  page: number = 1,
+  search: string = "",
+  orderby: string = "date",
+  order: string = "desc",
+) {
   const wpUrl = useSettingsStore((s) => s.wpUrl);
   const contentType = useSettingsStore((s) => s.contentType);
   const perPage = useSettingsStore((s) => s.perPage);
   const useProxy = useSettingsStore((s) => s.useProxy);
 
   return useQuery<WpQueryResult>({
-    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy],
+    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, orderby, order],
     queryFn: async ({ signal }) => {
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed${searchParam}`;
+      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}${searchParam}`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
