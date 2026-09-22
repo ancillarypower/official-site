@@ -586,3 +586,31 @@ describe("ModelViewer IntersectionObserver deferred init (#203)", () => {
     });
   });
 });
+
+describe("ModelViewer IFC WASM timeout (#265)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("shows error state when IFC Worker reports WASM timeout (regression #265)", async () => {
+    workerResponseOverride = { type: "error", message: "IFC WASM initialization timed out (30s)" };
+
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+
+    await waitFor(() => {
+      expect(screen.getByText(/IFC WASM initialization timed out/)).toBeInTheDocument();
+    });
+  });
+});
