@@ -6,6 +6,10 @@ vi.mock("@/hooks/useModelDB", () => ({
   getModelData: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
 }));
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+
 // --- IFC Worker mock infrastructure (#202) ---
 const mockWorkerTerminate = vi.fn();
 let lastWorkerInstance: {
