@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
+import { en } from "@/i18n/en";
+import { zh } from "@/i18n/zh";
 import AboutPage from "@/pages/AboutPage";
 
 function withProviders(ui: React.ReactElement) {
@@ -90,8 +92,9 @@ describe("AboutPage", () => {
   });
 
   it("renders OpenStreetMap iframe and Google Maps navigation link (regression #158)", () => {
-    render(withProviders(<AboutPage />));
-    const mapIframe = screen.getByTitle("安瑟樂威辦公室地圖");
+    localStorage.setItem("ap-lang", "zh");
+    const { unmount } = render(withProviders(<AboutPage />));
+    const mapIframe = screen.getByTitle(zh.about_map_title);
     expect(mapIframe.tagName).toBe("IFRAME");
     expect(mapIframe).toHaveAttribute(
       "src",
@@ -105,12 +108,21 @@ describe("AboutPage", () => {
     );
 
     const mapsLink = screen.getByRole("link", {
-      name: "使用 Google 地圖導航",
+      name: zh.about_map_link,
     });
     expect(mapsLink).toHaveAttribute(
       "href",
       "https://www.google.com/maps/dir/?api=1&destination=25.0420,121.5305",
     );
     expect(mapsLink).toHaveAttribute("target", "_blank");
+
+    unmount();
+    localStorage.setItem("ap-lang", "en");
+    render(withProviders(<AboutPage />));
+    expect(screen.getByTitle(en.about_map_title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: en.about_map_link }),
+    ).toBeInTheDocument();
+    localStorage.removeItem("ap-lang");
   });
 });
