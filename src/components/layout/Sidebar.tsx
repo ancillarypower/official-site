@@ -39,6 +39,24 @@ export function Sidebar() {
     }
   }, [activePanel]);
 
+  // Lock background scroll when a panel is open (Issue #146).
+  // Uses position:fixed technique instead of overflow:hidden to handle
+  // iOS Safari's known bug where overflow:hidden on body doesn't prevent
+  // background scroll on touch devices.
+  useEffect(() => {
+    if (!activePanel) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [activePanel]);
+
   // Manage inert imperatively — React 18 JSX lacks inert prop support.
   // While the panel is mounted but closing (activePanel is null, mounted
   // is still set), inert prevents interaction during the slide-out animation.
