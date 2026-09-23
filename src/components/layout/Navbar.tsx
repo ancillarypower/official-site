@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { to: "/about", labelKey: "nav_about" as const },
 ];
 
-const THEME_ICONS: Record<string, string> = { light: "☀", sepia: "📜", dark: "🌙" };
+const THEME_ICONS: Record<string, string> = { system: "💻", light: "\u2600", sepia: "📜", dark: "🌙" };
 
 export function Navbar() {
   const { lang, toggleLang, t } = useI18n();
@@ -28,10 +28,10 @@ export function Navbar() {
       <div className="hidden h-6 w-px bg-border-default md:block" aria-hidden="true" />
       <div className="hidden md:block"><FontSizeControl /></div>
       <div className="ml-auto flex items-center gap-2">
-        <button onClick={cycleTheme} className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent" aria-label={t("theme_toggle")} title={t("theme_toggle")}>{THEME_ICONS[theme] ?? "☀"}</button>
-        <button onClick={toggleLang} className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_toggle_lang")} title={t("a11y_toggle_lang")}>{lang === "zh" ? "EN" : "中文"}</button>
+        <button onClick={cycleTheme} className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent" aria-label={t("theme_toggle")} title={t("theme_toggle")}>{THEME_ICONS[theme] ?? "\u2600"}</button>
+        <button onClick={toggleLang} className="rounded-md border border-border-default bg-surface-sunken px-2.5 py-1 text-[0.7rem] font-semibold text-secondary transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_toggle_lang")} title={t("a11y_toggle_lang")}>{lang === "zh" ? "EN" : "\u4E2D\u6587"}</button>
         <button onClick={() => openPanel("cart")} className="rounded-md bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-secondary transition-colors hover:bg-border-default hover:text-primary" aria-label={t("nav_cart")} title={t("nav_cart")}>🛒 {t("nav_cart")}{totalItems > 0 && <span className="ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[0.6rem] font-bold text-white">{totalItems}</span>}</button>
-        <button onClick={() => openPanel("settings")} className="rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover" aria-label={t("nav_settings")} title={t("nav_settings")}>⚙ {t("nav_settings")}</button>
+        <button onClick={() => openPanel("settings")} className="rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover" aria-label={t("nav_settings")} title={t("nav_settings")}>\u2699 {t("nav_settings")}</button>
       </div>
     </nav>
   );
