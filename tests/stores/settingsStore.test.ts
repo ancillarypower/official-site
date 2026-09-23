@@ -125,7 +125,9 @@ describe("settingsStore", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBeNull();
   });
 
-  it("cycleTheme cycles light -> sepia -> dark -> light", () => {
+  it("cycleTheme cycles light -> sepia -> dark -> system -> light (#154)", () => {
+    // THEME_ORDER: ["system", "light", "sepia", "dark"]
+    // Starting from "light" (index 1)
     expect(useSettingsStore.getState().theme).toBe("light");
 
     useSettingsStore.getState().cycleTheme();
@@ -135,6 +137,9 @@ describe("settingsStore", () => {
     useSettingsStore.getState().cycleTheme();
     expect(useSettingsStore.getState().theme).toBe("dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+
+    useSettingsStore.getState().cycleTheme();
+    expect(useSettingsStore.getState().theme).toBe("system");
 
     useSettingsStore.getState().cycleTheme();
     expect(useSettingsStore.getState().theme).toBe("light");
@@ -218,18 +223,12 @@ describe("settingsStore", () => {
   // --- Security regression: #247 ---
 
   it("credentials default to empty strings, never from env vars (#247)", () => {
-    // Regression guard for GitHub issue #247 (CWE-200).
-    // wooKey / wooSecret must be hardcoded to \"\" \u2014 never initialised from
-    // VITE_* environment variables, which Vite embeds in the client bundle.
-    // The CI guard step also prevents adding VITE_*SECRET/KEY to .env.example.
     const s = useSettingsStore.getState();
     expect(s.wooKey).toBe("");
     expect(s.wooSecret).toBe("");
   });
 
   it("credentials remain empty after rehydration from localStorage (#247)", async () => {
-    // Even if a previous version persisted credentials (it shouldn\u2019t),
-    // rehydration must not restore them because partialize excludes them.
     localStorage.setItem(
       "ap-settings",
       JSON.stringify({
@@ -250,8 +249,6 @@ describe("settingsStore", () => {
       }),
     );
     await useSettingsStore.persist.rehydrate();
-    // partialize excludes wooKey/wooSecret, so even if someone manually
-    // injected them into localStorage they should not overwrite state.
     expect(useSettingsStore.getState().wooKey).toBe("");
     expect(useSettingsStore.getState().wooSecret).toBe("");
   });
@@ -259,9 +256,6 @@ describe("settingsStore", () => {
   // --- Zod validation regression: #448 ---
 
   it("rejects corrupted contentType from localStorage and falls back to defaults (regression #448)", async () => {
-    // Corrupted localStorage: invalid contentType, negative perPage,
-    // unknown theme, out-of-range fontScale.  Zod safeParse should fail
-    // and the merge callback should discard the entire blob.
     localStorage.setItem(
       "ap-settings",
       JSON.stringify({
@@ -292,8 +286,6 @@ describe("settingsStore", () => {
   });
 
   it("accepts valid persisted settings after Zod validation (regression #448)", async () => {
-    // Valid localStorage: all fields within allowed constraints.
-    // Zod safeParse should succeed and merge should restore them.
     localStorage.setItem(
       "ap-settings",
       JSON.stringify({
