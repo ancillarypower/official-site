@@ -74,6 +74,17 @@ describe("ArticleView", () => {
     expect(screen.queryByRole("link", { name: /查看原始文章/ })).not.toBeInTheDocument();
   });
 
+  it("does not render original article link for unsafe schemes (regression #155)", () => {
+    const unsafeLinkPost: WpPost = {
+      ...fullPost,
+      link: "javascript:alert(1)",
+    };
+
+    render(withProviders(<ArticleView post={unsafeLinkPost} onBack={vi.fn()} />));
+
+    expect(screen.queryByRole("link", { name: /查看原始文章/ })).not.toBeInTheDocument();
+  });
+
   it("renders back button and calls onBack", () => {
     const handler = vi.fn();
     render(withProviders(<ArticleView post={handler} onBack={handler} />));
