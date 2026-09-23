@@ -28,9 +28,11 @@ describe("TagFilter", () => {
       />,
     );
 
-    expect(screen.getByText("React")).toBeInTheDocument();
-    expect(screen.getByText("TypeScript")).toBeInTheDocument();
-    expect(screen.getByText("Vite")).toBeInTheDocument();
+    // Use regex to match partial text (button text includes count badge)
+    expect(screen.getByText(/^React/)).toBeInTheDocument();
+    expect(screen.getByText(/^TypeScript/)).toBeInTheDocument();
+    expect(screen.getByText(/^Vite/)).toBeInTheDocument();
+    // Count badges rendered as separate spans
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
@@ -46,7 +48,7 @@ describe("TagFilter", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("TypeScript"));
+    fireEvent.click(screen.getByText(/^TypeScript/));
     expect(onToggle).toHaveBeenCalledWith(2);
   });
 
@@ -103,8 +105,8 @@ describe("TagFilter", () => {
       />,
     );
 
-    const reactBtn = screen.getByText("React").closest("button");
-    const tsBtn = screen.getByText("TypeScript").closest("button");
+    const reactBtn = screen.getByText(/^React/).closest("button");
+    const tsBtn = screen.getByText(/^TypeScript/).closest("button");
     expect(reactBtn).toHaveAttribute("aria-pressed", "false");
     expect(tsBtn).toHaveAttribute("aria-pressed", "true");
   });
