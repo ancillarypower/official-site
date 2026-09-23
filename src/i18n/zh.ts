@@ -349,6 +349,11 @@ export const zh = {
   share_x: "X",
   share_line: "LINE",
   share_email: "Email",
+
+  // Tag filter (Issue #156)
+  tag_filter_label: "標籤篩選",
+  tag_filter_clear: "清除篩選",
+  tag_filter_no_tags: "尚無標籤",
 } as const;
 
 export type TranslationKey = keyof typeof zh;

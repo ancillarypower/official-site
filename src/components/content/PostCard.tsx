@@ -12,6 +12,11 @@ export function PostCard({ post, onClick }: PostCardProps) {
   const author = post._embedded?.author?.[0]?.name;
   const date = post.date ? new Date(post.date).toLocaleDateString(lang === "zh" ? "zh-TW" : "en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
 
+  // Extract tags from _embedded["wp:term"][1] (WordPress convention: [0]=categories, [1]=tags)
+  const tags = post._embedded?.["wp:term"]?.[1]?.map((t) => t.name).filter(Boolean) ?? [];
+  const visibleTags = tags.slice(0, 3);
+  const overflowCount = tags.length - visibleTags.length;
+
   return (
     <article className="overflow-hidden rounded-xl border border-border-subtle bg-surface-raised transition-all hover:border-border-default hover:shadow-md">
       <button
@@ -28,6 +33,20 @@ export function PostCard({ post, onClick }: PostCardProps) {
             {author && <span>{author}</span>}
             {date && <span>{date}</span>}
           </div>
+          {visibleTags.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {visibleTags.map((tag) => (
+                <span key={tag} className="rounded-full bg-accent-subtle px-2 py-0.5 text-[0.65rem] text-accent">
+                  {tag}
+                </span>
+              ))}
+              {overflowCount > 0 && (
+                <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[0.65rem] text-tertiary">
+                  +{overflowCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </button>
     </article>
