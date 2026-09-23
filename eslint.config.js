@@ -12,7 +12,7 @@ const a11yWarnRules = Object.fromEntries(
 );
 
 export default [
-  { ignores: ["dist/", "**/*.config.*", "tests/", ".github/", "public/"] },
+  { ignores: ["dist/", "**/*.config.*", ".github/", "public/"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs["recommended-latest"],
@@ -23,6 +23,18 @@ export default [
       ...a11yWarnRules,
       "@typescript-eslint/no-unused-vars": [
         "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
+    files: ["tests/**/*.{ts,tsx}"],
+    rules: {
+      // Tests commonly use `any` for mocks and type assertions
+      "@typescript-eslint/no-explicit-any": "off",
+      // Unused vars with _ prefix are test fixtures/helpers
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
