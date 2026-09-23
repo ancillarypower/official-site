@@ -93,6 +93,7 @@ export const en: Record<TranslationKey, string> = {
   theme_light: "Light",
   theme_sepia: "Sepia",
   theme_dark: "Dark",
+  theme_system: "System",
   theme_toggle: "Toggle reading theme",
   site_url_label: "Site URL",
   site_url_hint: "Used for both WP content and WooCommerce (can be separate)",
