@@ -32,6 +32,8 @@ export default [
     rules: {
       // Tests commonly use `any` for mocks and type assertions
       "@typescript-eslint/no-explicit-any": "off",
+      // Mock classes assign `this` to module-level variables for assertion tracking
+      "@typescript-eslint/no-this-alias": "off",
       // Unused vars with _ prefix are test fixtures/helpers
       "@typescript-eslint/no-unused-vars": [
         "warn",
