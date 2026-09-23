@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
+import { en } from "@/i18n/en";
+import { zh } from "@/i18n/zh";
 import AboutPage from "@/pages/AboutPage";
 
 function withProviders(ui: React.ReactElement) {
@@ -87,5 +89,40 @@ describe("AboutPage", () => {
     const phone2 = screen.getByText("02-7755-5030");
     expect(phone2.tagName).toBe("A");
     expect(phone2).toHaveAttribute("href", "tel:0277555030");
+  });
+
+  it("renders OpenStreetMap iframe and Google Maps navigation link (regression #158)", () => {
+    localStorage.setItem("ap-lang", "zh");
+    const { unmount } = render(withProviders(<AboutPage />));
+    const mapIframe = screen.getByTitle(zh.about_map_title);
+    expect(mapIframe.tagName).toBe("IFRAME");
+    expect(mapIframe).toHaveAttribute(
+      "src",
+      "https://www.openstreetmap.org/export/embed.html?bbox=121.5255%2C25.0395%2C121.5355%2C25.0445&layer=mapnik&marker=25.0420%2C121.5305",
+    );
+    expect(mapIframe).toHaveAttribute("loading", "lazy");
+    expect(mapIframe).toHaveAttribute("referrerpolicy", "no-referrer");
+    expect(mapIframe).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin",
+    );
+
+    const mapsLink = screen.getByRole("link", {
+      name: zh.about_map_link,
+    });
+    expect(mapsLink).toHaveAttribute(
+      "href",
+      "https://www.google.com/maps/dir/?api=1&destination=25.0420,121.5305",
+    );
+    expect(mapsLink).toHaveAttribute("target", "_blank");
+
+    unmount();
+    localStorage.setItem("ap-lang", "en");
+    render(withProviders(<AboutPage />));
+    expect(screen.getByTitle(en.about_map_title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: en.about_map_link }),
+    ).toBeInTheDocument();
+    localStorage.removeItem("ap-lang");
   });
 });

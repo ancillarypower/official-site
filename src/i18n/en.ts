@@ -198,6 +198,8 @@ export const en: Record<TranslationKey, string> = {
   about_phone_value: "02-2727-2988 / 02-7755-5030",
   about_address_label: "Address",
   about_address_value: "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei 100510",
+  about_map_title: "Ancillary Power office map",
+  about_map_link: "Open in Google Maps",
   about_website_label: "Website",
   about_website_value: "https://www.ancillarypower.com",
 

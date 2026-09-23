@@ -69,4 +69,10 @@ describe("Content Security Policy (regression #148)", () => {
     const workerSrc = csp.get("worker-src") ?? [];
     expect(workerSrc).toContain("blob:");
   });
+
+  it("frame-src allows OpenStreetMap embed origin", () => {
+    const frameSrc = csp.get("frame-src") ?? [];
+    expect(frameSrc).toContain("'self'");
+    expect(frameSrc).toContain("https://www.openstreetmap.org");
+  });
 });
