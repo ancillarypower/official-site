@@ -155,6 +155,26 @@ export default function AboutPage() {
               {t("about_address_value")}
             </span>
           </p>
+          <div className="space-y-2 pt-2">
+            <div className="aspect-video w-full overflow-hidden rounded-lg border border-border-default">
+              <iframe
+                title={t("about_map_title")}
+                src="https://www.openstreetmap.org/export/embed.html?bbox=121.5255%2C25.0395%2C121.5355%2C25.0445&layer=mapnik&marker=25.0420%2C121.5305"
+                className="h-full w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+            <a
+              href="https://www.google.com/maps/dir/?api=1&destination=25.0420,121.5305"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              {t("about_map_link")}
+            </a>
+          </div>
         </div>
       </section>
     </div>

@@ -88,4 +88,29 @@ describe("AboutPage", () => {
     expect(phone2.tagName).toBe("A");
     expect(phone2).toHaveAttribute("href", "tel:0277555030");
   });
+
+  it("renders OpenStreetMap iframe and Google Maps navigation link (regression #158)", () => {
+    render(withProviders(<AboutPage />));
+    const mapIframe = screen.getByTitle("安瑟樂威辦公室地圖");
+    expect(mapIframe.tagName).toBe("IFRAME");
+    expect(mapIframe).toHaveAttribute(
+      "src",
+      "https://www.openstreetmap.org/export/embed.html?bbox=121.5255%2C25.0395%2C121.5355%2C25.0445&layer=mapnik&marker=25.0420%2C121.5305",
+    );
+    expect(mapIframe).toHaveAttribute("loading", "lazy");
+    expect(mapIframe).toHaveAttribute("referrerpolicy", "no-referrer");
+    expect(mapIframe).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin",
+    );
+
+    const mapsLink = screen.getByRole("link", {
+      name: "使用 Google 地圖導航",
+    });
+    expect(mapsLink).toHaveAttribute(
+      "href",
+      "https://www.google.com/maps/dir/?api=1&destination=25.0420,121.5305",
+    );
+    expect(mapsLink).toHaveAttribute("target", "_blank");
+  });
 });
