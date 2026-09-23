@@ -61,7 +61,7 @@ describe("ArticleView", () => {
     render(withProviders(<ArticleView post={linkedPost} onBack={vi.fn()} />));
 
     const originalLink = screen.getByRole("link", {
-      name: /查看原始文章/,
+      name: /查看原始文章.*於新分頁開啟/,
     });
     expect(originalLink).toBeInTheDocument();
     expect(originalLink).toHaveAttribute("href", "https://example.com/original-article");

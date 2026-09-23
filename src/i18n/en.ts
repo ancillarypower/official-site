@@ -14,6 +14,7 @@ export const en: Record<TranslationKey, string> = {
   empty_no_content: "No news loaded",
   back_to_list: "Back to list",
   article_original_link: "View original article",
+  opens_in_new_tab: "opens in a new tab",
 
   // Landing
   landing_hero_title: "Building the Future of Smart Energy",

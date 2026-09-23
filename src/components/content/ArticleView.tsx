@@ -56,7 +56,9 @@ export function ArticleView({ post, onBack }: ArticleViewProps) {
             rel="noopener noreferrer"
             className="mb-6 inline-flex items-center gap-1 text-sm text-tertiary hover:text-accent"
           >
-            🔗 {t("article_original_link")}
+            <span aria-hidden="true">🔗</span>
+            <span>{t("article_original_link")}</span>
+            <span className="sr-only"> ({t("opens_in_new_tab")})</span>
           </a>
         )}
         <ShareButtons url={typeof window !== "undefined" ? window.location.href : ""} title={title} />
