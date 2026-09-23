@@ -52,6 +52,28 @@ describe("ArticleView", () => {
     expect(screen.getByText("Article content here")).toBeInTheDocument();
   });
 
+  it("renders original article link when post.link is present (regression #155)", () => {
+    const linkedPost: WpPost = {
+      ...fullPost,
+      link: "https://example.com/original-article",
+    };
+
+    render(withProviders(<ArticleView post={linkedPost} onBack={vi.fn()} />));
+
+    const originalLink = screen.getByRole("link", {
+      name: /查看原始文章/,
+    });
+    expect(originalLink).toBeInTheDocument();
+    expect(originalLink).toHaveAttribute("href", "https://example.com/original-article");
+    expect(originalLink).toHaveAttribute("target", "_blank");
+    expect(originalLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("does not render original article link when post.link is absent (regression #155)", () => {
+    render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
+    expect(screen.queryByRole("link", { name: /查看原始文章/ })).not.toBeInTheDocument();
+  });
+
   it("renders back button and calls onBack", () => {
     const handler = vi.fn();
     render(withProviders(<ArticleView post={handler} onBack={handler} />));

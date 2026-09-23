@@ -11,6 +11,7 @@ export const zh = {
   loading: "載入中...",
   empty_no_content: "尚未載入消息",
   back_to_list: "返回列表",
+  article_original_link: "查看原始文章",
 
   // Landing
   landing_hero_title: "打造智慧能源的未來",
