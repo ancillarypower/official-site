@@ -22,9 +22,11 @@ function parseCSP(csp: string): Map<string, string[]> {
 describe("Content Security Policy (regression #148)", () => {
   const html = readFileSync(resolve(__dirname, "../../index.html"), "utf-8");
 
-  // Extract CSP content attribute from meta tag
+  // Extract CSP content attribute from meta tag.
+  // Use [^"]+ (not [^"']+) because the CSP value contains single quotes
+  // like 'self' and 'none' — the previous regex stopped at the first '.
   const cspMatch = html.match(
-    /<meta[^>]+http-equiv=["']Content-Security-Policy["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+http-equiv="Content-Security-Policy"[^>]+content="([^"]+)"/i,
   );
 
   it("index.html contains a CSP meta tag", () => {
