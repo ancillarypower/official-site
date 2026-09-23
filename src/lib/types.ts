@@ -10,6 +10,7 @@ const wpRenderedField = z
 export const wpPostSchema = z.object({
   id: z.number(),
   date: z.string().optional(),
+  link: z.string().optional(),
   title: wpRenderedField,
   content: wpRenderedField.optional(),
   excerpt: wpRenderedField.optional(),
