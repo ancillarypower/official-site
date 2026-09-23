@@ -181,7 +181,7 @@ export async function validateCartPrices(
     );
   }
 
-  const raw = await response.json();
+  const raw = await parseJsonResponse(response);
   if (!Array.isArray(raw)) {
     throw new AppError(
       "error_price_validation_failed",
