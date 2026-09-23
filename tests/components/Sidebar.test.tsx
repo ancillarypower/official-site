@@ -51,7 +51,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     );
     expect(settingsAside).toBeInTheDocument();
     expect(settingsAside).toHaveAttribute("aria-modal", "true");
@@ -62,7 +62,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: null });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     );
     expect(settingsAside).not.toBeInTheDocument();
   });
@@ -71,7 +71,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "cart" });
     const { container } = render(withProviders(<Sidebar />));
     const cartAside = container.querySelector(
-      "aside[aria-label='購物車']",
+      "aside[aria-label='\u8CFC\u7269\u8ECA']",
     );
     expect(cartAside).toBeInTheDocument();
     expect(cartAside).toHaveAttribute("aria-modal", "true");
@@ -82,7 +82,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const cartAside = container.querySelector(
-      "aside[aria-label='購物車']",
+      "aside[aria-label='\u8CFC\u7269\u8ECA']",
     );
     expect(cartAside).not.toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     expect(
-      container.querySelector("aside[aria-label='設定']"),
+      container.querySelector("aside[aria-label='\u8A2D\u5B9A']"),
     ).toBeInTheDocument();
 
     // Close the panel
@@ -108,7 +108,7 @@ describe("Sidebar", () => {
 
     // Panel still in DOM during transition
     expect(
-      container.querySelector("aside[aria-label='設定']"),
+      container.querySelector("aside[aria-label='\u8A2D\u5B9A']"),
     ).toBeInTheDocument();
 
     // After transition delay, panel is unmounted
@@ -117,7 +117,7 @@ describe("Sidebar", () => {
     });
 
     expect(
-      container.querySelector("aside[aria-label='設定']"),
+      container.querySelector("aside[aria-label='\u8A2D\u5B9A']"),
     ).not.toBeInTheDocument();
   });
 
@@ -125,7 +125,7 @@ describe("Sidebar", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const aside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     ) as HTMLElement;
     expect(aside.inert).toBe(false);
 
@@ -135,10 +135,32 @@ describe("Sidebar", () => {
     });
 
     const closingAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     ) as HTMLElement;
     expect(closingAside).toBeInTheDocument();
     expect(closingAside.inert).toBe(true);
+  });
+
+  it("locks body scroll when panel opens and restores on close (regression #146)", () => {
+    // Body should start unlocked
+    expect(document.body.style.position).toBe("");
+
+    // Open settings panel
+    useSettingsStore.setState({ activePanel: "settings" });
+    render(withProviders(<Sidebar />));
+
+    // Body should be locked
+    expect(document.body.style.position).toBe("fixed");
+    expect(document.body.style.width).toBe("100%");
+
+    // Close the panel
+    act(() => {
+      useSettingsStore.setState({ activePanel: null });
+    });
+
+    // Body should be restored after cleanup
+    expect(document.body.style.position).toBe("");
+    expect(document.body.style.width).toBe("");
   });
 });
 
@@ -156,7 +178,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     )!;
     expect(settingsAside.contains(document.activeElement)).toBe(true);
   });
@@ -172,7 +194,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     )!;
     const focusable =
       settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -188,7 +210,7 @@ describe("Sidebar focus trap", () => {
     useSettingsStore.setState({ activePanel: "settings" });
     const { container } = render(withProviders(<Sidebar />));
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     )!;
     const focusable =
       settingsAside.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -220,7 +242,7 @@ describe("Sidebar focus trap", () => {
     });
 
     const settingsAside = container.querySelector(
-      "aside[aria-label='設定']",
+      "aside[aria-label='\u8A2D\u5B9A']",
     )!;
     expect(settingsAside.contains(document.activeElement)).toBe(true);
 
