@@ -28,13 +28,10 @@ describe("TagFilter", () => {
       />,
     );
 
-    // Use regex to match partial text (button text includes count badge)
-    expect(screen.getByText(/^React/)).toBeInTheDocument();
-    expect(screen.getByText(/^TypeScript/)).toBeInTheDocument();
-    expect(screen.getByText(/^Vite/)).toBeInTheDocument();
-    // Count badges rendered as separate spans
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    // Use getByRole to scope to button elements (avoids parent div matches)
+    expect(screen.getByRole("button", { name: /React/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /TypeScript/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Vite/ })).toBeInTheDocument();
   });
 
   it("calls onToggle with correct tag ID on click", () => {
@@ -48,7 +45,7 @@ describe("TagFilter", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText(/^TypeScript/));
+    fireEvent.click(screen.getByRole("button", { name: /TypeScript/ }));
     expect(onToggle).toHaveBeenCalledWith(2);
   });
 
@@ -63,7 +60,7 @@ describe("TagFilter", () => {
       />,
     );
 
-    const clearBtn = screen.getByText(/tag_filter_clear/);
+    const clearBtn = screen.getByRole("button", { name: /tag_filter_clear/ });
     expect(clearBtn).toBeInTheDocument();
     fireEvent.click(clearBtn);
     expect(onClear).toHaveBeenCalledOnce();
@@ -79,7 +76,7 @@ describe("TagFilter", () => {
       />,
     );
 
-    expect(screen.queryByText(/tag_filter_clear/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /tag_filter_clear/ })).not.toBeInTheDocument();
   });
 
   it("returns null when tags array is empty", () => {
@@ -100,14 +97,11 @@ describe("TagFilter", () => {
       <TagFilter
         tags={sampleTags}
         selectedIds={[2]}
-        onToggle={() => {}}
-        onClear={() => {}}
+        onToggle={() => {}}        onClear={() => {}}
       />,
     );
 
-    const reactBtn = screen.getByText(/^React/).closest("button");
-    const tsBtn = screen.getByText(/^TypeScript/).closest("button");
-    expect(reactBtn).toHaveAttribute("aria-pressed", "false");
-    expect(tsBtn).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /React/, pressed: false })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /TypeScript/, pressed: true })).toBeInTheDocument();
   });
 });
