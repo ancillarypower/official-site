@@ -325,4 +325,9 @@ export const en: Record<TranslationKey, string> = {
   share_x: "X",
   share_line: "LINE",
   share_email: "Email",
+
+  // Tag filter (Issue #156)
+  tag_filter_label: "Filter by tag",
+  tag_filter_clear: "Clear filter",
+  tag_filter_no_tags: "No tags available",
 };
