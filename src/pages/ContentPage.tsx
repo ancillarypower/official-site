@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWordPress, useSinglePost } from "@/hooks/useWordPress";
+import { useWpTags } from "@/hooks/useWpTags";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -9,6 +10,7 @@ import { PostGrid } from "@/components/content/PostGrid";
 import { ArticleView } from "@/components/content/ArticleView";
 import { Pagination } from "@/components/ui/Pagination";
 import { ContentToolbar } from "@/components/ui/ContentToolbar";
+import { TagFilter } from "@/components/ui/TagFilter";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FetchErrorState } from "@/components/ui/FetchErrorState";
@@ -55,6 +57,12 @@ export default function ContentPage() {
   const filter = searchParams.get("q") ?? "";
   const sort = searchParams.get("sort") ?? "date_desc";
 
+  // Tag filter: comma-separated tag IDs in URL (Issue #156)
+  const tagsParam = searchParams.get("tags") ?? "";
+  const selectedTags = tagsParam
+    ? tagsParam.split(",").map(Number).filter(Number.isFinite)
+    : [];
+
   const setFilter = useCallback((value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -75,11 +83,34 @@ export default function ContentPage() {
     }, { replace: true });
   }, [setSearchParams]);
 
+  const toggleTag = useCallback((id: number) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      const current = (next.get("tags") ?? "").split(",").map(Number).filter(Number.isFinite);
+      const updated = current.includes(id)
+        ? current.filter((x) => x !== id)
+        : [...current, id];
+      if (updated.length > 0) next.set("tags", updated.join(","));
+      else next.delete("tags");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const clearTags = useCallback(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete("tags");
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // Debounce search input before sending to WordPress REST API (300 ms).
   const debouncedSearch = useDebouncedValue(filter, 300);
 
   // Reset page to 1 when contentType, perPage, or wpUrl changes (not on mount).
-  // Also reset filter and sort when contentType or wpUrl changes (#123, #127, #144).
+  // Also reset filter, sort, and tags when contentType or wpUrl changes (#123, #127, #144, #156).
   // Switching wpUrl is equivalent to switching data sources, so all view state resets.
   // usePrevious ref pattern: mount -> refs === current -> skip; value change ->
   // refs !== current -> reset page. StrictMode-safe (no ref-flip-during-render).
@@ -98,6 +129,7 @@ export default function ContentPage() {
         if (contentTypeChanged || wpUrlChanged) {
           next.delete("q");
           next.delete("sort");
+          next.delete("tags");
         }
         return next;
       }, { replace: true });
@@ -139,6 +171,10 @@ export default function ContentPage() {
   // Literal DEFAULT_SORT fallback avoids noUncheckedIndexedAccess union with undefined.
   const sortParams = SORT_MAP[sort] ?? DEFAULT_SORT;
 
+  // Fetch WordPress tags for tag filter (Issue #156).
+  // Only fires when contentType === "posts" (useWpTags is internally gated).
+  const { data: tagsData } = useWpTags();
+
   // Skip the list query entirely when viewing a single article (Issue #437).
   // Only useSinglePost needs to fire; the list fetch is wasted bandwidth.
   // TanStack Query retains cached list data, so navigating back to the list
@@ -148,6 +184,7 @@ export default function ContentPage() {
     debouncedSearch,
     sortParams.orderby,
     sortParams.order,
+    selectedTags,
     articleId === null,
   );
 
@@ -230,6 +267,14 @@ export default function ContentPage() {
         onSortChange={setSort}
         sortOptions={SORT_OPTIONS}
       />
+      {contentType === "posts" && tagsData && tagsData.length > 0 && (
+        <TagFilter
+          tags={tagsData}
+          selectedIds={selectedTags}
+          onToggle={toggleTag}
+          onClear={clearTags}
+        />
+      )}
       <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
         <PostGrid
           posts={posts}

@@ -89,12 +89,15 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
  *   viewing a single article and the list fetch is unnecessary). Defaults
  *   to `true`. TanStack Query manages cache lifecycle automatically:
  *   cached data is retained and served instantly when re-enabled (Issue #437).
+ * @param tags - Optional array of WordPress tag IDs for server-side filtering.
+ *   When non-empty, appends `&tags=1,2,3` to the API URL (Issue #156).
  */
 export function useWordPress(
   page: number = 1,
   search: string = "",
   orderby: string = "date",
   order: string = "desc",
+  tags: number[] = [],
   enabled: boolean = true,
 ) {
   const wpUrl = useSettingsStore((s) => s.wpUrl);
@@ -103,11 +106,12 @@ export function useWordPress(
   const useProxy = useSettingsStore((s) => s.useProxy);
 
   return useQuery<WpQueryResult>({
-    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, orderby, order],
+    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, orderby, order, tags],
     queryFn: async ({ signal }) => {
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}&_fields=${LIST_FIELDS}${searchParam}`;
+      const tagsParam = tags.length > 0 ? `&tags=${tags.join(",")}` : "";
+      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}&_fields=${LIST_FIELDS}${searchParam}${tagsParam}`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
