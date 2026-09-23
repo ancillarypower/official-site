@@ -1,10 +1,6 @@
 name: Generate pnpm-lock.yaml
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - trigger/generate-lockfile
+on: workflow_dispatch
 
 permissions:
   contents: write
@@ -15,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: main
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -42,29 +36,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          BRANCH="chore/add-pnpm-lockfile"
+          BRANCH="chore/update-pnpm-lockfile"
           git checkout -b "$BRANCH"
           git add pnpm-lock.yaml
 
           if git diff --cached --quiet; then
-            echo "No changes to commit — lockfile already up to date"
+            echo "No changes to commit \u2014 lockfile already up to date"
             exit 0
           fi
 
-          git commit -m "chore: add pnpm-lock.yaml for reproducible builds"
+          git commit -m "chore: update pnpm-lock.yaml"
           git push origin "$BRANCH"
 
           gh pr create \
-            --title "chore: add pnpm-lock.yaml (closes #204)" \
-            --body "## Summary
-
-          Generated \`pnpm-lock.yaml\` via CI runner with full npm registry access.
-
-          This lockfile pins every transitive dependency to an exact version, enabling:
-          - Reproducible builds across CI and local environments
-          - Deterministic \`pnpm install --frozen-lockfile\` in CI
-          - Proper dependency caching via \`cache-dependency-path: 'pnpm-lock.yaml'\`
-
-          Closes #204" \
+            --title "chore: update pnpm-lock.yaml" \
+            --body "Regenerated lockfile via CI runner. Review and merge to update dependency pins." \
             --base main \
             --head "$BRANCH"
