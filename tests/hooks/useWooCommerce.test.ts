@@ -633,6 +633,27 @@ describe("validateCartPrices", () => {
     expect(result.mismatches).toHaveLength(0);
     expect(result.unavailable).toHaveLength(0);
   });
+
+  /* -- Issue #462 Regression Test -- */
+
+  it("throws AppError instead of SyntaxError when server returns HTML (regression #462)", async () => {
+    // Server returns HTML error page (e.g. 502 proxy page) with HTTP 200
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("<html>502 Bad Gateway</html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    ));
+
+    await expect(
+      validateCartPrices(
+        [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        "https://shop.example.com",
+        "ck_test",
+        "cs_test",
+      ),
+    ).rejects.toThrow(/Expected JSON response but received text\/html/);
+  });
 });
 
 describe("useCheckout", () => {
