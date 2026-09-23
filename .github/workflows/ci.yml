@@ -14,8 +14,14 @@ jobs:
 
       - name: Guard against exposed secrets in VITE_ env vars
         run: |
+          # 1. Check .env template
           if grep -rE 'VITE_.*(SECRET|KEY|TOKEN|PASSWORD)' .env.example; then
             echo "::error::Sensitive variables must not use VITE_ prefix \u2014 they are embedded in the client bundle"
+            exit 1
+          fi
+          # 2. Check source code for import.meta.env references
+          if grep -rE 'import\.meta\.env\.VITE_.*(SECRET|KEY|TOKEN|PASSWORD)' src/; then
+            echo "::error::Source code references a VITE_ secret variable — secrets are embedded in the client bundle. See issue #247"
             exit 1
           fi
 
