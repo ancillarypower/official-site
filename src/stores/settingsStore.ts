@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import { z } from "zod";
 import { ensureHttps } from "@/lib/api";
 
-export type Theme = "light" | "sepia" | "dark";
+export type Theme = "system" | "light" | "sepia" | "dark";
 
 interface SettingsState {
   /** WordPress site URL */
@@ -50,13 +50,32 @@ interface SettingsState {
   getWooBaseUrl: () => string;
 }
 
-const THEME_ORDER: Theme[] = ["light", "sepia", "dark"];
+const THEME_ORDER: Theme[] = ["system", "light", "sepia", "dark"];
+
+/** MediaQueryList for OS dark mode preference (#154) */
+const darkMq: MediaQueryList | null =
+  typeof window !== "undefined" && window.matchMedia
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+
+/**
+ * Resolve the effective concrete theme for a given Theme value.
+ * "system" maps to "dark" or "light" based on OS preference;
+ * all other values pass through unchanged.
+ */
+export function resolveTheme(theme: Theme): "light" | "sepia" | "dark" {
+  if (theme === "system") {
+    return darkMq?.matches ? "dark" : "light";
+  }
+  return theme;
+}
 
 function applyTheme(theme: Theme) {
-  if (theme === "light") {
+  const resolved = resolveTheme(theme);
+  if (resolved === "light") {
     document.documentElement.removeAttribute("data-theme");
   } else {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", resolved);
   }
 }
 
@@ -81,7 +100,7 @@ export const persistedSettingsSchema = z.object({
   perPage: z.number().int().min(1).max(100).optional(),
   wooPerPage: z.number().int().min(1).max(100).optional(),
   fontScale: z.number().min(0.7).max(1.5).optional(),
-  theme: z.enum(["light", "sepia", "dark"]).optional(),
+  theme: z.enum(["system", "light", "sepia", "dark"]).optional(),
   wpUrl: z.string().optional(),
   wooUrl: z.string().optional(),
   wooUseSameUrl: z.boolean().optional(),
@@ -140,7 +159,7 @@ export const useSettingsStore = create<SettingsState>()(
         window.dispatchEvent(new CustomEvent("fontscalechange"));
       },
 
-      theme: "light",
+      theme: "system",
       setTheme: (theme) => {
         applyTheme(theme);
         set({ theme });
@@ -203,3 +222,14 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+// Re-apply theme when OS dark mode preference changes (#154).
+// Only takes effect when the user has selected "system" theme.
+if (darkMq) {
+  darkMq.addEventListener("change", () => {
+    const { theme } = useSettingsStore.getState();
+    if (theme === "system") {
+      applyTheme("system");
+    }
+  });
+}
