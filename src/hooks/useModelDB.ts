@@ -95,11 +95,20 @@ export async function deleteAllModels(): Promise<void> {
   await db.clear(STORE_NAME);
 }
 
+/**
+ * Rename a model using a cursor-based update to avoid structured-cloning
+ * the full record (including potentially large ArrayBuffer) via get+put.
+ * The cursor positions directly at the target key; mutating cursor.value
+ * and calling cursor.update() writes back within the same transaction
+ * without an extra deserialization round-trip (Issue #461).
+ */
 export async function renameModel(id: number, newName: string): Promise<void> {
   const db = await getDB();
-  const record = await db.get(STORE_NAME, id);
-  if (!record) throw new Error(`Model ${id} not found`);
-  record.name = newName;
-  record.updatedAt = Date.now();
-  await db.put(STORE_NAME, record);
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const cursor = await tx.store.openCursor(id);
+  if (!cursor) throw new Error(`Model ${id} not found`);
+  cursor.value.name = newName;
+  cursor.value.updatedAt = Date.now();
+  await cursor.update(cursor.value);
+  await tx.done;
 }

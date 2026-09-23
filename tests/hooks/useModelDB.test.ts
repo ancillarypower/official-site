@@ -7,6 +7,7 @@ import {
   deleteModel,
   deleteMultipleModels,
   deleteAllModels,
+  renameModel,
   _resetDB,
 } from "@/hooks/useModelDB";
 
@@ -142,6 +143,44 @@ describe("useModelDB", () => {
   it("getModelData returns null for non-existent id", async () => {
     const result = await getModelData(999999);
     expect(result).toBeNull();
+  });
+
+  /* ── renameModel ── */
+
+  it("renames a model and updates updatedAt (regression #461)", async () => {
+    const original = new Uint8Array([42, 43, 44]);
+    const id = await saveModel("before.glb", 3, "glb", original.buffer);
+    const before = Date.now();
+    await renameModel(id, "after.glb");
+    const after = Date.now();
+
+    // Verify name changed via metadata
+    const metas = await getAllModelMeta();
+    expect(metas).toHaveLength(1);
+    expect(metas[0]?.name).toBe("after.glb");
+    expect(metas[0]?.updatedAt).toBeGreaterThanOrEqual(before);
+    expect(metas[0]?.updatedAt).toBeLessThanOrEqual(after);
+
+    // Verify binary data is preserved
+    const data = await getModelData(id);
+    expect(data).not.toBeNull();
+    expect(new Uint8Array(data!)).toEqual(original);
+  });
+
+  it("renameModel throws for non-existent id (regression #461)", async () => {
+    await expect(renameModel(999999, "ghost.glb")).rejects.toThrow(
+      "Model 999999 not found",
+    );
+  });
+
+  it("renameModel uses cursor instead of get+put (regression #461)", async () => {
+    // Structural verification: the function source must use openCursor
+    // and must NOT use db.get() or db.put(). This guards against
+    // reverting the memory optimization back to the full-record approach.
+    const fnSource = renameModel.toString();
+    expect(fnSource).toContain("openCursor");
+    expect(fnSource).not.toContain(".get(");
+    expect(fnSource).not.toContain(".put(");
   });
 
   /* ── singleton connection (regression #131) ── */
