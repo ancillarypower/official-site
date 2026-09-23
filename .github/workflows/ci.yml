@@ -57,7 +57,8 @@ jobs:
           ")
           echo "Coverage: ${PCT}%"
           if [ "$PCT" -lt 90 ]; then
-            echo "::warning::Coverage ${PCT}% is below the 90% threshold"
+            echo "::error::Coverage ${PCT}% is below the 90% threshold"
+            exit 1
           fi
 
       - name: Build
