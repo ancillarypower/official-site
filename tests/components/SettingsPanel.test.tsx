@@ -80,11 +80,11 @@ describe("SettingsPanel", () => {
     expect(useSettingsStore.getState().fontScale).toBeCloseTo(1.0, 1);
   });
 
-  it("renders theme section with three theme radio buttons", () => {
+  it("renders theme section with four theme radio buttons (#154)", () => {
     render(withProviders(<SettingsPanel />));
     expect(screen.getByText(/閱讀主題/)).toBeInTheDocument();
     const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(3);
+    expect(radios).toHaveLength(4);
   });
 
   it("switches theme when clicking a theme button", () => {
@@ -132,48 +132,58 @@ describe("SettingsPanel", () => {
     expect(keyInput).toHaveAttribute("type", "password");
   });
 
-  // --- Arrow key navigation tests (regression #134) ---
+  // --- Arrow key navigation tests (regression #134, updated for #154) ---
 
   it("navigates themes with ArrowRight/ArrowLeft keys (regression #134)", () => {
     render(withProviders(<SettingsPanel />));
+    // THEME_OPTIONS: [system(0), light(1), sepia(2), dark(3)]
+    // beforeEach sets theme to "light" (index 1)
     const lightRadio = screen.getByRole("radio", { name: /明亮/ });
 
-    // ArrowRight: light → sepia
+    // ArrowRight: light(1) -> sepia(2)
     fireEvent.keyDown(lightRadio, { key: "ArrowRight" });
     expect(useSettingsStore.getState().theme).toBe("sepia");
 
-    // Re-query because the focused element changes after state update
     const sepiaRadio = screen.getByRole("radio", { name: /護眼/ });
     expect(sepiaRadio).toHaveAttribute("aria-checked", "true");
 
-    // ArrowLeft: sepia → light
+    // ArrowLeft: sepia(2) -> light(1)
     fireEvent.keyDown(sepiaRadio, { key: "ArrowLeft" });
     expect(useSettingsStore.getState().theme).toBe("light");
 
-    // ArrowLeft from light wraps to dark (circular)
+    // ArrowLeft from light(1) wraps to dark(3) via (1-1+4)%4=0=system... wait:
+    // Actually (1-1+4)%4 = 4%4 = 0 = system
     const lightRadioAgain = screen.getByRole("radio", { name: /明亮/ });
     fireEvent.keyDown(lightRadioAgain, { key: "ArrowLeft" });
+    expect(useSettingsStore.getState().theme).toBe("system");
+
+    // ArrowLeft from system(0) wraps to dark(3) via (0-1+4)%4=3
+    const systemRadio = screen.getByRole("radio", { name: /跟隨系統/ });
+    fireEvent.keyDown(systemRadio, { key: "ArrowLeft" });
     expect(useSettingsStore.getState().theme).toBe("dark");
 
-    // ArrowRight from dark wraps to light (circular)
+    // ArrowRight from dark(3) wraps to system(0) via (3+1)%4=0
     const darkRadio = screen.getByRole("radio", { name: /深色/ });
     fireEvent.keyDown(darkRadio, { key: "ArrowRight" });
-    expect(useSettingsStore.getState().theme).toBe("light");
+    expect(useSettingsStore.getState().theme).toBe("system");
   });
 
   it("only selected theme radio has tabIndex 0, others have -1 (regression #134)", () => {
     render(withProviders(<SettingsPanel />));
+    const systemRadio = screen.getByRole("radio", { name: /跟隨系統/ });
     const lightRadio = screen.getByRole("radio", { name: /明亮/ });
     const sepiaRadio = screen.getByRole("radio", { name: /護眼/ });
     const darkRadio = screen.getByRole("radio", { name: /深色/ });
 
     // Initial state: light is selected
+    expect(systemRadio).toHaveAttribute("tabindex", "-1");
     expect(lightRadio).toHaveAttribute("tabindex", "0");
     expect(sepiaRadio).toHaveAttribute("tabindex", "-1");
     expect(darkRadio).toHaveAttribute("tabindex", "-1");
 
     // Switch to dark
     fireEvent.click(darkRadio);
+    expect(systemRadio).toHaveAttribute("tabindex", "-1");
     expect(lightRadio).toHaveAttribute("tabindex", "-1");
     expect(sepiaRadio).toHaveAttribute("tabindex", "-1");
     expect(darkRadio).toHaveAttribute("tabindex", "0");
