@@ -437,7 +437,7 @@ describe("useWordPress hook", () => {
   // --- enabled parameter regression tests (#437) ---
 
   it("disables query when enabled is false (regression #437)", () => {
-    const { result } = renderHook(() => useWordPress(1, "", "date", "desc", false), {
+    const { result } = renderHook(() => useWordPress(1, "", "date", "desc", [], false), {
       wrapper: createWrapper(),
     });
     // Query should not be loading or fetching when disabled
@@ -457,5 +457,37 @@ describe("useWordPress hook", () => {
 
     // Query should start fetching (enabled defaults to true)
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  // --- tags parameter regression tests (#156) ---
+
+  it("appends tags parameter to URL when tags are provided (regression #156)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1, "", "date", "desc", [5, 12, 23]), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("&tags=5,12,23");
+  });
+
+  it("does not append tags parameter when tags array is empty (regression #156)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1, "", "date", "desc", []), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).not.toContain("&tags=");
   });
 });
