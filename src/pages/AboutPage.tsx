@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -31,6 +32,7 @@ const SERVICES = [
 export default function AboutPage() {
   const { t } = useI18n();
   useDocumentTitle(t("nav_about"));
+  const [mapKey, setMapKey] = useState(0);
 
   return (
     <div className="animate-fade-in mx-auto max-w-3xl space-y-12">
@@ -158,6 +160,7 @@ export default function AboutPage() {
           <div className="space-y-2 pt-2">
             <div className="aspect-video w-full overflow-hidden rounded-lg border border-border-default">
               <iframe
+                key={mapKey}
                 title={t("about_map_title")}
                 src="https://www.openstreetmap.org/export/embed.html?bbox=121.5275%2C25.0397%2C121.5375%2C25.0447&layer=mapnik&marker=25.0422%2C121.5325"
                 className="h-full w-full border-0"
@@ -166,14 +169,23 @@ export default function AboutPage() {
                 sandbox="allow-scripts allow-same-origin"
               />
             </div>
-            <a
-              href="https://www.google.com/maps/dir/?api=1&destination=25.0422,121.5325"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline"
-            >
-              {t("about_map_link")}
-            </a>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMapKey((k) => k + 1)}
+                className="text-sm text-accent hover:underline"
+              >
+                {t("about_map_reset")}
+              </button>
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=25.0422,121.5325"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline"
+              >
+                {t("about_map_link")}
+              </a>
+            </div>
           </div>
         </div>
       </section>

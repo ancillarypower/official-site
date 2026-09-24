@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/context/I18nContext";
 import { en } from "@/i18n/en";
@@ -124,5 +124,31 @@ describe("AboutPage", () => {
       screen.getByRole("link", { name: en.about_map_link }),
     ).toBeInTheDocument();
     localStorage.removeItem("ap-lang");
+  });
+
+  it("clicking reset button remounts the map iframe (regression #504)", () => {
+    render(withProviders(<AboutPage />));
+    const resetBtn = screen.getByRole("button", {
+      name: zh.about_map_reset,
+    });
+    expect(resetBtn).toBeInTheDocument();
+
+    // Capture original iframe reference
+    const iframeBefore = screen.getByTitle(zh.about_map_title);
+    expect(iframeBefore.tagName).toBe("IFRAME");
+
+    // Click reset
+    fireEvent.click(resetBtn);
+
+    // After click, a new iframe should exist with the same src
+    const iframeAfter = screen.getByTitle(zh.about_map_title);
+    expect(iframeAfter.tagName).toBe("IFRAME");
+    expect(iframeAfter).toHaveAttribute(
+      "src",
+      "https://www.openstreetmap.org/export/embed.html?bbox=121.5275%2C25.0397%2C121.5375%2C25.0447&layer=mapnik&marker=25.0422%2C121.5325",
+    );
+
+    // The iframe should be a new DOM node (remounted via key change)
+    expect(iframeAfter).not.toBe(iframeBefore);
   });
 });
