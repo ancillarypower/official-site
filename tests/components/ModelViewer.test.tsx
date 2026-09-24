@@ -628,3 +628,37 @@ describe("ModelViewer Fullscreen API rejection handling (#451)", () => {
     await waitFor(() => { expect(toast.error).toHaveBeenCalled(); });
   });
 });
+
+describe("ModelViewer loader extraction integration (#487)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    workerAutoRespond = true;
+    workerResponseOverride = null;
+    lastWorkerInstance = null;
+    ioAutoTrigger = true;
+    lastIOCallback = null;
+    vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+    vi.stubGlobal("ResizeObserver", vi.fn().mockImplementation(() => ({ observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() })));
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  it("refactored init delegates to loadModel for IFC path (regression #487)", async () => {
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(screen.queryByText(/\u89e3\u6790\u6a21\u578b/)).not.toBeInTheDocument(); });
+    expect(lastWorkerInstance).not.toBeNull();
+  });
+
+  it("refactored cleanup calls cleanupLoaderResources on unmount (regression #487)", async () => {
+    workerAutoRespond = false;
+    const { ModelViewer } = await import("@/components/models/ModelViewer");
+    const { unmount } = render(<I18nProvider><ModelViewer name="test.ifc" ext="ifc" modelId={1} /></I18nProvider>);
+    await waitFor(() => { expect(lastWorkerInstance).not.toBeNull(); });
+    expect(mockWorkerTerminate).not.toHaveBeenCalled();
+    unmount();
+    expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
+  });
+});
