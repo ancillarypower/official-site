@@ -63,7 +63,7 @@ export function useWooProducts(page: number = 1, search: string = "") {
   // Derive a cache-identity fingerprint — changes when credentials rotate,
   // but never exposes plaintext in DevTools / logging / Sentry (Issue #483).
   const credFingerprint = wooKey && wooSecret
-    ? btoa(`${wooKey}:${wooSecret}`).slice(0, 12)
+    ? btoa(`${wooKey}:${wooSecret}`)
     : "";
 
   return useQuery<WooQueryResult>({
