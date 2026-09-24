@@ -1,12 +1,15 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import type { WebGLRenderer, Object3D, BufferGeometry, Scene, Material } from "three";
+import type { WebGLRenderer, Object3D, Scene, Material } from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
 import { getModelData } from "@/hooks/useModelDB";
-import type { IfcWorkerMessage, IfcMeshData } from "@/workers/ifcWorker";
-import type { ModelParseMessage } from "@/workers/modelParseWorker";
+import {
+  loadModel,
+  createLoaderResources,
+  cleanupLoaderResources,
+  type LoaderContext,
+} from "./modelLoaders";
 
 interface ModelViewerProps {
   name: string;
@@ -122,12 +125,8 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     let ctxRestoredHandler: (() => void) | null = null;
     let scene: Scene | null = null;
     let controls: OrbitControls | null = null;
-    let dracoLoader: { dispose(): void } | null = null;
     let fontScaleHandler: (() => void) | null = null;
-    // Track IFC Worker for cleanup on early unmount (#202)
-    let ifcWorker: Worker | null = null;
-    // Track OBJ/STL Worker for cleanup on early unmount (#447)
-    let modelParseWorker: Worker | null = null;
+    const loaderRes = createLoaderResources();
 
     async function init() {
       if (!el || disposed) return;
@@ -182,8 +181,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           disposeSceneResources(scene);
           controls?.dispose();
           controls = null;
-          dracoLoader?.dispose();
-          dracoLoader = null;
+          cleanupLoaderResources(loaderRes);
           scene = null;
           if (renderer) {
             if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
@@ -296,307 +294,14 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
           setStatus("ready");
         }
 
-        /**
-         * Rebuild Three.js BufferGeometry objects from Worker-returned
-         * typed arrays. This runs on the main thread but is fast because
-         * the heavy WASM parsing already happened in the Worker.
-         */
-        function buildGeometriesFromWorker(
-          meshes: IfcMeshData[],
-        ): { opaque: BufferGeometry[]; transparent: BufferGeometry[] } {
-          const opaque: BufferGeometry[] = [];
-          const transparent: BufferGeometry[] = [];
+        const loaderCtx: LoaderContext = {
+          fitToView,
+          isDisposed: () => disposed,
+          setStatus,
+          setErrorMsg,
+        };
 
-          for (const m of meshes) {
-            const bufGeom = new THREE.BufferGeometry();
-            bufGeom.setAttribute(
-              "position",
-              new THREE.BufferAttribute(m.positions, 3),
-            );
-            bufGeom.setAttribute(
-              "normal",
-              new THREE.BufferAttribute(m.normals, 3),
-            );
-            bufGeom.setAttribute(
-              "color",
-              new THREE.BufferAttribute(m.colors, 4),
-            );
-            bufGeom.setIndex(
-              new THREE.BufferAttribute(m.indices, 1),
-            );
-
-            const matrix = new THREE.Matrix4().fromArray(
-              m.flatTransformation,
-            );
-            bufGeom.applyMatrix4(matrix);
-
-            if (m.transparent) {
-              transparent.push(bufGeom);
-            } else {
-              opaque.push(bufGeom);
-            }
-          }
-
-          return { opaque, transparent };
-        }
-
-        const buf = data;
-        if (ext === "ifc") {
-          const { mergeGeometries } = await import(
-            "three/examples/jsm/utils/BufferGeometryUtils.js"
-          );
-          if (disposed) return;
-
-          // Offload WASM processing to a dedicated Web Worker (#202)
-          const worker = new Worker(
-            new URL("../../workers/ifcWorker.ts", import.meta.url),
-            { type: "module" },
-          );
-          ifcWorker = worker;
-
-          worker.postMessage(
-            { buffer: buf, wasmCdn: IFC_WASM_CDN },
-            [buf],
-          );
-
-          worker.onmessage = (e: MessageEvent<IfcWorkerMessage>) => {
-            // Worker finished; clear ref so cleanup skips terminate
-            ifcWorker = null;
-            worker.terminate();
-
-            if (disposed) return;
-
-            const msg = e.data;
-            if (msg.type === "error") {
-              setErrorMsg(msg.message);
-              setStatus("error");
-              return;
-            }
-
-            // Hoist for cleanup access in catch (#291)
-            let opaqueGeometries: BufferGeometry[] = [];
-            let transparentGeometries: BufferGeometry[] = [];
-            const group = new THREE.Group();
-
-            try {
-              const result = buildGeometriesFromWorker(msg.meshes);
-              opaqueGeometries = result.opaque;
-              transparentGeometries = result.transparent;
-
-              if (opaqueGeometries.length > 0) {
-                const merged = mergeGeometries(opaqueGeometries);
-                // Release source GPU buffers after merge (#193)
-                for (const geom of opaqueGeometries) geom.dispose();
-                opaqueGeometries = []; // Mark as cleaned (#291)
-                if (merged) {
-                  group.add(
-                    new THREE.Mesh(
-                      merged,
-                      new THREE.MeshPhongMaterial({
-                        side: THREE.DoubleSide,
-                        vertexColors: true,
-                      }),
-                    ),
-                  );
-                }
-              }
-
-              if (transparentGeometries.length > 0) {
-                const merged = mergeGeometries(transparentGeometries);
-                // Release source GPU buffers after merge (#193)
-                for (const geom of transparentGeometries) geom.dispose();
-                transparentGeometries = []; // Mark as cleaned (#291)
-                if (merged) {
-                  group.add(
-                    new THREE.Mesh(
-                      merged,
-                      new THREE.MeshPhongMaterial({
-                        side: THREE.DoubleSide,
-                        vertexColors: true,
-                        transparent: true,
-                      }),
-                    ),
-                  );
-                }
-              }
-
-              if (group.children.length === 0) {
-                throw new Error("No visible geometry in IFC file");
-              }
-
-              fitToView(group);
-            } catch (err) {
-              // Dispose leaked intermediate BufferGeometry objects (#291)
-              for (const g of [...opaqueGeometries, ...transparentGeometries]) {
-                g.dispose();
-              }
-              // Dispose merged geometries/materials in group not yet in scene
-              for (const child of group.children) {
-                if ("isMesh" in child && (child as { isMesh: boolean }).isMesh) {
-                  const mesh = child as unknown as {
-                    geometry?: { dispose: () => void };
-                    material?: { dispose: () => void };
-                  };
-                  mesh.geometry?.dispose();
-                  mesh.material?.dispose();
-                }
-              }
-
-              if (!disposed) {
-                setErrorMsg(
-                  err instanceof Error ? err.message : "IFC processing failed",
-                );
-                setStatus("error");
-              }
-            }
-          };
-
-          worker.onerror = (e: ErrorEvent) => {
-            ifcWorker = null;
-            if (!disposed) {
-              setErrorMsg(e.message || "IFC Worker crashed");
-              setStatus("error");
-            }
-          };
-        } else if (ext === "glb" || ext === "gltf") {
-          const { GLTFLoader } = await import(
-            "three/examples/jsm/loaders/GLTFLoader.js"
-          );
-          const { DRACOLoader } = await import(
-            "three/examples/jsm/loaders/DRACOLoader.js"
-          );
-          const loader = new GLTFLoader();
-          const draco = new DRACOLoader();
-          draco.setDecoderPath(DRACO_CDN);
-          loader.setDRACOLoader(draco);
-          dracoLoader = draco;
-          const payload =
-            ext === "gltf"
-              ? new TextDecoder().decode(new Uint8Array(buf))
-              : buf;
-          loader.parse(
-            payload,
-            "",
-            (result) => {
-              if (!disposed) {
-                try {
-                  fitToView(result.scene);
-                } catch (e) {
-                  setErrorMsg(
-                    e instanceof Error ? e.message : "GLTF parse failed",
-                  );
-                  setStatus("error");
-                }
-              }
-            },
-            (err) => {
-              if (!disposed) {
-                setErrorMsg(
-                  err instanceof Error ? err.message : "GLTF parse failed",
-                );
-                setStatus("error");
-              }
-            },
-          );
-        } else if (ext === "obj" || ext === "stl") {
-          // Offload OBJ/STL parsing to a dedicated Web Worker (#447)
-          const worker = new Worker(
-            new URL("../../workers/modelParseWorker.ts", import.meta.url),
-            { type: "module" },
-          );
-          modelParseWorker = worker;
-
-          worker.postMessage(
-            { format: ext as "obj" | "stl", buffer: buf },
-            [buf],
-          );
-
-          worker.onmessage = (ev: MessageEvent<ModelParseMessage>) => {
-            modelParseWorker = null;
-            worker.terminate();
-
-            if (disposed) return;
-
-            const msg = ev.data;
-            if (msg.type === "error") {
-              setErrorMsg(msg.message);
-              setStatus("error");
-              return;
-            }
-
-            try {
-              if (ext === "stl") {
-                // Single geometry -> Mesh with MeshStandardMaterial
-                const md = msg.meshes[0]!;
-                const geom = new THREE.BufferGeometry();
-                geom.setAttribute(
-                  "position",
-                  new THREE.BufferAttribute(md.positions, 3),
-                );
-                if (md.normals) {
-                  geom.setAttribute(
-                    "normal",
-                    new THREE.BufferAttribute(md.normals, 3),
-                  );
-                }
-                if (md.indices) {
-                  geom.setIndex(new THREE.BufferAttribute(md.indices, 1));
-                }
-                fitToView(
-                  new THREE.Mesh(
-                    geom,
-                    new THREE.MeshStandardMaterial({
-                      color: 0x8899aa,
-                      metalness: 0.3,
-                      roughness: 0.6,
-                    }),
-                  ),
-                );
-              } else {
-                // OBJ -> Group of Meshes with MeshPhongMaterial
-                const group = new THREE.Group();
-                for (const md of msg.meshes) {
-                  const geom = new THREE.BufferGeometry();
-                  geom.setAttribute(
-                    "position",
-                    new THREE.BufferAttribute(md.positions, 3),
-                  );
-                  if (md.normals) {
-                    geom.setAttribute(
-                      "normal",
-                      new THREE.BufferAttribute(md.normals, 3),
-                    );
-                  }
-                  if (md.indices) {
-                    geom.setIndex(new THREE.BufferAttribute(md.indices, 1));
-                  }
-                  group.add(
-                    new THREE.Mesh(
-                      geom,
-                      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide }),
-                    ),
-                  );
-                }
-                fitToView(group);
-              }
-            } catch (err) {
-              if (!disposed) {
-                setErrorMsg(
-                  err instanceof Error ? err.message : "Model reconstruction failed",
-                );
-                setStatus("error");
-              }
-            }
-          };
-
-          worker.onerror = (ev: ErrorEvent) => {
-            modelParseWorker = null;
-            if (!disposed) {
-              setErrorMsg(ev.message || "Model parse Worker crashed");
-              setStatus("error");
-            }
-          };
-        }
+        await loadModel(data, ext, loaderCtx, loaderRes);
       } catch (err) {
         if (!disposed) {
           setErrorMsg(err instanceof Error ? err.message : "Unknown error");
@@ -615,18 +320,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         window.removeEventListener("fontscalechange", fontScaleHandler);
       }
       disposeSceneResources(scene);
-      dracoLoader?.dispose();
-      // Terminate IFC Worker if still running (#202)
-      // Worker termination releases WASM linear memory automatically
-      if (ifcWorker) {
-        ifcWorker.terminate();
-        ifcWorker = null;
-      }
-      // Terminate model parse Worker if still running (#447)
-      if (modelParseWorker) {
-        modelParseWorker.terminate();
-        modelParseWorker = null;
-      }
+      cleanupLoaderResources(loaderRes);
       controls?.dispose();
       resetViewpointRef.current = null;
       if (renderer) {
