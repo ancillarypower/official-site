@@ -356,6 +356,10 @@ export const zh = {
   tag_filter_label: "標籤篩選",
   tag_filter_clear: "清除篩選",
   tag_filter_no_tags: "尚無標籤",
+
+  // Tag filter dropdown (Issue #497)
+  tag_filter_placeholder: "選擇標籤...",
+  tag_filter_selected: "已選 {n} 個標籤",
 } as const;
 
 export type TranslationKey = keyof typeof zh;

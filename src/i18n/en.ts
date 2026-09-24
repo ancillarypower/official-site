@@ -332,4 +332,8 @@ export const en: Record<TranslationKey, string> = {
   tag_filter_label: "Filter by tag",
   tag_filter_clear: "Clear filter",
   tag_filter_no_tags: "No tags available",
+
+  // Tag filter dropdown (Issue #497)
+  tag_filter_placeholder: "Select tags...",
+  tag_filter_selected: "{n} tag(s) selected",
 };

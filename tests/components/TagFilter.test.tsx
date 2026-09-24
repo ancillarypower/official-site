@@ -6,7 +6,10 @@ import type { WpTag } from "@/hooks/useWpTags";
 // Mock i18n
 vi.mock("@/context/I18nContext", () => ({
   useI18n: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (key === "tag_filter_selected" && params?.n != null) return `${params.n} tag(s) selected`;
+      return key;
+    },
     lang: "zh",
   }),
 }));
@@ -18,7 +21,7 @@ const sampleTags: WpTag[] = [
 ];
 
 describe("TagFilter", () => {
-  it("renders tag chips with names and counts", () => {
+  it("renders trigger button with placeholder when no tags selected", () => {
     render(
       <TagFilter
         tags={sampleTags}
@@ -28,13 +31,33 @@ describe("TagFilter", () => {
       />,
     );
 
-    // Use getByRole to scope to button elements (avoids parent div matches)
-    expect(screen.getByRole("button", { name: /React/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /TypeScript/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Vite/ })).toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: /tag_filter_label/ });
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveTextContent("tag_filter_placeholder");
   });
 
-  it("calls onToggle with correct tag ID on click", () => {
+  it("opens dropdown on trigger click and shows tag checkboxes", () => {
+    render(
+      <TagFilter
+        tags={sampleTags}
+        selectedIds={[]}
+        onToggle={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /tag_filter_label/ });
+    fireEvent.click(trigger);
+
+    expect(screen.getByText("React")).toBeInTheDocument();
+    expect(screen.getByText("TypeScript")).toBeInTheDocument();
+    expect(screen.getByText("Vite")).toBeInTheDocument();
+    // Checkboxes should be present
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes).toHaveLength(3);
+  });
+
+  it("calls onToggle with correct tag ID on checkbox change", () => {
     const onToggle = vi.fn();
     render(
       <TagFilter
@@ -45,11 +68,16 @@ describe("TagFilter", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /TypeScript/ }));
+    // Open dropdown first
+    fireEvent.click(screen.getByRole("button", { name: /tag_filter_label/ }));
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    // TypeScript is the second tag (index 1)
+    fireEvent.click(checkboxes[1]);
     expect(onToggle).toHaveBeenCalledWith(2);
   });
 
-  it("shows clear button when tags are selected and calls onClear", () => {
+  it("shows clear button in dropdown when tags are selected and calls onClear", () => {
     const onClear = vi.fn();
     render(
       <TagFilter
@@ -60,23 +88,13 @@ describe("TagFilter", () => {
       />,
     );
 
+    // Open dropdown
+    fireEvent.click(screen.getByRole("button", { name: /tag_filter_label/ }));
+
     const clearBtn = screen.getByRole("button", { name: /tag_filter_clear/ });
     expect(clearBtn).toBeInTheDocument();
     fireEvent.click(clearBtn);
     expect(onClear).toHaveBeenCalledOnce();
-  });
-
-  it("does not render clear button when no tags selected", () => {
-    render(
-      <TagFilter
-        tags={sampleTags}
-        selectedIds={[]}
-        onToggle={() => {}}
-        onClear={() => {}}
-      />,
-    );
-
-    expect(screen.queryByRole("button", { name: /tag_filter_clear/ })).not.toBeInTheDocument();
   });
 
   it("returns null when tags array is empty", () => {
@@ -92,16 +110,81 @@ describe("TagFilter", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("marks selected tags with aria-pressed=true", () => {
+  it("marks selected tags with checked checkboxes", () => {
     render(
       <TagFilter
         tags={sampleTags}
         selectedIds={[2]}
-        onToggle={() => {}}        onClear={() => {}}
+        onToggle={() => {}}
+        onClear={() => {}}
       />,
     );
 
-    expect(screen.getByRole("button", { name: /React/, pressed: false })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /TypeScript/, pressed: true })).toBeInTheDocument();
+    // Open dropdown
+    fireEvent.click(screen.getByRole("button", { name: /tag_filter_label/ }));
+
+    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    expect(checkboxes[0].checked).toBe(false); // React
+    expect(checkboxes[1].checked).toBe(true);  // TypeScript
+    expect(checkboxes[2].checked).toBe(false); // Vite
+  });
+
+  it("closes dropdown on Escape key and returns focus to trigger (regression #497)", () => {
+    render(
+      <TagFilter
+        tags={sampleTags}
+        selectedIds={[]}
+        onToggle={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /tag_filter_label/ });
+    fireEvent.click(trigger);
+
+    // Dropdown should be open
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+
+    // Press Escape
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    // Dropdown should be closed
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    // Focus should return to trigger
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("closes dropdown on click outside (regression #497)", () => {
+    render(
+      <TagFilter
+        tags={sampleTags}
+        selectedIds={[]}
+        onToggle={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /tag_filter_label/ }));
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+
+    // Click outside
+    fireEvent.mouseDown(document.body);
+
+    // Dropdown should be closed
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  it("displays selected count in trigger button (regression #497)", () => {
+    render(
+      <TagFilter
+        tags={sampleTags}
+        selectedIds={[1, 3]}
+        onToggle={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /tag_filter_label/ });
+    expect(trigger).toHaveTextContent("2 tag(s) selected");
   });
 });
