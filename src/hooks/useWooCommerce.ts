@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   fetchWithProxy,
@@ -35,6 +36,16 @@ export function normalizeRawProduct(p: Record<string, unknown>): WooProduct {
     images: Array.isArray(p.images) ? p.images : [],
   };
 }
+
+// Schema for price validation response items (Issue #486).
+// Uses .catch("0") for price so that null / undefined / numeric values
+// fall back to "0" instead of producing NaN via parseFloat().
+const priceValidationItemSchema = z.object({
+  id: z.number(),
+  price: z.string().catch("0"),
+  stock_status: z.string().optional(),
+});
+const priceValidationArraySchema = z.array(priceValidationItemSchema);
 
 interface WooQueryResult {
   products: WooProduct[];
@@ -162,6 +173,9 @@ export function useWooProducts(
  *
  * Uses integer-cent comparison (Math.round(price * 100)) to avoid
  * floating-point precision issues (same strategy as cartStore.totalPrice).
+ *
+ * Uses Zod runtime validation instead of TypeScript type assertions to
+ * safely parse the API response (Issue #486).
  */
 export async function validateCartPrices(
   items: CartItem[],
@@ -201,7 +215,10 @@ export async function validateCartPrices(
   }
 
   const raw = await parseJsonResponse(response);
-  if (!Array.isArray(raw)) {
+
+  const parsed = priceValidationArraySchema.safeParse(raw);
+  if (!parsed.success) {
+    console.warn("[Woo] Price validation Zod parse warning:", parsed.error);
     throw new AppError(
       "error_price_validation_failed",
       "Price validation failed: unexpected response format",
@@ -211,7 +228,7 @@ export async function validateCartPrices(
 
   const serverPrices = new Map<number, number>();
   const serverStockStatus = new Map<number, string>();
-  for (const p of raw as Array<{ id: number; price: string; stock_status?: string }>) {
+  for (const p of parsed.data) {
     serverPrices.set(p.id, parseFloat(p.price));
     if (p.stock_status) {
       serverStockStatus.set(p.id, p.stock_status);
