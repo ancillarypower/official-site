@@ -98,6 +98,21 @@ describe("cartStore", () => {
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(useCartStore.getState().totalItems()).toBe(0);
   });
+
+  it("addItem clamps qty=0 to 1 (regression #464)", () => {
+    useCartStore.getState().addItem(sampleItem, 0);
+    expect(useCartStore.getState().items[0]?.qty).toBe(1);
+  });
+
+  it("addItem clamps negative qty to 1 (regression #464)", () => {
+    useCartStore.getState().addItem(sampleItem, -5);
+    expect(useCartStore.getState().items[0]?.qty).toBe(1);
+  });
+
+  it("addItem floors fractional qty (regression #464)", () => {
+    useCartStore.getState().addItem(sampleItem, 2.7);
+    expect(useCartStore.getState().items[0]?.qty).toBe(2);
+  });
 });
 
 describe("cartStore migration", () => {
@@ -105,7 +120,7 @@ describe("cartStore migration", () => {
     expect(CART_VERSION).toBe(1);
   });
 
-  it("migrateCart v0 → v1 resets items to empty array", () => {
+  it("migrateCart v0 \u2192 v1 resets items to empty array", () => {
     const staleData = {
       items: [
         { id: 1, name: "Old Item", price: 5, icon: null, img: null, qty: 3 },
@@ -116,7 +131,7 @@ describe("cartStore migration", () => {
     expect((migrated as { items: unknown[] }).items).toEqual([]);
   });
 
-  it("migrateCart v0 → v1 preserves non-items properties", () => {
+  it("migrateCart v0 \u2192 v1 preserves non-items properties", () => {
     const staleData = { items: [{ id: 1 }], extraField: "keep-me" };
     const migrated = migrateCart(staleData, 0) as Record<string, unknown>;
     expect(migrated.extraField).toBe("keep-me");
