@@ -738,6 +738,55 @@ describe("validateCartPrices", () => {
       ),
     ).rejects.toThrow(/Expected JSON response but received text\/html/);
   });
+
+  /* -- Issue #486 Regression Tests -- */
+
+  it("rejects items with non-numeric id via Zod validation (regression #486)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // API returns id as string instead of number — Zod z.number() rejects
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: "not-a-number", price: "10.00" }]), { status: 200 }),
+    ));
+
+    await expect(
+      validateCartPrices(
+        [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+        "https://shop.example.com",
+        "ck_test",
+        "cs_test",
+      ),
+    ).rejects.toThrow("Price validation failed: unexpected response format");
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[Woo] Price validation Zod parse warning:",
+      expect.anything(),
+    );
+  });
+
+  it("handles null price gracefully with Zod catch fallback (regression #486)", async () => {
+    // API returns price: null — Zod .catch("0") falls back to "0",
+    // parseFloat("0") = 0, which differs from cart price 10 → mismatch
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: 1, price: null, stock_status: "instock" }]), { status: 200 }),
+    ));
+
+    const result = await validateCartPrices(
+      [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 1 }],
+      "https://shop.example.com",
+      "ck_test",
+      "cs_test",
+    );
+
+    // Should NOT throw — Zod .catch("0") handles null gracefully
+    expect(result.mismatches).toHaveLength(1);
+    expect(result.mismatches[0]).toEqual({
+      id: 1,
+      name: "Widget",
+      cartPrice: 10,
+      serverPrice: 0,
+    });
+    expect(result.unavailable).toHaveLength(0);
+  });
 });
 
 describe("useCheckout", () => {
