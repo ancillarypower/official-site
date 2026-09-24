@@ -98,7 +98,7 @@ describe("AboutPage", () => {
     expect(mapIframe.tagName).toBe("IFRAME");
     expect(mapIframe).toHaveAttribute(
       "src",
-      "https://www.openstreetmap.org/export/embed.html?bbox=121.5255%2C25.0395%2C121.5355%2C25.0445&layer=mapnik&marker=25.0420%2C121.5305",
+      "https://www.openstreetmap.org/export/embed.html?bbox=121.5275%2C25.0397%2C121.5375%2C25.0447&layer=mapnik&marker=25.0422%2C121.5325",
     );
     expect(mapIframe).toHaveAttribute("loading", "lazy");
     expect(mapIframe).toHaveAttribute("referrerpolicy", "no-referrer");
@@ -112,7 +112,7 @@ describe("AboutPage", () => {
     });
     expect(mapsLink).toHaveAttribute(
       "href",
-      "https://www.google.com/maps/dir/?api=1&destination=25.0420,121.5305",
+      "https://www.google.com/maps/dir/?api=1&destination=25.0422,121.5325",
     );
     expect(mapsLink).toHaveAttribute("target", "_blank");
 
