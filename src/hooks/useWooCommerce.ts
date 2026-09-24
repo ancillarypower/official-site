@@ -365,11 +365,20 @@ export function useCheckout() {
       });
 
       if (!response.ok) {
-        const err = await response.json().catch(() => null);
-        throw new Error((err as { message?: string })?.message ?? `HTTP ${response.status}`);
+        let detail = `HTTP ${response.status}`;
+        try {
+          const errBody = await parseJsonResponse(response);
+          if (errBody && typeof (errBody as { message?: string }).message === "string") {
+            detail = (errBody as { message: string }).message;
+          }
+        } catch {
+          // parseJsonResponse already wraps non-JSON in AppError — use
+          // the generic HTTP status detail instead.
+        }
+        throw new AppError("error_checkout_failed", `Checkout failed: ${detail}`, { detail });
       }
 
-      const raw = await response.json();
+      const raw = await parseJsonResponse(response);
       const parsed = wooOrderSchema.safeParse(raw);
       if (!parsed.success) {
         console.error("[Woo] Order response validation failed:", parsed.error);
