@@ -200,6 +200,7 @@ export const en: Record<TranslationKey, string> = {
   about_address_value: "4F-5, No. 50, Sec. 1, Xinsheng S. Rd., Zhongzheng Dist., Taipei 100510",
   about_map_title: "Ancillary Power office map",
   about_map_link: "Open in Google Maps",
+  about_map_reset: "Reset map view",
   about_website_label: "Website",
   about_website_value: "https://www.ancillarypower.com",
 
@@ -336,4 +337,7 @@ export const en: Record<TranslationKey, string> = {
   // Tag filter dropdown (Issue #497)
   tag_filter_placeholder: "Select tags...",
   tag_filter_selected: "{n} tag(s) selected",
+
+  // Map reset (Issue #504)
+  about_map_reset: "Reset map view",
 };
