@@ -4,6 +4,7 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useWooProducts, useCheckout, normalizeRawProduct, validateCartPrices } from "@/hooks/useWooCommerce";
+import { AppError } from "@/lib/errors";
 
 function createWrapper(queryClient?: QueryClient) {
   const qc = queryClient ?? new QueryClient({
@@ -1054,5 +1055,64 @@ describe("useCheckout", () => {
     // Only the price/stock validation fetch should have been called;
     // the order creation fetch must NOT be reached.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  /* -- Issue #484 Regression Tests -- */
+
+  it("wraps HTTP error in AppError with i18n code (regression #484)", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "5.00" }]))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: "Invalid email address" }), { status: 400 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    try {
+      await result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "bad",
+          phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+        },
+      });
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      expect((err as AppError).code).toBe("error_checkout_failed");
+      expect((err as AppError).message).toContain("Invalid email address");
+    }
+  });
+
+  it("handles non-JSON error response without SyntaxError (regression #484)", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makePriceCheckResponse([{ id: 1, price: "5.00" }]))
+      .mockResolvedValueOnce(new Response("<html>503 Service Unavailable</html>", {
+        status: 503,
+        headers: { "content-type": "text/html" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCheckout(), {
+      wrapper: createWrapper(),
+    });
+
+    try {
+      await result.current.mutateAsync({
+        items: [{ id: 1, name: "A", price: 5, icon: null, img: null, qty: 1 }],
+        billing: {
+          first_name: "A", last_name: "B", email: "a@b.com",
+          phone: "0900000000", address_1: "1 St", city: "Taipei", postcode: "100", country: "TW",
+        },
+      });
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      // Must be AppError, not SyntaxError
+      expect(err).toBeInstanceOf(AppError);
+      expect(err).not.toBeInstanceOf(SyntaxError);
+      expect((err as AppError).code).toBe("error_checkout_failed");
+      expect((err as AppError).message).toContain("Checkout failed");
+    }
   });
 });
