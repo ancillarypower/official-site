@@ -422,6 +422,41 @@ describe("useWooProducts", () => {
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
     expect(calledUrl).not.toContain("search=");
   });
+
+  /* -- Issue #483 Regression Test -- */
+
+  it("queryKey does not contain plaintext WooCommerce credentials (regression #483)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(qc),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Inspect the active query's key — it must not contain plaintext credentials
+    const activeQueries = qc.getQueryCache().getAll();
+    const wooQuery = activeQueries.find((q) =>
+      Array.isArray(q.queryKey) && q.queryKey[0] === "woo-products",
+    );
+    expect(wooQuery).toBeDefined();
+    const key = wooQuery!.queryKey as unknown[];
+    // "ck_test" and "cs_test" are the credentials set in beforeEach
+    expect(key).not.toContain("ck_test");
+    expect(key).not.toContain("cs_test");
+  });
 });
 
 describe("normalizeRawProduct", () => {
