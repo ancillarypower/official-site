@@ -60,8 +60,14 @@ export function useWooProducts(page: number = 1, search: string = "") {
   const useProxy = useSettingsStore((s) => s.useProxy);
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
+  // Derive a cache-identity fingerprint — changes when credentials rotate,
+  // but never exposes plaintext in DevTools / logging / Sentry (Issue #483).
+  const credFingerprint = wooKey && wooSecret
+    ? btoa(`${wooKey}:${wooSecret}`).slice(0, 12)
+    : "";
+
   return useQuery<WooQueryResult>({
-    queryKey: ["woo-products", baseUrl, wooKey, wooSecret, wooPerPage, page, search, useProxy],
+    queryKey: ["woo-products", baseUrl, credFingerprint, wooPerPage, page, search, useProxy],
     queryFn: async ({ signal }) => {
       const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
