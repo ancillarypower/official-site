@@ -56,13 +56,11 @@ describe("ContentPage", () => {
       error: null,
       refetch: vi.fn(),
     });
-    // Default: useSinglePost disabled / no data
     mockUseSinglePost.mockReturnValue({
       data: undefined,
       isLoading: false,
       error: null,
     });
-    // Default: no tags
     mockUseWpTags.mockReturnValue({ data: undefined });
   });
 
@@ -482,7 +480,6 @@ describe("ContentPage", () => {
   // --- Phantom tag ID 0 regression test (#503) ---
 
   it("selecting first tag does not inject phantom tag ID 0 into URL (regression #503)", () => {
-    // Provide mock tags so TagFilter renders
     mockUseWpTags.mockReturnValue({
       data: [
         { id: 5, name: "Energy", count: 3 },
@@ -491,16 +488,18 @@ describe("ContentPage", () => {
     });
     renderPage();
 
-    // Open the tag dropdown and click the first tag checkbox
-    const trigger = screen.getByRole("button", { name: /\u6a19\u7c64\u7be9\u9078/ });
-    fireEvent.click(trigger);
-    const energyCheckbox = screen.getByRole("checkbox", { name: "" });
-    // Find the checkbox inside the "Energy" label
-    const labels = screen.getAllByText("Energy");
-    const energyLabel = labels[0]!;
-    const checkbox = energyLabel.closest("label")?.querySelector("input[type=checkbox]");
-    expect(checkbox).toBeTruthy();
-    fireEvent.click(checkbox!);
+    // Open the tag dropdown
+    const triggerButtons = screen.getAllByRole("button");
+    const tagTrigger = triggerButtons.find((btn) =>
+      btn.textContent?.includes("\u9078\u64c7\u6a19\u7c64") || btn.getAttribute("aria-haspopup") === "dialog"
+    );
+    expect(tagTrigger).toBeTruthy();
+    fireEvent.click(tagTrigger!);
+
+    // Find and click the "Energy" tag checkbox
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(checkboxes[0]!);
 
     // Verify useWordPress was called with tags=[5], not [0, 5]
     const lastCall = mockUseWordPress.mock.calls[mockUseWordPress.mock.calls.length - 1];
