@@ -86,7 +86,12 @@ export default function ContentPage() {
   const toggleTag = useCallback((id: number) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      const current = (next.get("tags") ?? "").split(",").map(Number).filter(Number.isFinite);
+      // Guard empty string: "".split(",").map(Number) produces [0]
+      // because Number("") === 0, injecting phantom tag ID 0 (#503).
+      const raw = next.get("tags") ?? "";
+      const current = raw
+        ? raw.split(",").map(Number).filter(Number.isFinite)
+        : [];
       const updated = current.includes(id)
         ? current.filter((x) => x !== id)
         : [...current, id];
