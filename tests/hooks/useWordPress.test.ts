@@ -413,7 +413,7 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain("_fields=id,date,title,excerpt,name,source_url,media_type,_embedded");
+    expect(calledUrl).toContain("_fields=id,date,title,excerpt,name,featured_media,source_url,media_type,_embedded");
   });
 
   it("excludes content field from _fields parameter (regression #277)", async () => {
@@ -432,6 +432,26 @@ describe("useWordPress hook", () => {
     expect(fieldsMatch).not.toBeNull();
     const fields = fieldsMatch![1]!.split(",");
     expect(fields).not.toContain("content");
+  });
+
+  // --- featured_media thumbnail resolution regression test (#471) ---
+
+  it("LIST_FIELDS includes featured_media for _embed thumbnail resolution (regression #471)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWordPress(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    const fieldsMatch = calledUrl.match(/_fields=([^&]*)/);
+    expect(fieldsMatch).not.toBeNull();
+    const fields = fieldsMatch![1]!.split(",");
+    expect(fields).toContain("featured_media");
   });
 
   // --- enabled parameter regression tests (#437) ---
