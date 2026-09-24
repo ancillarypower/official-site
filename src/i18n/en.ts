@@ -337,7 +337,4 @@ export const en: Record<TranslationKey, string> = {
   // Tag filter dropdown (Issue #497)
   tag_filter_placeholder: "Select tags...",
   tag_filter_selected: "{n} tag(s) selected",
-
-  // Map reset (Issue #504)
-  about_map_reset: "Reset map view",
 };
