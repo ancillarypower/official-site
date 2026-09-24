@@ -164,53 +164,53 @@ describe("StorePage", () => {
 
   it("reads page from URL and passes to useWooProducts", () => {
     renderPage("/?page=2");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String), "date", "desc");
   });
 
   it("defaults to page 1 for non-numeric page param", () => {
     renderPage("/?page=abc");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String), "date", "desc");
   });
 
   it("defaults to page 1 when page param is missing", () => {
     renderPage("/");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String), "date", "desc");
   });
 
   it("clamps zero and negative page to 1", () => {
     renderPage("/?page=-5");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, expect.any(String), "date", "desc");
   });
 
   // --- Pagination reset on settings change regression tests ---
 
   it("resets page when wooPerPage changes", () => {
     renderPage("/?page=2");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(2, expect.any(String), "date", "desc");
     act(() => {
       useSettingsStore.setState({ wooPerPage: 50 });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "date", "desc");
   });
 
   it("resets page when WooCommerce baseUrl changes (regression #145)", () => {
     useSettingsStore.setState({ wpUrl: "https://old.example.com" });
     renderPage("/?page=3");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String), "date", "desc");
     act(() => {
       useSettingsStore.setState({ wpUrl: "https://new.example.com" });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "date", "desc");
   });
 
   it("resets page when wooKey changes (regression #145)", () => {
     useSettingsStore.setState({ wooKey: "ck_old" });
     renderPage("/?page=3");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String), "date", "desc");
     act(() => {
       useSettingsStore.setState({ wooKey: "ck_new" });
     });
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "date", "desc");
   });
 
   // --- WooCommerce loading/error state regression tests (#112) ---
@@ -261,15 +261,32 @@ describe("StorePage", () => {
     renderPage("/?q=headphones");
     // useDebouncedValue starts with the initial value, so on first render
     // the debounced value equals the URL param
-    expect(mockUseWooProducts).toHaveBeenCalledWith(1, "headphones");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(1, "headphones", "date", "desc");
   });
 
   it("resets page to 1 when filter input changes (regression #275)", () => {
     renderPage("/?page=3");
-    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String), "date", "desc");
     const filterInput = screen.getByRole("textbox", { name: "Filter" });
     fireEvent.change(filterInput, { target: { value: "test" } });
     // After filter change, page should reset to 1
-    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String));
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "date", "desc");
+  });
+
+  // --- Issue #485 Regression Tests ---
+
+  it("delegates sort to server via useWooProducts orderby/order (regression #485)", () => {
+    renderPage();
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    fireEvent.change(sortSelect, { target: { value: "price_asc" } });
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "price", "asc");
+  });
+
+  it("resets page when sort changes (regression #485)", () => {
+    renderPage("/?page=3");
+    expect(mockUseWooProducts).toHaveBeenCalledWith(3, expect.any(String), "date", "desc");
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" });
+    fireEvent.change(sortSelect, { target: { value: "title_desc" } });
+    expect(mockUseWooProducts).toHaveBeenLastCalledWith(1, expect.any(String), "title", "desc");
   });
 });

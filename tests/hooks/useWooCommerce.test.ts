@@ -458,6 +458,54 @@ describe("useWooProducts", () => {
     expect(key).not.toContain("ck_test");
     expect(key).not.toContain("cs_test");
   });
+
+  /* -- Issue #485 Regression Tests -- */
+
+  it("passes orderby and order to WooCommerce API URL (regression #485)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWooProducts(1, "", "price", "asc"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("orderby=price");
+    expect(calledUrl).toContain("order=asc");
+  });
+
+  it("uses default orderby=date and order=desc when not specified (regression #485)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("orderby=date");
+    expect(calledUrl).toContain("order=desc");
+  });
 });
 
 describe("normalizeRawProduct", () => {
