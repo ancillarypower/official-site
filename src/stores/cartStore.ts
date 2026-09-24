@@ -49,15 +49,16 @@ export const useCartStore = create<CartState>()(
 
       addItem: (item, qty = 1) =>
         set((state) => {
+          const safeQty = Math.max(1, Math.floor(qty));
           const existing = state.items.find((i) => i.id === item.id);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id ? { ...i, qty: i.qty + qty } : i,
+                i.id === item.id ? { ...i, qty: i.qty + safeQty } : i,
               ),
             };
           }
-          return { items: [...state.items, { ...item, qty }] };
+          return { items: [...state.items, { ...item, qty: safeQty }] };
         }),
 
       removeItem: (id) =>
