@@ -43,17 +43,28 @@ interface WooQueryResult {
 }
 
 /**
- * Fetch WooCommerce products with pagination and optional server-side search.
+ * Fetch WooCommerce products with pagination, optional server-side search,
+ * and server-side sorting.
  *
  * When a non-empty `search` string is provided, it is forwarded to the
  * WooCommerce REST API `?search=` parameter so the server filters across
  * all products, not just the current page. This mirrors the
  * useWordPress(page, search) pattern used by ContentPage (Issue #275).
  *
+ * `orderby` and `order` are forwarded to the WooCommerce REST API to
+ * ensure cross-page sort consistency. Without server-side sorting,
+ * client-side Array.sort() only reorders the current page, producing
+ * incorrect results when products span multiple pages (Issue #485).
+ *
  * Uses `placeholderData: keepPreviousData` for smooth transitions while
  * the debounced search value settles.
  */
-export function useWooProducts(page: number = 1, search: string = "") {
+export function useWooProducts(
+  page: number = 1,
+  search: string = "",
+  orderby: string = "date",
+  order: string = "desc",
+) {
   const wooKey = useSettingsStore((s) => s.wooKey);
   const wooSecret = useSettingsStore((s) => s.wooSecret);
   const wooPerPage = useSettingsStore((s) => s.wooPerPage);
@@ -67,11 +78,13 @@ export function useWooProducts(page: number = 1, search: string = "") {
     : "";
 
   return useQuery<WooQueryResult>({
-    queryKey: ["woo-products", baseUrl, credFingerprint, wooPerPage, page, search, useProxy],
+    queryKey: ["woo-products", baseUrl, credFingerprint, wooPerPage, page, search, useProxy, orderby, order],
     queryFn: async ({ signal }) => {
       const pageParams: Record<string, string> = {
         per_page: String(wooPerPage),
         page: String(page),
+        orderby,
+        order,
       };
 
       if (search) {

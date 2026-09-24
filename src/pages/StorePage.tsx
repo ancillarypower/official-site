@@ -22,6 +22,18 @@ const SORT_OPTIONS = [
   { value: "title_desc", labelKey: "sort_title_desc" },
 ];
 
+/** Default sort parameters matching WooCommerce REST API defaults. */
+const DEFAULT_SORT = { orderby: "date", order: "desc" } as const;
+
+/** Map UI sort values to WooCommerce REST API orderby/order parameters (Issue #485). */
+const SORT_MAP: Record<string, { orderby: string; order: string }> = {
+  default: { orderby: "date", order: "desc" },
+  price_asc: { orderby: "price", order: "asc" },
+  price_desc: { orderby: "price", order: "desc" },
+  title_asc: { orderby: "title", order: "asc" },
+  title_desc: { orderby: "title", order: "desc" },
+};
+
 function parsePageParam(value: string | null): number {
   const raw = Number(value);
   return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
@@ -65,7 +77,12 @@ export default function StorePage() {
   // Debounce search input before sending to WooCommerce REST API (300 ms).
   const debouncedSearch = useDebouncedValue(filter, 300);
 
-  const { data: wooData, isLoading, isError, error, refetch, isFetching, isPlaceholderData } = useWooProducts(page, debouncedSearch);
+  // Delegate sorting to WooCommerce REST API (Issue #485).
+  // Client-side sorting only affected the current page; server-side sorting
+  // ensures cross-page consistency. Mirrors ContentPage pattern (Issue #276).
+  const sortParams = SORT_MAP[sort] ?? DEFAULT_SORT;
+
+  const { data: wooData, isLoading, isError, error, refetch, isFetching, isPlaceholderData } = useWooProducts(page, debouncedSearch, sortParams.orderby, sortParams.order);
   const usingSamples = !wooData && !isLoading && !isError;
 
   // Reset page to 1 when wooPerPage or WooCommerce connection settings change
@@ -118,9 +135,10 @@ export default function StorePage() {
     return SAMPLE_PRODUCTS.map((sp) => ({ id: sp.id, name: t(`product_${sp.id}` as const), desc: t(`product_${sp.id}_desc` as const), price: sp.price, img: null, icon: sp.icon, stockStatus: "instock" }));
   }, [wooData, t, isLoading, isError]);
 
-  // Client-side sort only; search is delegated to WooCommerce REST API
-  // `search` param via useWooProducts (Issue #275).
-  const sortedProducts = useMemo(() => {
+  // Server-side sort for WooCommerce products (Issue #485);
+  // client-side sort retained only for sample products (no API).
+  const displayProducts = useMemo(() => {
+    if (wooData) return products; // already sorted by WooCommerce API
     const result = [...products];
     switch (sort) {
       case "price_asc": result.sort((a, b) => a.price - b.price); break;
@@ -129,7 +147,7 @@ export default function StorePage() {
       case "title_desc": result.sort((a, b) => b.name.localeCompare(a.name)); break;
     }
     return result;
-  }, [products, sort]);
+  }, [products, sort, wooData]);
 
   const totalProducts = wooData?.totalProducts ?? SAMPLE_PRODUCTS.length;
 
@@ -151,7 +169,7 @@ export default function StorePage() {
         <>
           <ContentToolbar filterValue={filter} onFilterChange={setFilter} sortValue={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} filterPlaceholderKey="store_filter_placeholder" />
           <div className={isFetching && isPlaceholderData ? "opacity-50 transition-opacity" : "transition-opacity"}>
-            <ProductGrid products={sortedProducts} />
+            <ProductGrid products={displayProducts} />
           </div>
           {!usingSamples && wooData && <Pagination currentPage={page} totalPages={wooData.totalPages} onPageChange={setPage} />}
         </>
