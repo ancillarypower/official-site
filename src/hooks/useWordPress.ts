@@ -15,8 +15,11 @@ interface WpQueryResult {
  *
  * Excludes `content` (only needed by ArticleView via useSinglePost)
  * to reduce response payload by an estimated 5-10x (Issue #277).
+ *
+ * `featured_media` is required for `_embed` to resolve
+ * `_embedded["wp:featuredmedia"]` thumbnail data (Issue #471).
  */
-const LIST_FIELDS = "id,date,title,excerpt,name,source_url,media_type,_embedded";
+const LIST_FIELDS = "id,date,title,excerpt,name,featured_media,source_url,media_type,_embedded";
 
 /**
  * Safely parse a raw `_embedded` value into the shape expected by WpPost.
