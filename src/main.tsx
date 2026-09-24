@@ -19,7 +19,15 @@ const queryClient = new QueryClient({
 });
 
 window.addEventListener("unhandledrejection", (event) => {
-  const isEn = navigator.language.startsWith("en");
+  const storedLang = (() => {
+    try {
+      return localStorage.getItem("ap-lang");
+    } catch {
+      return null;
+    }
+  })();
+  const isEn =
+    storedLang === "en" || (!storedLang && !navigator.language.startsWith("zh"));
   const message =
     import.meta.env.DEV && event.reason instanceof Error
       ? event.reason.message
