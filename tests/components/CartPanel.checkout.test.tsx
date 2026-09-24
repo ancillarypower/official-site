@@ -155,3 +155,117 @@ describe("CartPanel checkout success flow", () => {
     });
   });
 });
+
+describe("CartPanel checkout dedup (regression #465)", () => {
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+    mockCheckout.mockClear();
+    mockCheckout.mockResolvedValue({ id: 100, order_key: "wc_order_test" });
+  });
+
+  it("checkout sends shipping when shipToBilling is unchecked (regression #465)", async () => {
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+
+    // Uncheck the "ship to billing" checkbox (inputs[8] is the checkbox)
+    const checkboxes = container.querySelectorAll<HTMLInputElement>("input[type='checkbox']");
+    fireEvent.click(checkboxes[0]!);
+
+    // After unchecking, shipping fields appear. Re-query all inputs.
+    const allInputs = container.querySelectorAll<HTMLInputElement>("input");
+    // Shipping fields start after billing (8 fields) + checkbox (1) = index 9
+    // shipping: first_name, last_name, address_1, city, postcode, country
+    fireEvent.change(allInputs[9]!, { target: { value: "Jane" } });
+    fireEvent.change(allInputs[10]!, { target: { value: "Smith" } });
+    fireEvent.change(allInputs[11]!, { target: { value: "456 Oak Ave" } });
+    fireEvent.change(allInputs[12]!, { target: { value: "Kaohsiung" } });
+    fireEvent.change(allInputs[13]!, { target: { value: "800" } });
+    // allInputs[14] = shipping country, defaults to "TW"
+
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+
+    const callArgs = mockCheckout.mock.calls[0]![0];
+    expect(callArgs).toHaveProperty("shipping");
+    expect(callArgs.shipping).toEqual(
+      expect.objectContaining({
+        first_name: "Jane",
+        last_name: "Smith",
+        address_1: "456 Oak Ave",
+        city: "Kaohsiung",
+        postcode: "800",
+        country: "TW",
+      }),
+    );
+  });
+
+  it("checkout omits shipping when shipToBilling is checked (regression #465)", async () => {
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+
+    // shipToBilling defaults to true, so just submit
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+
+    const callArgs = mockCheckout.mock.calls[0]![0];
+    expect(callArgs).not.toHaveProperty("shipping");
+    expect(callArgs).toHaveProperty("items");
+    expect(callArgs).toHaveProperty("billing");
+  });
+
+  it("checkout error handling is consistent regardless of shipping toggle (regression #465)", async () => {
+    const testError = new AppError("error_price_changed", "Price changed", { details: "Widget: 10 \u2192 15" });
+
+    // Test 1: shipToBilling = true (default)
+    mockCheckout.mockRejectedValueOnce(testError);
+    const { container: c1, unmount: u1 } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(c1);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      const errorEl = c1.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
+    });
+    const errorText1 = c1.querySelector(".text-danger")!.textContent;
+    u1();
+
+    // Test 2: shipToBilling = false
+    mockCheckout.mockClear();
+    mockCheckout.mockRejectedValueOnce(testError);
+    const { container: c2 } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(c2);
+
+    // Uncheck shipToBilling
+    const checkboxes = c2.querySelectorAll<HTMLInputElement>("input[type='checkbox']");
+    fireEvent.click(checkboxes[0]!);
+
+    // Fill shipping fields
+    const allInputs = c2.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(allInputs[9]!, { target: { value: "Jane" } });
+    fireEvent.change(allInputs[10]!, { target: { value: "Smith" } });
+    fireEvent.change(allInputs[11]!, { target: { value: "456 Oak Ave" } });
+    fireEvent.change(allInputs[12]!, { target: { value: "Kaohsiung" } });
+    fireEvent.change(allInputs[13]!, { target: { value: "800" } });
+
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      const errorEl = c2.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
+    });
+    const errorText2 = c2.querySelector(".text-danger")!.textContent;
+
+    // Both paths should produce the exact same error message
+    expect(errorText1).toBe(errorText2);
+  });
+});
