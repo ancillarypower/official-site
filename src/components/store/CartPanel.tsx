@@ -68,6 +68,7 @@ export function CartPanel() {
       setOrderError(t("checkout_required_fields"));
       return;
     }
+    let resolvedShipping: z.infer<typeof shippingSchema> | undefined;
     if (!shipToBilling) {
       const shipResult = shippingSchema.safeParse(shipping);
       if (!shipResult.success) {
@@ -80,31 +81,23 @@ export function CartPanel() {
         setOrderError(t("checkout_required_fields"));
         return;
       }
-      try {
-        const order = await checkout({ items, billing: result.data, shipping: shipResult.data });
-        if (order.payment_url) { window.location.assign(order.payment_url); return; }
-        setOrderStatus("success");
-      } catch (err) {
-        if (err instanceof AppError) {
-          setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
-        } else {
-          setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
-        }
-        setOrderStatus("error");
+      resolvedShipping = shipResult.data;
+    }
+    try {
+      const order = await checkout({
+        items,
+        billing: result.data,
+        ...(resolvedShipping && { shipping: resolvedShipping }),
+      });
+      if (order.payment_url) { window.location.assign(order.payment_url); return; }
+      setOrderStatus("success");
+    } catch (err) {
+      if (err instanceof AppError) {
+        setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
+      } else {
+        setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
       }
-    } else {
-      try {
-        const order = await checkout({ items, billing: result.data });
-        if (order.payment_url) { window.location.assign(order.payment_url); return; }
-        setOrderStatus("success");
-      } catch (err) {
-        if (err instanceof AppError) {
-          setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
-        } else {
-          setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
-        }
-        setOrderStatus("error");
-      }
+      setOrderStatus("error");
     }
   }
   return (
