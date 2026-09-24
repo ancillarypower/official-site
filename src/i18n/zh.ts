@@ -205,6 +205,7 @@ export const zh = {
     "100510 台北市中正區新生南路一段 50 號 4 樓之 5",
   about_map_title: "安瑟樂威辦公室地圖",
   about_map_link: "使用 Google 地圖導航",
+  about_map_reset: "重設地圖位置",
   about_website_label: "官網",
   about_website_value: "https://www.ancillarypower.com",
 
