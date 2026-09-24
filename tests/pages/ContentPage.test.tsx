@@ -11,15 +11,20 @@ const mockPosts = [
   { id: 3, title: "Gamma Article", date: "2026-03-15T00:00:00", name: "gamma" },
 ];
 
-const { mockUseWordPress, mockUseSinglePost } = vi.hoisted(() => ({
+const { mockUseWordPress, mockUseSinglePost, mockUseWpTags } = vi.hoisted(() => ({
   mockUseWordPress: vi.fn(),
   mockUseSinglePost: vi.fn(),
+  mockUseWpTags: vi.fn(),
 }));
 
 vi.mock("@/hooks/useWordPress", () => ({
   useWordPress: (...args: unknown[]) => mockUseWordPress(...args),
   useSinglePost: (...args: unknown[]) => mockUseSinglePost(...args),
   normalizeRawPost: vi.fn((p: Record<string, unknown>) => p),
+}));
+
+vi.mock("@/hooks/useWpTags", () => ({
+  useWpTags: () => mockUseWpTags(),
 }));
 
 import ContentPage from "@/pages/ContentPage";
@@ -41,6 +46,7 @@ describe("ContentPage", () => {
   beforeEach(() => {
     mockUseWordPress.mockClear();
     mockUseSinglePost.mockClear();
+    mockUseWpTags.mockClear();
     useSettingsStore.setState({ contentType: "posts", perPage: 20 });
     mockUseWordPress.mockReturnValue({
       data: { posts: mockPosts, totalPages: 2, totalPosts: 3 },
@@ -56,6 +62,8 @@ describe("ContentPage", () => {
       isLoading: false,
       error: null,
     });
+    // Default: no tags
+    mockUseWpTags.mockReturnValue({ data: undefined });
   });
 
   it("renders posts list", () => {
@@ -469,5 +477,35 @@ describe("ContentPage", () => {
     } finally {
       document.body.removeChild(mainEl);
     }
+  });
+
+  // --- Phantom tag ID 0 regression test (#503) ---
+
+  it("selecting first tag does not inject phantom tag ID 0 into URL (regression #503)", () => {
+    // Provide mock tags so TagFilter renders
+    mockUseWpTags.mockReturnValue({
+      data: [
+        { id: 5, name: "Energy", count: 3 },
+        { id: 12, name: "Solar", count: 1 },
+      ],
+    });
+    renderPage();
+
+    // Open the tag dropdown and click the first tag checkbox
+    const trigger = screen.getByRole("button", { name: /\u6a19\u7c64\u7be9\u9078/ });
+    fireEvent.click(trigger);
+    const energyCheckbox = screen.getByRole("checkbox", { name: "" });
+    // Find the checkbox inside the "Energy" label
+    const labels = screen.getAllByText("Energy");
+    const energyLabel = labels[0]!;
+    const checkbox = energyLabel.closest("label")?.querySelector("input[type=checkbox]");
+    expect(checkbox).toBeTruthy();
+    fireEvent.click(checkbox!);
+
+    // Verify useWordPress was called with tags=[5], not [0, 5]
+    const lastCall = mockUseWordPress.mock.calls[mockUseWordPress.mock.calls.length - 1];
+    const tagsArg = lastCall?.[4] as number[];
+    expect(tagsArg).toEqual([5]);
+    expect(tagsArg).not.toContain(0);
   });
 });
