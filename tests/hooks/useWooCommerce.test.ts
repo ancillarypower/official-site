@@ -491,8 +491,8 @@ describe("useWooProducts", () => {
     // credFingerprint is at index 2 in queryKey:
     // ["woo-products", baseUrl, credFingerprint, wooPerPage, page, search, useProxy, orderby, order]
     const fingerprint = key[2] as string;
-    // Must be exactly 12 characters (truncated from full btoa output)
-    expect(fingerprint).toHaveLength(12);
+    // Must be exactly 16 characters (truncated from full btoa output)
+    expect(fingerprint).toHaveLength(16);
     // Full btoa("ck_test:cs_test") = "Y2tfdGVzdDpjc190ZXN0" (20 chars)
     // Truncated fingerprint must not equal the full reversible Base64 string
     expect(fingerprint).not.toBe(btoa("ck_test:cs_test"));
