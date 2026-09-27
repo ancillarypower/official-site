@@ -144,6 +144,13 @@ describe("modelLoaders", () => {
       const res = createLoaderResources();
       const buf = new ArrayBuffer(8);
 
+      // Make parse invoke success callback immediately so promise resolves
+      mockGLTFParse.mockImplementation(
+        (_p: unknown, _b: string, onSuccess: (r: { scene: unknown }) => void) => {
+          onSuccess({ scene: {} });
+        },
+      );
+
       await loadGltfModel(buf, "glb", ctx, res);
 
       expect(mockGLTFParse).toHaveBeenCalledTimes(1);
@@ -165,6 +172,75 @@ describe("modelLoaders", () => {
 
       expect(mockGLTFParse).not.toHaveBeenCalled();
       expect(res.dracoLoader).toBeNull();
+    });
+
+    it("Promise does not resolve until parse callback fires (regression #514)", async () => {
+      const { loadGltfModel } = await import(
+        "@/components/models/modelLoaders"
+      );
+      const ctx = createMockContext();
+      const res = createLoaderResources();
+      const buf = new ArrayBuffer(8);
+
+      // Capture callbacks without invoking them
+      let capturedSuccess: ((r: { scene: unknown }) => void) | null = null;
+      mockGLTFParse.mockImplementation(
+        (_p: unknown, _b: string, onSuccess: (r: { scene: unknown }) => void) => {
+          capturedSuccess = onSuccess;
+        },
+      );
+
+      let resolved = false;
+      const promise = loadGltfModel(buf, "glb", ctx, res).then(() => {
+        resolved = true;
+      });
+
+      // Flush microtasks to let Promise.all imports resolve
+      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
+
+      // Promise should still be pending (parse not yet complete)
+      expect(resolved).toBe(false);
+      expect(mockGLTFParse).toHaveBeenCalledTimes(1);
+
+      // Now trigger success callback
+      capturedSuccess!({ scene: {} });
+      await promise;
+
+      expect(resolved).toBe(true);
+      expect(ctx.fitToView).toHaveBeenCalledTimes(1);
+    });
+
+    it("error callback resolves (not rejects) Promise (regression #514)", async () => {
+      const { loadGltfModel } = await import(
+        "@/components/models/modelLoaders"
+      );
+      const ctx = createMockContext();
+      const res = createLoaderResources();
+      const buf = new ArrayBuffer(8);
+
+      // Capture error callback
+      let capturedError: ((e: Error) => void) | null = null;
+      mockGLTFParse.mockImplementation(
+        (_p: unknown, _b: string, _onSuccess: unknown, onError: (e: Error) => void) => {
+          capturedError = onError;
+        },
+      );
+
+      const promise = loadGltfModel(buf, "glb", ctx, res);
+
+      // Flush microtasks
+      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
+
+      // Trigger error callback
+      capturedError!(new Error("Parse failed"));
+
+      // Should resolve without throwing
+      await expect(promise).resolves.toBeUndefined();
+
+      expect(ctx.setErrorMsg).toHaveBeenCalledWith("Parse failed");
+      expect(ctx.setStatus).toHaveBeenCalledWith("error");
     });
   });
 
@@ -263,6 +339,13 @@ describe("modelLoaders", () => {
       );
       const ctx = createMockContext();
       const res = createLoaderResources();
+
+      // Need parse to resolve for loadModel to complete
+      mockGLTFParse.mockImplementation(
+        (_p: unknown, _b: string, onSuccess: (r: { scene: unknown }) => void) => {
+          onSuccess({ scene: {} });
+        },
+      );
 
       await loadModel(new ArrayBuffer(8), "glb", ctx, res);
 

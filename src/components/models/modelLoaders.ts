@@ -90,56 +90,69 @@ function buildGeometriesFromWorker(
   return { opaque, transparent };
 }
 
-/** Load GLB/GLTF model via GLTFLoader + DRACOLoader. */
-export async function loadGltfModel(
+/**
+ * Load GLB/GLTF model via GLTFLoader + DRACOLoader.
+ *
+ * Returns a Promise that resolves only after `loader.parse()` completes
+ * (either via success or error callback). Both callbacks resolve the
+ * Promise (never reject) because errors are handled via `ctx.setStatus`.
+ * This matches the resolve-always pattern used by Worker-based loaders.
+ *
+ * Fixes #514: previously `async function` returned a Promise that
+ * resolved immediately after calling the callback-based `loader.parse()`.
+ */
+export function loadGltfModel(
   buf: ArrayBuffer,
   ext: string,
   ctx: LoaderContext,
   res: LoaderResources,
 ): Promise<void> {
-  const { GLTFLoader } = await import(
-    "three/examples/jsm/loaders/GLTFLoader.js"
-  );
-  const { DRACOLoader } = await import(
-    "three/examples/jsm/loaders/DRACOLoader.js"
-  );
-  if (ctx.isDisposed()) return;
+  return Promise.all([
+    import("three/examples/jsm/loaders/GLTFLoader.js"),
+    import("three/examples/jsm/loaders/DRACOLoader.js"),
+  ]).then(([{ GLTFLoader }, { DRACOLoader }]) => {
+    if (ctx.isDisposed()) return;
 
-  const loader = new GLTFLoader();
-  const draco = new DRACOLoader();
-  draco.setDecoderPath(DRACO_CDN);
-  loader.setDRACOLoader(draco);
-  res.dracoLoader = draco;
+    const loader = new GLTFLoader();
+    const draco = new DRACOLoader();
+    draco.setDecoderPath(DRACO_CDN);
+    loader.setDRACOLoader(draco);
+    res.dracoLoader = draco;
 
-  const payload =
-    ext === "gltf"
-      ? new TextDecoder().decode(new Uint8Array(buf))
-      : buf;
+    const payload =
+      ext === "gltf"
+        ? new TextDecoder().decode(new Uint8Array(buf))
+        : buf;
 
-  loader.parse(
-    payload,
-    "",
-    (result) => {
-      if (!ctx.isDisposed()) {
-        try {
-          ctx.fitToView(result.scene);
-        } catch (e) {
-          ctx.setErrorMsg(
-            e instanceof Error ? e.message : "GLTF parse failed",
-          );
-          ctx.setStatus("error");
-        }
-      }
-    },
-    (err) => {
-      if (!ctx.isDisposed()) {
-        ctx.setErrorMsg(
-          err instanceof Error ? err.message : "GLTF parse failed",
-        );
-        ctx.setStatus("error");
-      }
-    },
-  );
+    return new Promise<void>((resolve) => {
+      loader.parse(
+        payload,
+        "",
+        (result) => {
+          if (!ctx.isDisposed()) {
+            try {
+              ctx.fitToView(result.scene);
+            } catch (e) {
+              ctx.setErrorMsg(
+                e instanceof Error ? e.message : "GLTF parse failed",
+              );
+              ctx.setStatus("error");
+            }
+          }
+          resolve();
+        },
+        (err) => {
+          if (!ctx.isDisposed()) {
+            ctx.setErrorMsg(
+              err instanceof Error ? err.message : "GLTF parse failed",
+            );
+            ctx.setStatus("error");
+          }
+          resolve();
+        },
+      );
+    });
+  });
 }
 
 /** Load IFC model via Web Worker + web-ifc WASM. */
