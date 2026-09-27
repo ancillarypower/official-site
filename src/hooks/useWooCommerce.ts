@@ -113,7 +113,7 @@ export function useWooProducts(
             signal,
           });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
 
       const hasPageHeader =
         response.headers.has("X-WP-TotalPages") ||
@@ -305,7 +305,7 @@ interface CheckoutParams {
   shipping?: ShippingAddress;
   /** Payment method ID forwarded to WooCommerce. Defaults to "cod" (Cash on Delivery). */
   payment_method?: string;
-  /** Display name for the payment method. Defaults to "貨到付款". */
+  /** Display name for the payment method. Defaults to "\u8CA8\u5230\u4ED8\u6B3E". */
   payment_method_title?: string;
 }
 

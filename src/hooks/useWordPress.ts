@@ -117,7 +117,7 @@ export function useWordPress(
       const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}&_fields=${LIST_FIELDS}${searchParam}${tagsParam}`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
 
       const hasPageHeader =
         response.headers.has("X-WP-TotalPages") ||
@@ -189,7 +189,7 @@ export function useSinglePost(id: number | null) {
       // Post does not exist: return null instead of throwing
       if (response.status === 404) return null;
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
 
       const raw = await parseJsonResponse(response);
       const parsed = wpPostSchema.safeParse(raw);
