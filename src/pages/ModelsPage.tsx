@@ -439,7 +439,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              🗑 {t("models_delete_all")}
+              🗑️ {t("models_delete_all")}
             </button>
           </div>
           {isCustomSort && (

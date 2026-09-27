@@ -7,7 +7,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const THEME_OPTIONS: { value: Theme; icon: string }[] = [
   { value: "system", icon: "💻" },
-  { value: "light", icon: "☀️" },
+  { value: "light", icon: "\u2600\uFE0F" },
   { value: "sepia", icon: "📜" },
   { value: "dark", icon: "🌙" },
 ];
@@ -206,7 +206,7 @@ export function SettingsPanel() {
               aria-label={showKey ? t("a11y_hide_key") : t("a11y_show_key")}
               title={showKey ? t("a11y_hide_key") : t("a11y_show_key")}
             >
-              {showKey ? "🙈" : "👁"}
+              {showKey ? "🙈" : "👁️"}
             </button>
           </div>
         </div>
@@ -222,7 +222,7 @@ export function SettingsPanel() {
               aria-label={showSecret ? t("a11y_hide_secret") : t("a11y_show_secret")}
               title={showSecret ? t("a11y_hide_secret") : t("a11y_show_secret")}
             >
-              {showSecret ? "🙈" : "👁"}
+              {showSecret ? "🙈" : "👁️"}
             </button>
           </div>
         </div>
