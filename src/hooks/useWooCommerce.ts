@@ -84,9 +84,10 @@ export function useWooProducts(
 
   // Derive a cache-identity fingerprint — changes when credentials rotate,
   // but never exposes plaintext in DevTools / logging / Sentry (Issue #483).
-  // Truncated to 12 chars to prevent reversibility (Issue #507).
+  // Truncated to 16 chars (96 bits / 12 input bytes) to prevent
+  // reversibility while still capturing key+secret variation (Issue #507).
   const credFingerprint = wooKey && wooSecret
-    ? btoa(`${wooKey}:${wooSecret}`).slice(0, 12)
+    ? btoa(`${wooKey}:${wooSecret}`).slice(0, 16)
     : "";
 
   return useQuery<WooQueryResult>({
