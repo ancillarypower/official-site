@@ -73,7 +73,7 @@ describe("Navbar", () => {
 
   it("cycles theme when theme button is clicked", () => {
     render(withProviders(<Navbar />));
-    const themeButton = screen.getByText("☀").closest("button")!;
+    const themeButton = screen.getByText("☀️").closest("button")!;
     fireEvent.click(themeButton);
     expect(useSettingsStore.getState().theme).toBe("sepia");
   });
