@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: 'package.json'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests with coverage
         run: pnpm test:coverage
