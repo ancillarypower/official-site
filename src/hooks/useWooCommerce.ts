@@ -303,6 +303,10 @@ interface CheckoutParams {
   };
   /** Optional separate shipping address. When omitted, derived from billing (sans email/phone). */
   shipping?: ShippingAddress;
+  /** Payment method ID forwarded to WooCommerce. Defaults to "cod" (Cash on Delivery). */
+  payment_method?: string;
+  /** Display name for the payment method. Defaults to "貨到付款". */
+  payment_method_title?: string;
 }
 
 export function useCheckout() {
@@ -313,7 +317,7 @@ export function useCheckout() {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useMutation<WooOrder, Error, CheckoutParams>({
-    mutationFn: async ({ items, billing, shipping }) => {
+    mutationFn: async ({ items, billing, shipping, payment_method, payment_method_title }) => {
       if (!baseUrl || !wooKey || !wooSecret) {
         throw new AppError(
           "error_woo_not_configured",
@@ -376,8 +380,8 @@ export function useCheckout() {
       };
 
       const body = {
-        payment_method: "cod",
-        payment_method_title: "\u8CA8\u5230\u4ED8\u6B3E",
+        payment_method: payment_method ?? "cod",
+        payment_method_title: payment_method_title ?? "\u8CA8\u5230\u4ED8\u6B3E",
         set_paid: false,
         billing,
         shipping: resolvedShipping,
