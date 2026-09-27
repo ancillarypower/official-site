@@ -302,7 +302,12 @@ export async function loadObjStlModel(
     try {
       if (ext === "stl") {
         // Single geometry -> Mesh with MeshStandardMaterial
-        const md = msg.meshes[0]!;
+        const md = msg.meshes[0];
+        if (!md) {
+          ctx.setErrorMsg("STL file contains no geometry");
+          ctx.setStatus("error");
+          return;
+        }
         const geom = new THREE.BufferGeometry();
         geom.setAttribute(
           "position",
