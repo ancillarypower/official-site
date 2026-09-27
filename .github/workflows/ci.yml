@@ -21,7 +21,7 @@ jobs:
           fi
           # 2. Check source code for import.meta.env references
           if grep -rE 'import\.meta\.env\.VITE_.*(SECRET|KEY|TOKEN|PASSWORD)' src/; then
-            echo "::error::Source code references a VITE_ secret variable — secrets are embedded in the client bundle. See issue #247"
+            echo "::error::Source code references a VITE_ secret variable \u2014 secrets are embedded in the client bundle. See issue #247"
             exit 1
           fi
 
@@ -38,6 +38,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies for known vulnerabilities
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
 
       - name: Lint
         run: pnpm lint
