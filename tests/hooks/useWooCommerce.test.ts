@@ -459,6 +459,45 @@ describe("useWooProducts", () => {
     expect(key).not.toContain("cs_test");
   });
 
+  /* -- Issue #507 Regression Test -- */
+
+  it("credFingerprint is truncated and not reversible to original credentials (regression #507)", async () => {
+    const products = [
+      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(products), {
+        status: 200,
+        headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    const { result } = renderHook(() => useWooProducts(1), {
+      wrapper: createWrapper(qc),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const activeQueries = qc.getQueryCache().getAll();
+    const wooQuery = activeQueries.find((q) =>
+      Array.isArray(q.queryKey) && q.queryKey[0] === "woo-products",
+    );
+    expect(wooQuery).toBeDefined();
+    const key = wooQuery!.queryKey as unknown[];
+    // credFingerprint is at index 2 in queryKey:
+    // ["woo-products", baseUrl, credFingerprint, wooPerPage, page, search, useProxy, orderby, order]
+    const fingerprint = key[2] as string;
+    // Must be exactly 16 characters (truncated from full btoa output)
+    expect(fingerprint).toHaveLength(16);
+    // Full btoa("ck_test:cs_test") = "Y2tfdGVzdDpjc190ZXN0" (20 chars)
+    // Truncated fingerprint must not equal the full reversible Base64 string
+    expect(fingerprint).not.toBe(btoa("ck_test:cs_test"));
+  });
+
   /* -- Issue #485 Regression Tests -- */
 
   it("passes orderby and order to WooCommerce API URL (regression #485)", async () => {
