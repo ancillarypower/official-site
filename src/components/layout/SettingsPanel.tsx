@@ -7,7 +7,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const THEME_OPTIONS: { value: Theme; icon: string }[] = [
   { value: "system", icon: "💻" },
-  { value: "light", icon: "☀" },
+  { value: "light", icon: "☀️" },
   { value: "sepia", icon: "📜" },
   { value: "dark", icon: "🌙" },
 ];
