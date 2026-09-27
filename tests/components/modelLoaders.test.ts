@@ -220,6 +220,28 @@ describe("modelLoaders", () => {
         expect.any(Array),
       );
     });
+
+    it("STL empty meshes array triggers error state instead of crashing (regression #511)", async () => {
+      const { loadObjStlModel } = await import(
+        "@/components/models/modelLoaders"
+      );
+      const ctx = createMockContext();
+      const res = createLoaderResources();
+      const buf = new ArrayBuffer(8);
+
+      await loadObjStlModel(buf, "stl", ctx, res);
+
+      // Simulate Worker returning empty meshes array
+      lastWorkerInstance!.onmessage!({
+        data: { type: "result", meshes: [] },
+      });
+
+      expect(ctx.setErrorMsg).toHaveBeenCalledWith(
+        "STL file contains no geometry",
+      );
+      expect(ctx.setStatus).toHaveBeenCalledWith("error");
+      expect(ctx.fitToView).not.toHaveBeenCalled();
+    });
   });
 
   describe("loadModel", () => {
