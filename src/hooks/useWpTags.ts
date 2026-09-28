@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { fetchWithProxy, wpApiUrl, parseJsonResponse } from "@/lib/api";
+import { AppError } from "@/lib/errors";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 export const wpTagSchema = z.object({
@@ -33,7 +34,7 @@ export function useWpTags() {
       const url = `${api}/tags?per_page=100&_fields=id,name,count`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
 
       const raw = await parseJsonResponse(response);
       const parsed = wpTagArraySchema.safeParse(raw);
