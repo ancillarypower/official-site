@@ -120,4 +120,19 @@ describe("ModelCard", () => {
     expect(screen.queryByTestId("model-viewer")).not.toBeInTheDocument();
     expect(screen.getByText("models_view_3d")).toBeInTheDocument();
   });
+
+  // Regression test for non-draggable cursor (Issue #534)
+  it("non-draggable ModelCard does not have draggable attribute or grab cursor (regression #534)", () => {
+    const { container } = render(createElement(ModelCard, defaultProps));
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.getAttribute("draggable")).not.toBe("true");
+    expect(card.className).not.toContain("cursor-grab");
+  });
+
+  it("draggable ModelCard has draggable attribute and grab cursor when isDraggable is true", () => {
+    const { container } = render(createElement(ModelCard, { ...defaultProps, isDraggable: true }));
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.getAttribute("draggable")).toBe("true");
+    expect(card.className).toContain("cursor-grab");
+  });
 });
