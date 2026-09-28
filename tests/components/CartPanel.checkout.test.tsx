@@ -269,3 +269,26 @@ describe("CartPanel checkout dedup (regression #465)", () => {
     expect(errorText1).toBe(errorText2);
   });
 });
+
+describe("CartPanel form element (regression #545)", () => {
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+  });
+
+  it("billing inputs are inside a form element and checkout button is type submit (regression #545)", () => {
+    const { container } = render(withProviders(<CartPanel />));
+    const form = container.querySelector("form");
+    expect(form).toBeTruthy();
+    // Billing inputs should be inside the form
+    const formInputs = form!.querySelectorAll("input");
+    expect(formInputs.length).toBeGreaterThanOrEqual(8);
+    // Checkout button should be type="submit"
+    const submitBtn = form!.querySelector("button[type='submit']");
+    expect(submitBtn).toBeTruthy();
+    expect(submitBtn!.textContent).toContain("\u7D50\u5E33");
+  });
+});
