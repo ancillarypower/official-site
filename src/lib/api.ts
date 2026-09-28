@@ -23,17 +23,34 @@ export function ensureHttps(url: string): string {
 }
 
 /**
+ * A signal paired with a cleanup function that clears its internal timer.
+ *
+ * Call `cleanup()` in a `finally` block after the fetch attempt completes
+ * so the timeout timer does not linger for 15 seconds (Issue #531).
+ */
+interface SignalHandle {
+  signal: AbortSignal;
+  cleanup: () => void;
+}
+
+/**
  * Build a composite AbortSignal that fires when either the caller's
  * signal aborts or the timeout expires, whichever comes first.
  *
  * Uses a manual AbortController instead of `AbortSignal.any()` for
  * broader runtime compatibility (Node.js 20 jsdom lacks it).
  *
- * If the caller did not supply a signal, a plain timeout signal is used.
+ * If the caller did not supply a signal, a plain timeout signal is used
+ * and cleanup is a no-op (no manual timer to clear).
+ *
+ * Returns a {@link SignalHandle} so the caller can clear the internal
+ * timer once the fetch completes normally (Issue #531).
  */
-function buildSignal(init?: RequestInit): AbortSignal {
+function buildSignal(init?: RequestInit): SignalHandle {
   const callerSignal = init?.signal;
-  if (!callerSignal) return AbortSignal.timeout(FETCH_TIMEOUT);
+  if (!callerSignal) {
+    return { signal: AbortSignal.timeout(FETCH_TIMEOUT), cleanup: () => {} };
+  }
 
   // Merge caller signal + timeout into one AbortController
   const controller = new AbortController();
@@ -53,7 +70,10 @@ function buildSignal(init?: RequestInit): AbortSignal {
   // Clean up timer when controller aborts (from timeout)
   controller.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
 
-  return controller.signal;
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timer),
+  };
 }
 
 /**
@@ -115,6 +135,9 @@ export async function parseJsonResponse(response: Response) {
  * with each per-attempt timeout; a caller abort immediately stops proxy
  * rotation (Issue #205).
  *
+ * Each {@link buildSignal} timer is cleaned up in a `finally` block so
+ * that completed fetches do not leave dangling timers (Issue #531).
+ *
  * When `useProxy` is false, the optional `init` parameter is forwarded
  * to the native `fetch()` call (e.g. for custom headers or POST body).
  * Proxy mode does NOT forward `init` because public CORS proxies cannot
@@ -137,7 +160,12 @@ export async function fetchWithProxy(
   init?: RequestInit,
 ): Promise<Response> {
   if (!useProxy) {
-    return fetch(url, { ...init, signal: buildSignal(init) });
+    const { signal, cleanup } = buildSignal(init);
+    try {
+      return await fetch(url, { ...init, signal });
+    } finally {
+      cleanup();
+    }
   }
 
   // Defense-in-depth: never send WooCommerce credentials through
@@ -164,9 +192,11 @@ export async function fetchWithProxy(
     const idx = (proxyIndex + i) % CORS_PROXIES.length;
     const proxy = CORS_PROXIES[idx];
     if (!proxy) continue;
+
+    const { signal, cleanup } = buildSignal(init);
     try {
       const response = await fetch(proxy + encodeURIComponent(url), {
-        signal: buildSignal(init),
+        signal,
       });
       if (response.ok) {
         proxyIndex = idx;
@@ -183,6 +213,8 @@ export async function fetchWithProxy(
       errors.push(
         `${proxy}: ${err instanceof Error ? err.message : "Unknown error"}`,
       );
+    } finally {
+      cleanup();
     }
   }
 

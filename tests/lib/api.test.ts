@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fetchWithProxy, wpApiUrl, wooApiUrl, wooAuthHeaders, ensureHttps, parseJsonResponse } from "@/lib/api";
 
 describe("ensureHttps", () => {
@@ -579,5 +579,51 @@ describe("fetchWithProxy", () => {
     // First proxy had network error, second returned 500 — return the 500
     expect(result.status).toBe(500);
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  // --- Regression tests for Issue #531: buildSignal timer leak ---
+
+  it("direct mode with caller signal leaves no pending timers after fetch completes (regression #531)", async () => {
+    vi.useFakeTimers();
+    try {
+      const mockResponse = new Response("ok", { status: 200 });
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+
+      const controller = new AbortController();
+      await fetchWithProxy("https://api.test.com/data", false, {
+        signal: controller.signal,
+      });
+
+      // Before the fix, the 15s timer would still be pending here.
+      // After the fix, cleanup() clears it in the finally block.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("proxy mode with caller signal leaves no pending timers after all attempts complete (regression #531)", async () => {
+    vi.useFakeTimers();
+    try {
+      const serverError = new Response("Error", { status: 500 });
+      const okResponse = new Response("ok", { status: 200 });
+      const mockFetch = vi.fn()
+        .mockResolvedValueOnce(serverError)
+        .mockResolvedValueOnce(okResponse);
+      vi.stubGlobal("fetch", mockFetch);
+
+      const controller = new AbortController();
+      const result = await fetchWithProxy("https://api.test.com/data", true, {
+        signal: controller.signal,
+      });
+
+      expect(result.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      // Before the fix, 2 timers (one per proxy attempt) would be pending.
+      // After the fix, each attempt's cleanup() clears its timer.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
