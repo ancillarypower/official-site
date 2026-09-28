@@ -196,10 +196,10 @@ export default function ContentPage() {
   // Posts are already sorted by the API; no client-side re-sorting needed.
   const posts = data?.posts ?? [];
 
-  // Article view resolution (Issue #277 + #250):
-  // List queries now use _fields and exclude `content`, so localMatch only
-  // provides metadata (title, image, date, author) for an instant preview.
-  // Always fetch the full post (with content) via useSinglePost.
+  // Article view resolution (Issue #277 + #250 + #498):
+  // List queries include full content (no _fields filter). localMatch
+  // provides all post data including content for an instant preview.
+  // useSinglePost is still used to ensure the latest version is shown.
   const localMatch =
     articleId !== null ? data?.posts.find((p) => p.id === articleId) : undefined;
 
