@@ -100,4 +100,18 @@ describe("PostCard", () => {
     const button = screen.getByRole("button");
     expect(article!.contains(button)).toBe(true);
   });
+
+  it("button uses aria-labelledby instead of aria-label so inner text remains accessible (regression #544)", () => {
+    render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
+    const button = screen.getByRole("button");
+    // aria-label must NOT be present (it overrides inner text)
+    expect(button).not.toHaveAttribute("aria-label");
+    // aria-labelledby must point to the h3 title element
+    const labelledById = button.getAttribute("aria-labelledby");
+    expect(labelledById).toBeTruthy();
+    const h3 = document.getElementById(labelledById!);
+    expect(h3).toBeInTheDocument();
+    expect(h3!.tagName).toBe("H3");
+    expect(h3!.textContent).toBe("Test Post Title");
+  });
 });
