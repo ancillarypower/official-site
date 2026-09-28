@@ -399,9 +399,13 @@ describe("useWordPress hook", () => {
     expect(calledUrl).toContain("order=desc");
   });
 
-  // --- _fields bandwidth optimization regression tests (#277) ---
+  // --- _fields + _embed conflict regression test (#498) ---
+  // Replaces previous #277 and #471 _fields assertions.
+  // _fields was intentionally removed because WordPress REST API _fields
+  // filtering strips the virtual _embedded field injected by _embed,
+  // breaking thumbnail resolution for all posts.
 
-  it("includes _fields parameter in list query URL (regression #277)", async () => {
+  it("list query URL must not use _fields to preserve _embed resolution (regression #498)", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify([]), { status: 200 }),
     );
@@ -413,45 +417,11 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain("_fields=id,date,title,excerpt,name,featured_media,source_url,media_type,_embedded");
-  });
-
-  it("excludes content field from _fields parameter (regression #277)", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), { status: 200 }),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
-    const { result } = renderHook(() => useWordPress(1), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    const fieldsMatch = calledUrl.match(/_fields=([^&]*)/);
-    expect(fieldsMatch).not.toBeNull();
-    const fields = fieldsMatch![1]!.split(",");
-    expect(fields).not.toContain("content");
-  });
-
-  // --- featured_media thumbnail resolution regression test (#471) ---
-
-  it("LIST_FIELDS includes featured_media for _embed thumbnail resolution (regression #471)", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), { status: 200 }),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
-    const { result } = renderHook(() => useWordPress(1), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    const fieldsMatch = calledUrl.match(/_fields=([^&]*)/);
-    expect(fieldsMatch).not.toBeNull();
-    const fields = fieldsMatch![1]!.split(",");
-    expect(fields).toContain("featured_media");
+    // _fields must NOT be present: it conflicts with _embed and strips
+    // _embedded["wp:featuredmedia"], causing blank thumbnails.
+    expect(calledUrl).not.toContain("_fields=");
+    // _embed must still be present for thumbnail and author resolution.
+    expect(calledUrl).toContain("_embed");
   });
 
   // --- enabled parameter regression tests (#437) ---

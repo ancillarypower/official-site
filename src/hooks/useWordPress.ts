@@ -10,16 +10,24 @@ interface WpQueryResult {
   totalPosts: number;
 }
 
-/**
- * Fields requested from the WordPress REST API for list views.
+/*
+ * NOTE: List queries no longer use the `_fields` parameter.
  *
- * Excludes `content` (only needed by ArticleView via useSinglePost)
- * to reduce response payload by an estimated 5-10x (Issue #277).
+ * WordPress REST API `_fields` and `_embed` are incompatible in the
+ * current WordPress version: `_embedded` is a virtual field injected
+ * by `_embed` processing and is not part of the posts endpoint schema.
+ * `_fields` filtering removes it even when explicitly listed, which
+ * causes `getPostImage()` to return `null` (blank thumbnails).
  *
- * `featured_media` is required for `_embed` to resolve
- * `_embedded["wp:featuredmedia"]` thumbnail data (Issue #471).
+ * Previously `LIST_FIELDS` was used to exclude `content` and reduce
+ * payload by an estimated 5-10x (Issue #277). PR #491 added
+ * `featured_media` to that list (Issue #471), but the underlying
+ * `_fields`/`_embed` conflict persisted (Issue #498).
+ *
+ * Trade-off: payload increases by ~50-100KB for 20 posts, acceptable
+ * for correct thumbnail rendering. A future optimisation could use a
+ * two-query strategy (list + batch media fetch) to reclaim the saving.
  */
-const LIST_FIELDS = "id,date,title,excerpt,name,featured_media,source_url,media_type,_embedded";
 
 /**
  * Safely parse a raw `_embedded` value into the shape expected by WpPost.
@@ -114,7 +122,8 @@ export function useWordPress(
       const api = wpApiUrl(wpUrl);
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
       const tagsParam = tags.length > 0 ? `&tags=${tags.join(",")}` : "";
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}&_fields=${LIST_FIELDS}${searchParam}${tagsParam}`;
+      // Do NOT use `_fields` here: it conflicts with `_embed` (Issue #498).
+      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}${searchParam}${tagsParam}`;
 
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
