@@ -19,4 +19,18 @@ describe("formatPrice", () => {
     const second = formatPrice(49.99, "zh");
     expect(first).toBe(second);
   });
+
+  it("JPY formats without decimal places (regression #546)", () => {
+    const result = formatPrice(1000, "zh", "JPY");
+    expect(result).toContain("\u00A5");
+    expect(result).toContain("1,000");
+    expect(result).not.toContain(".00");
+  });
+
+  it("same locale different currency uses distinct formatter (regression #546)", () => {
+    const twd = formatPrice(1000, "zh", "TWD");
+    const jpy = formatPrice(1000, "zh", "JPY");
+    expect(twd).toContain(".00");
+    expect(jpy).not.toContain(".00");
+  });
 });

@@ -1,13 +1,24 @@
+/**
+ * ISO 4217 currencies that use zero decimal places.
+ * Used to determine fraction digit count in getNumberFormatter.
+ */
+const ZERO_DECIMAL = new Set([
+  "BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW",
+  "PYG","RWF","UGX","VND","VUV","XAF","XOF","XPF",
+]);
+
 const numberCache = new Map<string, Intl.NumberFormat>();
 
-function getNumberFormatter(locale: string): Intl.NumberFormat {
-  let fmt = numberCache.get(locale);
+function getNumberFormatter(locale: string, currency: string): Intl.NumberFormat {
+  const key = `${locale}:${currency}`;
+  let fmt = numberCache.get(key);
   if (!fmt) {
+    const digits = ZERO_DECIMAL.has(currency) ? 0 : 2;
     fmt = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     });
-    numberCache.set(locale, fmt);
+    numberCache.set(key, fmt);
   }
   return fmt;
 }
@@ -34,6 +45,6 @@ export function formatPrice(
 ): string {
   const locale = lang === "zh" ? "zh-TW" : "en-US";
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
-  const formatted = getNumberFormatter(locale).format(amount);
+  const formatted = getNumberFormatter(locale, currency).format(amount);
   return `${symbol}${formatted}`;
 }
