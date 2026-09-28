@@ -445,6 +445,18 @@ describe("ContentPage", () => {
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
   });
 
+  // --- document.title regression test (#543) ---
+
+  it("document.title updates to article title when viewing article detail (regression #543)", () => {
+    mockUseSinglePost.mockReturnValue({
+      data: { id: 42, title: "Remote Post", date: "2026-08-01T00:00:00", name: "remote-post" },
+      isLoading: false,
+      error: null,
+    });
+    renderPage("/?article=42");
+    expect(document.title).toContain("Remote Post");
+  });
+
   // --- Skip list query when viewing article regression tests (#437) ---
 
   it("disables list query when article param is set (regression #437)", () => {
