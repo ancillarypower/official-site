@@ -6,6 +6,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { getPostTitle } from "@/lib/types";
 import { PostGrid } from "@/components/content/PostGrid";
 import { ArticleView } from "@/components/content/ArticleView";
 import { Pagination } from "@/components/ui/Pagination";
@@ -40,7 +41,6 @@ function parsePageParam(value: string | null): number {
 
 export default function ContentPage() {
   const { t } = useI18n();
-  useDocumentTitle(t("nav_content"));
   const contentType = useSettingsStore((s) => s.contentType);
   const perPage = useSettingsStore((s) => s.perPage);
   const wpUrl = useSettingsStore((s) => s.wpUrl);
@@ -215,6 +215,10 @@ export default function ContentPage() {
   // Prefer the full single post; fall back to localMatch as instant preview
   // while useSinglePost is still loading (shows title, image, metadata).
   const selectedPost = remoteSinglePost ?? localMatch ?? undefined;
+
+  // Dynamic document title: show article title when viewing detail,
+  // otherwise show generic content type title (Issue #543).
+  useDocumentTitle(selectedPost ? getPostTitle(selectedPost) : t("nav_content"));
 
   // Article deep link: loading state (only when no local preview available)
   if (articleId !== null && isSinglePostLoading && !localMatch) {
