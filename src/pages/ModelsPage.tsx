@@ -387,7 +387,7 @@ export default function ModelsPage() {
       {models.length > 0 && (
         <>
           <div className="mt-2 rounded-md bg-surface-sunken px-3 py-1.5 text-center text-[0.7rem] text-tertiary">
-            💾 {t("models_persisted")}
+            \uD83D\uDCBE {t("models_persisted")}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
@@ -439,7 +439,7 @@ export default function ModelsPage() {
               disabled={isBulkDeleting}
               className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              🗑️ {t("models_delete_all")}
+              \uD83D\uDDD1\uFE0F {t("models_delete_all")}
             </button>
           </div>
           {isCustomSort && (
@@ -461,6 +461,7 @@ export default function ModelsPage() {
             onToggleSelect={() => toggleSelect(model.id)}
             onRemove={() => handleRemove(model.id, model.name)}
             isDeleting={deletingIds.has(model.id) || isBulkDeleting}
+            isDraggable={isCustomSort}
             onDragStart={isCustomSort ? () => handleDragStart(model.id) : noop}
             onDragEnter={isCustomSort ? () => handleDragEnter(model.id) : noop}
             onDragOver={isCustomSort ? handleDragOver : noopDragOver}

@@ -11,6 +11,7 @@ interface ModelCardProps {
   onToggleSelect?: () => void;
   onRemove: () => void;
   isDeleting?: boolean;
+  isDraggable?: boolean;
   onDragStart?: () => void;
   onDragEnter?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
@@ -21,7 +22,7 @@ interface ModelCardProps {
   onToggleExpand?: () => void;
 }
 
-export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false, onRename, expanded: controlledExpanded, onToggleExpand }: ModelCardProps) {
+export function ModelCard({ name, size, ext, modelId, selected = false, onToggleSelect, onRemove, isDeleting = false, isDraggable = false, onDragStart, onDragEnter, onDragOver, onDragEnd, isDragTarget = false, onRename, expanded: controlledExpanded, onToggleExpand }: ModelCardProps) {
   const { t } = useI18n();
   const [localExpanded, setLocalExpanded] = useState(false);
   const isExpanded = onToggleExpand !== undefined ? (controlledExpanded ?? false) : localExpanded;
@@ -78,12 +79,12 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
 
   return (
     <div
-      draggable
+      draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      className={`animate-fade-in overflow-hidden rounded-xl border bg-surface-raised transition-colors cursor-grab active:cursor-grabbing ${
+      className={`animate-fade-in overflow-hidden rounded-xl border bg-surface-raised transition-colors ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""} ${
         isDragTarget ? "ring-2 ring-accent border-accent" : selected ? "border-accent ring-2 ring-accent/30" : "border-border-subtle"
       }`}
     >
