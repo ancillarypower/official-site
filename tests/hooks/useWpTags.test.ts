@@ -14,7 +14,7 @@ vi.mock("@/lib/api", () => ({
   parseJsonResponse: (res: Response) => res.json(),
 }));
 
-import { wpTagArraySchema, useWpTags } from "@/hooks/useWpTags";
+import { wpTagArraySchema, fetchAllWpTags } from "@/hooks/useWpTags";
 import { WP_MAX_PER_PAGE } from "@/lib/constants";
 
 /** Generate an array of N fake tags. */
@@ -31,11 +31,10 @@ function jsonResponse(
   body: unknown,
   headers: Record<string, string> = {},
 ): Response {
-  const res = new Response(JSON.stringify(body), {
+  return new Response(JSON.stringify(body), {
     status: 200,
     headers: new Headers(headers),
   });
-  return res;
 }
 
 describe("useWpTags", () => {
@@ -87,35 +86,12 @@ describe("useWpTags", () => {
         jsonResponse(page3, { "X-WP-TotalPages": "3" }),
       );
 
-    // Extract queryFn by inspecting useWpTags return shape.
-    // We call the hook's queryFn directly since renderHook would
-    // require a full QueryClientProvider setup.
-    // Instead, re-import the module and call queryFn via the query options.
-    const { useWpTags: hook } = await import("@/hooks/useWpTags");
-
-    // useWpTags returns useQuery(...), but we need the queryFn.
-    // Since TanStack Query's useQuery cannot be called outside React,
-    // we test the fetch logic by driving mockFetch and verifying calls.
-    // The hook is structured so queryFn is the only consumer of fetchWithProxy.
-    // We simulate what queryFn does by triggering it through the mock.
-
-    // Direct approach: call the queryFn extracted from the hook options.
-    // useQuery receives an options object; we can intercept it.
-    const useQuerySpy = vi.fn();
-    vi.doMock("@tanstack/react-query", () => ({
-      useQuery: (opts: Record<string, unknown>) => {
-        useQuerySpy(opts);
-        return { data: undefined, isLoading: true };
-      },
-    }));
-
-    // Re-import to pick up the mocked useQuery
-    const freshModule = await import("@/hooks/useWpTags");
-    freshModule.useWpTags();
-
-    expect(useQuerySpy).toHaveBeenCalledTimes(1);
-    const queryOpts = useQuerySpy.mock.calls[0]![0] as { queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown> };
-    const result = await queryOpts.queryFn({ signal: new AbortController().signal });
+    const signal = new AbortController().signal;
+    const result = await fetchAllWpTags(
+      "https://example.com/wp-json/wp/v2",
+      false,
+      signal,
+    );
 
     // Should have fetched 3 pages
     expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -127,16 +103,14 @@ describe("useWpTags", () => {
     expect(urls[2]).toContain("page=3");
 
     // Should return all 300 tags
-    expect(Array.isArray(result)).toBe(true);
-    expect((result as unknown[]).length).toBe(300);
-
-    // Restore original mock
-    vi.doUnmock("@tanstack/react-query");
+    expect(result).toHaveLength(300);
+    expect(result[0]!.id).toBe(1);
+    expect(result[299]!.id).toBe(300);
   });
 
   it("infers more pages from response length when headers are stripped by proxy (regression #552)", async () => {
-    // Page 1: 100 tags (full page → infer more)
-    // Page 2: 50 tags (short page → stop)
+    // Page 1: 100 tags (full page -> infer more)
+    // Page 2: 50 tags (short page -> stop)
     const page1 = fakeTags(WP_MAX_PER_PAGE, 1);
     const page2 = fakeTags(50, 101);
 
@@ -145,28 +119,19 @@ describe("useWpTags", () => {
       .mockResolvedValueOnce(jsonResponse(page1))
       .mockResolvedValueOnce(jsonResponse(page2));
 
-    const useQuerySpy = vi.fn();
-    vi.doMock("@tanstack/react-query", () => ({
-      useQuery: (opts: Record<string, unknown>) => {
-        useQuerySpy(opts);
-        return { data: undefined, isLoading: true };
-      },
-    }));
-
-    const freshModule = await import("@/hooks/useWpTags");
-    freshModule.useWpTags();
-
-    expect(useQuerySpy).toHaveBeenCalledTimes(1);
-    const queryOpts = useQuerySpy.mock.calls[0]![0] as { queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown> };
-    const result = await queryOpts.queryFn({ signal: new AbortController().signal });
+    const signal = new AbortController().signal;
+    const result = await fetchAllWpTags(
+      "https://example.com/wp-json/wp/v2",
+      false,
+      signal,
+    );
 
     // Should have fetched exactly 2 pages (stopped at short page)
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
     // Should return all 150 tags
-    expect(Array.isArray(result)).toBe(true);
-    expect((result as unknown[]).length).toBe(150);
-
-    vi.doUnmock("@tanstack/react-query");
+    expect(result).toHaveLength(150);
+    expect(result[0]!.id).toBe(1);
+    expect(result[149]!.id).toBe(150);
   });
 });
