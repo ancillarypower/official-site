@@ -17,6 +17,8 @@ export function PostCard({ post, onClick }: PostCardProps) {
   const visibleTags = tags.slice(0, 3);
   const overflowCount = tags.length - visibleTags.length;
 
+  const titleId = `post-title-${post.id}`;
+
   return (
     <article className="overflow-hidden rounded-xl border border-border-subtle bg-surface-raised transition-all hover:border-border-default hover:shadow-md">
       <button
@@ -24,11 +26,11 @@ export function PostCard({ post, onClick }: PostCardProps) {
         onClick={onClick}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
         className="w-full cursor-pointer text-left"
-        aria-label={decodeHtml(title)}
+        aria-labelledby={titleId}
       >
         {imgData ? <img src={imgData.url} alt={imgData.alt} className="aspect-video w-full bg-surface-sunken object-cover" loading="lazy" decoding="async" /> : <div className="aspect-video w-full bg-surface-sunken" />}
         <div className="px-4 py-4">
-          <h3 className="mb-1.5 line-clamp-2 text-[0.925rem] font-semibold leading-snug">{decodeHtml(title)}</h3>
+          <h3 id={titleId} className="mb-1.5 line-clamp-2 text-[0.925rem] font-semibold leading-snug">{decodeHtml(title)}</h3>
           <div className="flex flex-wrap gap-3 text-[0.725rem] text-tertiary">
             {author && <span>{author}</span>}
             {date && <span>{date}</span>}
