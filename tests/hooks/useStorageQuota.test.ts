@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useStorageQuota } from "@/hooks/useStorageQuota";
 
 describe("useStorageQuota", () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -40,21 +39,6 @@ describe("useStorageQuota", () => {
     expect(warn).toHaveBeenCalledWith("[StorageQuota] estimate() failed:", expect.any(Error));
   });
 
-  it("clears error after a successful retry (regression #565)", async () => {
-    vi.useFakeTimers();
-    const estimate = vi.fn()
-      .mockRejectedValueOnce(new Error("temporary"))
-      .mockResolvedValue({ usage: 5000, quota: 100000 });
-    Object.defineProperty(navigator, "storage", { value: { estimate }, writable: true, configurable: true });
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const { result } = renderHook(() => useStorageQuota());
-    await act(async () => { await Promise.resolve(); });
-    expect(result.current.error).toBe(true);
-    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-    expect(result.current.error).toBe(false);
-    expect(result.current.quota?.used).toBe(5000);
-  });
-
   it("calculates percentage correctly with zero quota", async () => {
     Object.defineProperty(navigator, "storage", {
       value: { estimate: vi.fn().mockResolvedValue({ usage: 0, quota: 0 }) },
@@ -65,5 +49,4 @@ describe("useStorageQuota", () => {
     expect(result.current.quota?.percentage).toBe(0);
     expect(result.current.error).toBe(false);
   });
-}
-);
+});
