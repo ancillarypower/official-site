@@ -9,8 +9,15 @@ function formatBytes(bytes: number): string {
 }
 
 export function StorageQuotaBar() {
-  const quota = useStorageQuota();
+  const { quota, error } = useStorageQuota();
   const { t } = useI18n();
+  if (error && !quota) {
+    return (
+      <div className="mt-3 rounded-md bg-surface-sunken px-3 py-2">
+        <span className="text-[0.7rem] text-tertiary">💾 {t("error_generic")}</span>
+      </div>
+    );
+  }
   if (!quota) return null;
   return (
     <div className="mt-3 rounded-md bg-surface-sunken px-3 py-2">

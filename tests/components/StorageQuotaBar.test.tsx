@@ -16,14 +16,14 @@ function withI18n(ui: React.ReactElement) {
 }
 
 describe("StorageQuotaBar", () => {
-  it("returns null when quota is null", () => {
-    mockUseStorageQuota.mockReturnValue(null);
+  it("returns null when quota is null and no error", () => {
+    mockUseStorageQuota.mockReturnValue({ quota: null, error: false });
     const { container } = render(withI18n(<StorageQuotaBar />));
     expect(container.innerHTML).toBe("");
   });
 
   it("renders storage info when quota is available", () => {
-    mockUseStorageQuota.mockReturnValue({ used: 52428800, total: 1073741824, percentage: 4.88 });
+    mockUseStorageQuota.mockReturnValue({ quota: { used: 52428800, total: 1073741824, percentage: 4.88 }, error: false });
     render(withI18n(<StorageQuotaBar />));
     expect(screen.getByText(/儲存空間/)).toBeInTheDocument();
     expect(screen.getByText(/50\.0 MB/)).toBeInTheDocument();
@@ -31,7 +31,7 @@ describe("StorageQuotaBar", () => {
   });
 
   it("uses accent color for normal usage", () => {
-    mockUseStorageQuota.mockReturnValue({ used: 100, total: 1000, percentage: 10 });
+    mockUseStorageQuota.mockReturnValue({ quota: { used: 100, total: 1000, percentage: 10 }, error: false });
     const { container } = render(withI18n(<StorageQuotaBar />));
     const bar = container.querySelector("[style]");
     expect(bar?.className).toContain("bg-accent");
@@ -39,9 +39,15 @@ describe("StorageQuotaBar", () => {
   });
 
   it("uses danger color above 80%", () => {
-    mockUseStorageQuota.mockReturnValue({ used: 900, total: 1000, percentage: 90 });
+    mockUseStorageQuota.mockReturnValue({ quota: { used: 900, total: 1000, percentage: 90 }, error: false });
     const { container } = render(withI18n(<StorageQuotaBar />));
     const bar = container.querySelector("[style]");
     expect(bar?.className).toContain("bg-danger");
+  });
+
+  it("renders error message when error is true and quota is null (regression #565)", () => {
+    mockUseStorageQuota.mockReturnValue({ quota: null, error: true });
+    render(withI18n(<StorageQuotaBar />));
+    expect(screen.getByText(/發生意外錯誤/)).toBeInTheDocument();
   });
 });
