@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useCartStore, CART_VERSION, migrateCart } from "@/stores/cartStore";
+import {
+  useCartStore,
+  CART_VERSION,
+  migrateCart,
+  persistedCartSchema,
+} from "@/stores/cartStore";
 
 const sampleItem = { id: 1, name: "Test Item", price: 10.0, icon: "🎧", img: null };
 
@@ -146,5 +151,48 @@ describe("cartStore migration", () => {
     };
     const result = migrateCart(currentData, 1);
     expect(result).toBe(currentData); // same reference, no transformation
+  });
+});
+
+describe("cartStore persist merge", () => {
+  beforeEach(() => { useCartStore.setState({ items: [] }); });
+
+  it("merge discards corrupted localStorage with invalid items (regression #563)", () => {
+    const corrupted = {
+      items: [
+        { id: 1, name: "Bad", price: -10, icon: null, img: null, qty: 2 },
+        { id: 2, name: "Also Bad", price: 5, icon: null, img: null, qty: 1.5 },
+      ],
+    };
+    const parsed = persistedCartSchema.safeParse(corrupted);
+    expect(parsed.success).toBe(false);
+
+    // Simulate merge behavior: invalid data falls back to empty cart
+    const currentState = useCartStore.getState();
+    const merged = {
+      ...currentState,
+      ...(parsed.success ? { items: parsed.data.items } : {}),
+    };
+    expect(merged.items).toEqual([]);
+  });
+
+  it("merge preserves valid persisted cart items (regression #563)", () => {
+    const valid = {
+      items: [
+        { id: 1, name: "Widget", price: 29.99, icon: null, img: null, qty: 3 },
+        { id: 2, name: "Gadget", price: 49.0, icon: "📦", img: null, qty: 1 },
+      ],
+    };
+    const parsed = persistedCartSchema.safeParse(valid);
+    expect(parsed.success).toBe(true);
+
+    const currentState = useCartStore.getState();
+    const merged = {
+      ...currentState,
+      ...(parsed.success ? { items: parsed.data.items } : {}),
+    };
+    expect(merged.items).toHaveLength(2);
+    expect(merged.items[0]?.name).toBe("Widget");
+    expect(merged.items[1]?.price).toBe(49.0);
   });
 });

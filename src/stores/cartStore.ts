@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { z } from "zod";
 
 export interface CartItem {
   id: number;
@@ -23,6 +24,32 @@ interface CartState {
 
 /** Current schema version for the persisted cart state. */
 export const CART_VERSION = 1;
+
+/**
+ * Zod schema for runtime validation of a single persisted cart item.
+ *
+ * Every field mirrors the constraints enforced by the UI and the
+ * CartItem interface.  If validation fails the entire persisted blob
+ * is discarded and the cart starts empty.  See GitHub issue #563.
+ */
+export const persistedCartItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  price: z.number().min(0),
+  icon: z.string().nullable(),
+  img: z.string().nullable(),
+  qty: z.number().int().min(1).max(99),
+});
+
+/**
+ * Zod schema for the persisted cart state.
+ *
+ * Only the `items` array is persisted (via `partialize`), so the
+ * schema validates that single field.
+ */
+export const persistedCartSchema = z.object({
+  items: z.array(persistedCartItemSchema),
+});
 
 /**
  * Migrate persisted cart data from older versions.
@@ -90,6 +117,14 @@ export const useCartStore = create<CartState>()(
       name: "ap-cart",
       version: CART_VERSION,
       migrate: migrateCart,
+      partialize: (state) => ({ items: state.items }),
+      merge: (persistedState, currentState) => {
+        const parsed = persistedCartSchema.safeParse(persistedState);
+        return {
+          ...currentState,
+          ...(parsed.success ? { items: parsed.data.items } : {}),
+        };
+      },
     },
   ),
 );
