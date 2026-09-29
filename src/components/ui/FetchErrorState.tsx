@@ -1,5 +1,6 @@
 import { useI18n } from "@/context/I18nContext";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { AppError } from "@/lib/errors";
 
 interface FetchErrorStateProps {
   error: unknown;
@@ -36,6 +37,7 @@ export function FetchErrorState({ error, onRetry }: FetchErrorStateProps) {
 
   const network = isNetworkError(error);
   const httpStatus = extractHttpStatus(error);
+  const isApp = error instanceof AppError;
 
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3.5 text-center">
@@ -47,7 +49,9 @@ export function FetchErrorState({ error, onRetry }: FetchErrorStateProps) {
           ? t("error_fetch_network")
           : httpStatus
             ? t("error_fetch_http", { status: httpStatus })
-            : t("error_fetch_network")}
+            : isApp
+              ? t(error.code as Parameters<typeof t>[0], error.params)
+              : t("error_generic")}
       </h2>
       {network && (
         <p className="max-w-[360px] text-sm text-tertiary">
