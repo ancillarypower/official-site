@@ -70,6 +70,7 @@ export const zh = {
   models_collapse_all: "全部收合",
   models_replace_confirm: "「{name}」已存在，確定要取代嗎？",
   models_duplicate_hash: "與「{name}」內容相同，已略過上傳",
+  models_hash_failed: "無法計算 {name} 的雜湊值，已跳過去重檢查",
   models_sort_label: "排序",
   models_sort_custom: "自訂（拖曳）",
   models_sort_name_asc: "名稱 A\u2192Z",
