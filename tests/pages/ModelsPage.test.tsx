@@ -30,6 +30,11 @@ vi.mock("@/hooks/useModelDB", () => ({
   renameModel: (...args: unknown[]) => mockRenameModel(...args),
 }));
 
+const mockComputeFileHash = vi.fn().mockResolvedValue("");
+vi.mock("@/lib/hash", () => ({
+  computeFileHash: (...args: unknown[]) => mockComputeFileHash(...args),
+}));
+
 import ModelsPage from "@/pages/ModelsPage";
 
 const sampleModels = [
@@ -42,6 +47,7 @@ describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
+    mockComputeFileHash.mockResolvedValue("");
     localStorage.removeItem("model_sort_order");
     localStorage.removeItem("model_sort_key");
   });
@@ -543,6 +549,47 @@ describe("ModelsPage", () => {
     await waitFor(() => {
       expect(mockSaveModel.mock.calls.length).toBeLessThanOrEqual(20);
     });
+  });
+
+  // Regression test: computeFileHash rejection does not break batch upload (Issue #572)
+  it("computeFileHash rejection does not break batch upload (regression #572)", async () => {
+    // First call rejects, second resolves with a hash
+    mockComputeFileHash
+      .mockRejectedValueOnce(new Error("digest failed"))
+      .mockResolvedValueOnce("abc123def456");
+
+    let nextId = 10;
+    mockSaveModel.mockImplementation(() => Promise.resolve(nextId++));
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<I18nProvider><ModelsPage /></I18nProvider>);
+    await waitFor(() => {
+      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
+    });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file1 = new File(["data1"], "model-a.glb", { type: "model/gltf-binary" });
+    const file2 = new File(["data2"], "model-b.glb", { type: "model/gltf-binary" });
+    fireEvent.change(fileInput, { target: { files: [file1, file2] } });
+
+    // Both files should be saved despite first hash failure
+    await waitFor(() => {
+      expect(mockSaveModel).toHaveBeenCalledTimes(2);
+    });
+
+    // toast.warning should have been called for the hash failure
+    expect(mockToastWarning).toHaveBeenCalledWith(
+      expect.stringContaining("model-a.glb")
+    );
+
+    // console.warn should have been called
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[ModelsPage] computeFileHash failed:",
+      "model-a.glb",
+      expect.any(Error)
+    );
+
+    warnSpy.mockRestore();
   });
 
 });
