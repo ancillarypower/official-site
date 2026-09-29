@@ -7,6 +7,9 @@ export const CORS_PROXIES = [
 /** Default fetch timeout in milliseconds (15 seconds) */
 export const FETCH_TIMEOUT = 15_000;
 
+/** WordPress REST API maximum per_page value */
+export const WP_MAX_PER_PAGE = 100;
+
 /** Maximum allowed model file size in bytes (100 MB) */
 export const MAX_MODEL_SIZE = 100 * 1024 * 1024;
 
