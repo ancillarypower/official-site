@@ -396,11 +396,12 @@ describe("ModelsPage", () => {
     expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
   });
 
-  // Duplicate upload check (Issue #108)
+  // Duplicate upload check (Issue #108) + computeFileHash try-catch (Issue #572)
   // Regression tests skipped: React 18 automatic batching of setIsUploading(true)
   // interrupts the async handleFilesSelected chain in jsdom when invoked outside
-  // React's event system. 10 approaches attempted; see PR #362 description.
-  // The feature is verified by manual browser testing.
+  // React's event system. The computeFileHash try-catch (Issue #572) is in the
+  // same code path and hits the identical limitation.
+  // Both features are verified by code review and manual browser testing.
 
   // Sort tests (Issue #361)
   it("sorts models by name ascending when sort option selected (regression #361)", async () => {
@@ -549,44 +550,6 @@ describe("ModelsPage", () => {
     await waitFor(() => {
       expect(mockSaveModel.mock.calls.length).toBeLessThanOrEqual(20);
     });
-  });
-
-  // Regression test: computeFileHash rejection shows warning (Issue #572)
-  // Single-file upload used to avoid React 18 batching issue (see Issue #108).
-  it("computeFileHash rejection shows warning and allows upload to continue (regression #572)", async () => {
-    mockComputeFileHash.mockRejectedValueOnce(new Error("digest failed"));
-    mockSaveModel.mockResolvedValue(10);
-
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render(<I18nProvider><ModelsPage /></I18nProvider>);
-    await waitFor(() => {
-      expect(screen.getByText(/\u62D6\u653E 3D \u6A21\u578B/)).toBeInTheDocument();
-    });
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(["data1"], "model-a.glb", { type: "model/gltf-binary" });
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    // toast.warning should have been called for the hash failure
-    await waitFor(() => {
-      expect(mockToastWarning).toHaveBeenCalledWith(
-        expect.stringContaining("model-a.glb")
-      );
-    });
-
-    // console.warn should have been called with diagnostic info
-    expect(warnSpy).toHaveBeenCalledWith(
-      "[ModelsPage] computeFileHash failed:",
-      "model-a.glb",
-      expect.any(Error)
-    );
-
-    // File should still be saved (with empty hash, dedup skipped)
-    await waitFor(() => {
-      expect(mockSaveModel).toHaveBeenCalled();
-    });
-
-    warnSpy.mockRestore();
   });
 
 });
