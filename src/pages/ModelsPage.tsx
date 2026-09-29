@@ -166,8 +166,14 @@ export default function ModelsPage() {
         }
         if (ab.byteLength === 0) continue;
 
-        // Compute SHA-256 content hash for deduplication
-        const fileHash = await computeFileHash(ab);
+        // Compute SHA-256 content hash for deduplication (Issue #572)
+        let fileHash = "";
+        try {
+          fileHash = await computeFileHash(ab);
+        } catch (err) {
+          console.warn("[ModelsPage] computeFileHash failed:", file.name, err);
+          toast.warning(t("models_hash_failed" as const, { name: file.name }));
+        }
 
         // Check for duplicate content (hash match) before filename match
         const hashDupe = currentModels.find((m) => m.hash && m.hash === fileHash);
