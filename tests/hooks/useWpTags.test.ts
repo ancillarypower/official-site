@@ -11,6 +11,11 @@ const mockFetch = vi.fn();
 vi.mock("@/lib/api", () => ({
   fetchWithProxy: (...args: unknown[]) => mockFetch(...args),
   wpApiUrl: (url: string) => `${url}/wp-json/wp/v2`,
+  wpBuildUrl: (apiBase: string, endpoint: string, params: Record<string, string> = {}) => {
+    const url = new URL(`${apiBase}/${endpoint}`);
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+    return url.toString();
+  },
   parseJsonResponse: (res: Response) => res.json(),
 }));
 

@@ -24,6 +24,7 @@ function buildSignal(init?: RequestInit): SignalHandle {
   return { signal: controller.signal, cleanup: () => clearTimeout(timer) };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export async function parseJsonResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("text/html")) {
