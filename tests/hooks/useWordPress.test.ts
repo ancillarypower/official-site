@@ -400,10 +400,6 @@ describe("useWordPress hook", () => {
   });
 
   // --- _fields + _embed conflict regression test (#498) ---
-  // Replaces previous #277 and #471 _fields assertions.
-  // _fields was intentionally removed because WordPress REST API _fields
-  // filtering strips the virtual _embedded field injected by _embed,
-  // breaking thumbnail resolution for all posts.
 
   it("list query URL must not use _fields to preserve _embed resolution (regression #498)", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
@@ -417,10 +413,7 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    // _fields must NOT be present: it conflicts with _embed and strips
-    // _embedded["wp:featuredmedia"], causing blank thumbnails.
     expect(calledUrl).not.toContain("_fields=");
-    // _embed must still be present for thumbnail and author resolution.
     expect(calledUrl).toContain("_embed");
   });
 
@@ -430,7 +423,6 @@ describe("useWordPress hook", () => {
     const { result } = renderHook(() => useWordPress(1, "", "date", "desc", [], false), {
       wrapper: createWrapper(),
     });
-    // Query should not be loading or fetching when disabled
     expect(result.current.isLoading).toBe(false);
     expect(result.current.fetchStatus).toBe("idle");
     expect(result.current.data).toBeUndefined();
@@ -445,7 +437,6 @@ describe("useWordPress hook", () => {
       wrapper: createWrapper(),
     });
 
-    // Query should start fetching (enabled defaults to true)
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
@@ -463,7 +454,9 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    expect(calledUrl).toContain("&tags=5,12,23");
+    // URL API encodes commas; parse to verify decoded value
+    const parsed = new URL(calledUrl);
+    expect(parsed.searchParams.get("tags")).toBe("5,12,23");
   });
 
   it("does not append tags parameter when tags array is empty (regression #156)", async () => {
@@ -478,6 +471,7 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    expect(calledUrl).not.toContain("&tags=");
+    const parsed = new URL(calledUrl);
+    expect(parsed.searchParams.has("tags")).toBe(false);
   });
 });
