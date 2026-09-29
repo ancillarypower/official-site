@@ -71,5 +71,13 @@ jobs:
             exit 1
           fi
 
+      - name: Upload coverage summary
+        if: steps.coverage.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-data
+          path: coverage/coverage-summary.json
+          retention-days: 1
+
       - name: Build
         run: pnpm build
