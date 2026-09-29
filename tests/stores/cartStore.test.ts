@@ -155,6 +155,8 @@ describe("cartStore migration", () => {
 });
 
 describe("cartStore persist merge", () => {
+  beforeEach(() => { useCartStore.setState({ items: [] }); });
+
   it("merge discards corrupted localStorage with invalid items (regression #563)", () => {
     const corrupted = {
       items: [
