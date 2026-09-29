@@ -1,222 +1,56 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { fetchWithProxy, wpApiUrl, parseJsonResponse } from "@/lib/api";
+import { fetchWithProxy, wpApiUrl, wpBuildUrl, parseJsonResponse } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { wpPostArraySchema, wpPostSchema, type WpPost, resolveRendered } from "@/lib/types";
 import { useSettingsStore } from "@/stores/settingsStore";
 
-interface WpQueryResult {
-  posts: WpPost[];
-  totalPages: number;
-  totalPosts: number;
-}
+interface WpQueryResult { posts: WpPost[]; totalPages: number; totalPosts: number; }
 
-/*
- * NOTE: List queries no longer use the `_fields` parameter.
- *
- * WordPress REST API `_fields` and `_embed` are incompatible in the
- * current WordPress version: `_embedded` is a virtual field injected
- * by `_embed` processing and is not part of the posts endpoint schema.
- * `_fields` filtering removes it even when explicitly listed, which
- * causes `getPostImage()` to return `null` (blank thumbnails).
- *
- * Previously `LIST_FIELDS` was used to exclude `content` and reduce
- * payload by an estimated 5-10x (Issue #277). PR #491 added
- * `featured_media` to that list (Issue #471), but the underlying
- * `_fields`/`_embed` conflict persisted (Issue #498).
- *
- * Trade-off: payload increases by ~50-100KB for 20 posts, acceptable
- * for correct thumbnail rendering. A future optimisation could use a
- * two-query strategy (list + batch media fetch) to reclaim the saving.
- */
-
-/**
- * Safely parse a raw `_embedded` value into the shape expected by WpPost.
- * Unlike the previous `as WpPost["_embedded"]` type assertion, this validates
- * each nested structure (author, wp:featuredmedia, wp:term) at runtime.
- */
 export function resolveEmbedded(raw: unknown): WpPost["_embedded"] {
   if (typeof raw !== "object" || raw === null) return undefined;
   const obj = raw as Record<string, unknown>;
-
-  const author = Array.isArray(obj.author)
-    ? obj.author
-        .filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null)
-        .map((a) => ({ name: typeof a.name === "string" ? a.name : "" }))
-    : undefined;
-
-  const media = Array.isArray(obj["wp:featuredmedia"])
-    ? obj["wp:featuredmedia"].filter(
-        (m): m is { source_url: string } =>
-          typeof m === "object" &&
-          m !== null &&
-          typeof (m as Record<string, unknown>).source_url === "string",
-      )
-    : undefined;
-
-  const term = Array.isArray(obj["wp:term"])
-    ? obj["wp:term"]
-        .filter((group): group is unknown[] => Array.isArray(group))
-        .map((group) =>
-          group.filter(
-            (t): t is { name: string } =>
-              typeof t === "object" &&
-              t !== null &&
-              typeof (t as Record<string, unknown>).name === "string",
-          ),
-        )
-    : undefined;
-
-  return {
-    author,
-    "wp:featuredmedia": media,
-    "wp:term": term,
-  };
+  const author = Array.isArray(obj.author) ? obj.author.filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null).map((a) => ({ name: typeof a.name === "string" ? a.name : "" })) : undefined;
+  const media = Array.isArray(obj["wp:featuredmedia"]) ? obj["wp:featuredmedia"].filter((m): m is { source_url: string } => typeof m === "object" && m !== null && typeof (m as Record<string, unknown>).source_url === "string") : undefined;
+  const term = Array.isArray(obj["wp:term"]) ? obj["wp:term"].filter((group): group is unknown[] => Array.isArray(group)).map((group) => group.filter((t): t is { name: string } => typeof t === "object" && t !== null && typeof (t as Record<string, unknown>).name === "string")) : undefined;
+  return { author, "wp:featuredmedia": media, "wp:term": term };
 }
 
-/**
- * Normalize a raw API response item into a shape that matches WpPost
- * when Zod safeParse fails and the transform step is skipped.
- */
 export function normalizeRawPost(p: Record<string, unknown>): WpPost {
-  return {
-    id: typeof p.id === "number" ? p.id : 0,
-    date: typeof p.date === "string" ? p.date : undefined,
-    title: resolveRendered(p.title),
-    content: p.content !== undefined ? resolveRendered(p.content) : undefined,
-    excerpt: p.excerpt !== undefined ? resolveRendered(p.excerpt) : undefined,
-    description: p.description !== undefined ? resolveRendered(p.description) : undefined,
-    caption: p.caption !== undefined ? resolveRendered(p.caption) : undefined,
-    name: typeof p.name === "string" ? p.name : undefined,
-    source_url: typeof p.source_url === "string" ? p.source_url : undefined,
-    media_type: typeof p.media_type === "string" ? p.media_type : undefined,
-    _embedded: resolveEmbedded(p._embedded),
-  };
+  return { id: typeof p.id === "number" ? p.id : 0, date: typeof p.date === "string" ? p.date : undefined, title: resolveRendered(p.title), content: p.content !== undefined ? resolveRendered(p.content) : undefined, excerpt: p.excerpt !== undefined ? resolveRendered(p.excerpt) : undefined, description: p.description !== undefined ? resolveRendered(p.description) : undefined, caption: p.caption !== undefined ? resolveRendered(p.caption) : undefined, name: typeof p.name === "string" ? p.name : undefined, source_url: typeof p.source_url === "string" ? p.source_url : undefined, media_type: typeof p.media_type === "string" ? p.media_type : undefined, _embedded: resolveEmbedded(p._embedded) };
 }
 
-/**
- * Fetch paginated WordPress content for list views.
- *
- * @param enabled - Pass `false` to disable the query entirely (e.g. when
- *   viewing a single article and the list fetch is unnecessary). Defaults
- *   to `true`. TanStack Query manages cache lifecycle automatically:
- *   cached data is retained and served instantly when re-enabled (Issue #437).
- * @param tags - Optional array of WordPress tag IDs for server-side filtering.
- *   When non-empty, appends `&tags=1,2,3` to the API URL (Issue #156).
- */
-export function useWordPress(
-  page: number = 1,
-  search: string = "",
-  orderby: string = "date",
-  order: string = "desc",
-  tags: number[] = [],
-  enabled: boolean = true,
-) {
-  const wpUrl = useSettingsStore((s) => s.wpUrl);
-  const contentType = useSettingsStore((s) => s.contentType);
-  const perPage = useSettingsStore((s) => s.perPage);
-  const useProxy = useSettingsStore((s) => s.useProxy);
-
+export function useWordPress(page = 1, search = "", orderby = "date", order = "desc", tags: number[] = [], enabled = true) {
+  const wpUrl = useSettingsStore((s) => s.wpUrl), contentType = useSettingsStore((s) => s.contentType), perPage = useSettingsStore((s) => s.perPage), useProxy = useSettingsStore((s) => s.useProxy);
   return useQuery<WpQueryResult>({
     queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, orderby, order, tags],
     queryFn: async ({ signal }) => {
-      const api = wpApiUrl(wpUrl);
-      const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
-      const tagsParam = tags.length > 0 ? `&tags=${tags.join(",")}` : "";
-      // Do NOT use `_fields` here: it conflicts with `_embed` (Issue #498).
-      const url = `${api}/${contentType}?per_page=${perPage}&page=${page}&_embed&orderby=${orderby}&order=${order}${searchParam}${tagsParam}`;
-
+      const url = wpBuildUrl(wpApiUrl(wpUrl), contentType, { per_page: String(perPage), page: String(page), _embed: "", orderby, order, ...(search ? { search } : {}), ...(tags.length > 0 ? { tags: tags.join(",") } : {}) });
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
-
-      const hasPageHeader =
-        response.headers.has("X-WP-TotalPages") ||
-        response.headers.has("x-wp-totalpages");
-
-      let totalPages = parseInt(
-        response.headers.get("X-WP-TotalPages") ??
-          response.headers.get("x-wp-totalpages") ?? "1",
-        10,
-      );
-      let totalPosts = parseInt(
-        response.headers.get("X-WP-Total") ??
-          response.headers.get("x-wp-total") ?? "0",
-        10,
-      );
-
+      const hasPageHeader = response.headers.has("X-WP-TotalPages") || response.headers.has("x-wp-totalpages");
+      let totalPages = parseInt(response.headers.get("X-WP-TotalPages") ?? response.headers.get("x-wp-totalpages") ?? "1", 10);
+      let totalPosts = parseInt(response.headers.get("X-WP-Total") ?? response.headers.get("x-wp-total") ?? "0", 10);
       const raw = await parseJsonResponse(response);
-
-      // Fallback: when CORS proxy strips custom response headers,
-      // infer pagination from the response body length (Issue #178).
-      if (!hasPageHeader && Array.isArray(raw)) {
-        totalPages = raw.length >= perPage ? page + 1 : page;
-        totalPosts = totalPosts || raw.length;
-      }
-
+      if (!hasPageHeader && Array.isArray(raw)) { totalPages = raw.length >= perPage ? page + 1 : page; totalPosts = totalPosts || raw.length; }
       const parsed = wpPostArraySchema.safeParse(raw);
-
-      if (!parsed.success) {
-        console.warn("[WP] Zod parse warning:", parsed.error);
-        if (!Array.isArray(raw)) {
-          throw new AppError(
-            "error_api_unexpected_format",
-            "Unexpected API response: expected an array",
-          );
-        }
-        const posts = (raw as Record<string, unknown>[]).map(normalizeRawPost);
-        return { posts, totalPages, totalPosts };
-      }
-
+      if (!parsed.success) { console.warn("[WP] Zod parse warning:", parsed.error); if (!Array.isArray(raw)) throw new AppError("error_api_unexpected_format", "Unexpected API response: expected an array"); return { posts: (raw as Record<string, unknown>[]).map(normalizeRawPost), totalPages, totalPosts }; }
       return { posts: parsed.data, totalPages, totalPosts: totalPosts || parsed.data.length };
-    },
-    enabled: !!wpUrl && enabled,
-    placeholderData: keepPreviousData,
+    }, enabled: !!wpUrl && enabled, placeholderData: keepPreviousData,
   });
 }
 
-/**
- * Fetch a single post by ID from the WP REST API.
- *
- * Used by ContentPage to resolve deep links (`?article=<id>`) when the
- * target post is not on the currently loaded page (Issue #250).
- *
- * Returns `null` when the API responds with 404 (post does not exist).
- * Disabled when `id` is `null` or `wpUrl` is empty.
- */
 export function useSinglePost(id: number | null) {
-  const wpUrl = useSettingsStore((s) => s.wpUrl);
-  const contentType = useSettingsStore((s) => s.contentType);
-  const useProxy = useSettingsStore((s) => s.useProxy);
-
+  const wpUrl = useSettingsStore((s) => s.wpUrl), contentType = useSettingsStore((s) => s.contentType), useProxy = useSettingsStore((s) => s.useProxy);
   return useQuery<WpPost | null>({
     queryKey: ["wp-single-post", wpUrl, contentType, id, useProxy],
     queryFn: async ({ signal }) => {
-      const api = wpApiUrl(wpUrl);
-      const url = `${api}/${contentType}/${id}?_embed`;
-
+      const url = wpBuildUrl(wpApiUrl(wpUrl), `${contentType}/${id}`, { _embed: "" });
       const response = await fetchWithProxy(url, useProxy, { signal });
-
-      // Post does not exist: return null instead of throwing
       if (response.status === 404) return null;
-
       if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
-
-      const raw = await parseJsonResponse(response);
-      const parsed = wpPostSchema.safeParse(raw);
-
-      if (!parsed.success) {
-        console.warn("[WP] Single post Zod parse warning:", parsed.error);
-        if (typeof raw !== "object" || raw === null) {
-          throw new AppError(
-            "error_api_unexpected_format",
-            "Unexpected API response: expected an object",
-          );
-        }
-        return normalizeRawPost(raw as Record<string, unknown>);
-      }
-
+      const raw = await parseJsonResponse(response), parsed = wpPostSchema.safeParse(raw);
+      if (!parsed.success) { console.warn("[WP] Single post Zod parse warning:", parsed.error); if (typeof raw !== "object" || raw === null) throw new AppError("error_api_unexpected_format", "Unexpected API response: expected an object"); return normalizeRawPost(raw as Record<string, unknown>); }
       return parsed.data;
-    },
-    enabled: !!wpUrl && id !== null,
-    retry: false,
+    }, enabled: !!wpUrl && id !== null, retry: false,
   });
 }
