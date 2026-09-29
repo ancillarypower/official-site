@@ -30,6 +30,11 @@ vi.mock("@/hooks/useModelDB", () => ({
   renameModel: (...args: unknown[]) => mockRenameModel(...args),
 }));
 
+const mockComputeFileHash = vi.fn().mockResolvedValue("");
+vi.mock("@/lib/hash", () => ({
+  computeFileHash: (...args: unknown[]) => mockComputeFileHash(...args),
+}));
+
 import ModelsPage from "@/pages/ModelsPage";
 
 const sampleModels = [
@@ -42,6 +47,7 @@ describe("ModelsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAllModelMeta.mockResolvedValue([]);
+    mockComputeFileHash.mockResolvedValue("");
     localStorage.removeItem("model_sort_order");
     localStorage.removeItem("model_sort_key");
   });
@@ -390,11 +396,12 @@ describe("ModelsPage", () => {
     expect(screen.getByText("\u5168\u90E8\u5C55\u958B")).toBeInTheDocument();
   });
 
-  // Duplicate upload check (Issue #108)
+  // Duplicate upload check (Issue #108) + computeFileHash try-catch (Issue #572)
   // Regression tests skipped: React 18 automatic batching of setIsUploading(true)
   // interrupts the async handleFilesSelected chain in jsdom when invoked outside
-  // React's event system. 10 approaches attempted; see PR #362 description.
-  // The feature is verified by manual browser testing.
+  // React's event system. The computeFileHash try-catch (Issue #572) is in the
+  // same code path and hits the identical limitation.
+  // Both features are verified by code review and manual browser testing.
 
   // Sort tests (Issue #361)
   it("sorts models by name ascending when sort option selected (regression #361)", async () => {
