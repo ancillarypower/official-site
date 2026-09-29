@@ -122,10 +122,12 @@ export function useWooProducts(
       let totalPages = parseInt(
         response.headers.get("X-WP-TotalPages") ??
           response.headers.get("x-wp-totalpages") ?? "1",
+        10,
       );
       let totalProducts = parseInt(
         response.headers.get("X-WP-Total") ??
           response.headers.get("x-wp-total") ?? "0",
+        10,
       );
 
       const raw = await parseJsonResponse(response);
@@ -305,7 +307,7 @@ interface CheckoutParams {
   shipping?: ShippingAddress;
   /** Payment method ID forwarded to WooCommerce. Defaults to "cod" (Cash on Delivery). */
   payment_method?: string;
-  /** Display name for the payment method. Defaults to "\u8CA8\u5230\u4ED8\u6B3E". */
+  /** Display name for the payment method. Defaults to "貨到付款". */
   payment_method_title?: string;
 }
 
@@ -381,7 +383,7 @@ export function useCheckout() {
 
       const body = {
         payment_method: payment_method ?? "cod",
-        payment_method_title: payment_method_title ?? "\u8CA8\u5230\u4ED8\u6B3E",
+        payment_method_title: payment_method_title ?? "貨到付款",
         set_paid: false,
         billing,
         shipping: resolvedShipping,
