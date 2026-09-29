@@ -60,6 +60,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
           target="_blank"
           rel="noopener noreferrer"
+          aria-label={`${t("share_facebook" as const)} (${t("opens_in_new_tab" as const)})`}
           className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
         >
           {t("share_facebook" as const)}
@@ -69,6 +70,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`}
           target="_blank"
           rel="noopener noreferrer"
+          aria-label={`${t("share_x" as const)} (${t("opens_in_new_tab" as const)})`}
           className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
         >
           {t("share_x" as const)}
@@ -78,6 +80,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           href={`https://social-plugins.line.me/lineit/share?url=${encodedUrl}`}
           target="_blank"
           rel="noopener noreferrer"
+          aria-label={`${t("share_line" as const)} (${t("opens_in_new_tab" as const)})`}
           className="inline-flex items-center gap-1.5 rounded-md bg-surface-sunken px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-border-default"
         >
           {t("share_line" as const)}
