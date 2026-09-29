@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
 import { AppError } from "@/lib/errors";
 import { formatPrice } from "@/lib/formatPrice";
+import { isValidCountryCode } from "@/lib/countries";
 
 const inputCls = "rounded-md border border-border-default bg-surface-base px-2.5 py-2 text-xs focus:border-accent focus:ring-2 focus:ring-accent-subtle focus:outline-none";
 const inputErrCls = "rounded-md border border-danger bg-surface-base px-2.5 py-2 text-xs focus:border-danger focus:ring-2 focus:ring-danger/30 focus:outline-none";
@@ -20,7 +21,7 @@ const billingSchema = z.object({
   address_1: z.string().trim().min(1, "checkout_field_required"),
   city: z.string().trim().min(1, "checkout_field_required"),
   postcode: z.string().trim().min(1, "checkout_field_required"),
-  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country"),
+  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country").refine(isValidCountryCode, "checkout_invalid_country"),
 });
 
 const shippingSchema = z.object({
@@ -29,7 +30,7 @@ const shippingSchema = z.object({
   address_1: z.string().trim().min(1, "checkout_field_required"),
   city: z.string().trim().min(1, "checkout_field_required"),
   postcode: z.string().trim().min(1, "checkout_field_required"),
-  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country"),
+  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country").refine(isValidCountryCode, "checkout_invalid_country"),
 });
 
 export function CartPanel() {

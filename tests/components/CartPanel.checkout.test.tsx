@@ -292,3 +292,30 @@ describe("CartPanel form element (regression #545)", () => {
     expect(submitBtn!.textContent).toContain("\u7D50\u5E33");
   });
 });
+
+describe("CartPanel ISO 3166-1 country validation (regression #553)", () => {
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+    mockCheckout.mockClear();
+    mockCheckout.mockResolvedValue({ id: 100, order_key: "wc_order_test" });
+  });
+
+  it("rejects invalid ISO 3166-1 country code at billing validation (regression #553)", async () => {
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    // Override country with an invalid 2-char code
+    const inputs = container.querySelectorAll<HTMLInputElement>("input");
+    fireEvent.change(inputs[7]!, { target: { value: "ZZ" } });
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    // mockCheckout should NOT have been called \u2014 validation rejects "ZZ"
+    expect(mockCheckout).not.toHaveBeenCalled();
+    // Validation error message should be displayed
+    await waitFor(() => {
+      expect(screen.getByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).toBeInTheDocument();
+    });
+  });
+});
