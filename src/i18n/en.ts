@@ -73,6 +73,7 @@ export const en: Record<TranslationKey, string> = {
   models_collapse_all: "Collapse All",
   models_replace_confirm: "\"{name}\" already exists. Replace it?",
   models_duplicate_hash: "Identical to \"{name}\", upload skipped",
+  models_hash_failed: "Could not compute hash for {name}, deduplication skipped",
   models_sort_label: "Sort",
   models_sort_custom: "Custom (drag)",
   models_sort_name_asc: "Name A\u2192Z",
