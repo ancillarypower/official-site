@@ -14,7 +14,7 @@ export function StorageQuotaBar() {
   if (error && !quota) {
     return (
       <div className="mt-3 rounded-md bg-surface-sunken px-3 py-2">
-        <span className="text-[0.7rem] text-tertiary">💾 {t("a11y_storage_error" as const)}</span>
+        <span className="text-[0.7rem] text-tertiary">💾 {t("error_generic")}</span>
       </div>
     );
   }
