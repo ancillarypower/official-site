@@ -43,7 +43,9 @@ jobs:
         continue-on-error: true
         run: pnpm audit
 
-      - name: Block on critical vulnerabilities
+      - name: Check for critical vulnerabilities
+        id: audit-critical
+        continue-on-error: true
         run: pnpm audit --audit-level=critical
 
       - name: Lint
@@ -84,3 +86,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Block on critical vulnerabilities
+        if: steps.audit-critical.outcome == 'failure'
+        run: |
+          echo "::error::Critical vulnerabilities detected — see 'Check for critical vulnerabilities' step above"
+          exit 1
