@@ -310,6 +310,7 @@ export const en: Record<TranslationKey, string> = {
   a11y_decrease_qty: "Decrease quantity",
   a11y_increase_qty: "Increase quantity",
   a11y_quantity: "Quantity",
+  a11y_pagination: "Pagination",
 
   // Route error boundary
   route_load_error: "Failed to load this page",

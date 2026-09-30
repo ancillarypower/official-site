@@ -334,6 +334,7 @@ export const zh = {
   a11y_decrease_qty: "減少數量",
   a11y_increase_qty: "增加數量",
   a11y_quantity: "數量",
+  a11y_pagination: "分頁導覽",
 
   // Route error boundary
   route_load_error: "此頁面載入失敗",

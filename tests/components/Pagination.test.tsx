@@ -70,4 +70,11 @@ describe("Pagination", () => {
     fireEvent.click(screen.getByText(/下一頁/));
     expect(onPageChange).toHaveBeenCalledWith(4);
   });
+
+  it("renders nav element with aria-label (regression #574)", () => {
+    renderPagination({ currentPage: 2, totalPages: 5 });
+    expect(
+      screen.getByRole("navigation", { name: /分頁導覽/ }),
+    ).toBeInTheDocument();
+  });
 });
