@@ -4,6 +4,7 @@ import {
   fetchWithProxy,
   wooApiUrl,
   wooAuthHeaders,
+  encodeBase64Utf8,
   parseJsonResponse,
 } from "@/lib/api";
 import { AppError } from "@/lib/errors";
@@ -86,8 +87,9 @@ export function useWooProducts(
   // but never exposes plaintext in DevTools / logging / Sentry (Issue #483).
   // Truncated to 16 chars (96 bits / 12 input bytes) to prevent
   // reversibility while still capturing key+secret variation (Issue #507).
+  // UTF-8 safe so non-Latin-1 input cannot crash render (Issue #575).
   const credFingerprint = wooKey && wooSecret
-    ? btoa(`${wooKey}:${wooSecret}`).slice(0, 16)
+    ? encodeBase64Utf8(`${wooKey}:${wooSecret}`).slice(0, 16)
     : "";
 
   return useQuery<WooQueryResult>({
