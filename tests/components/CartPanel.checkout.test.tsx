@@ -319,3 +319,76 @@ describe("CartPanel ISO 3166-1 country validation (regression #553)", () => {
     });
   });
 });
+
+describe("CartPanel payment_url protocol validation (regression #578)", () => {
+  let assignSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+    mockCheckout.mockClear();
+    // Spy on window.location.assign; jsdom does not implement navigation so
+    // we replace it with a no-op spy to observe calls.
+    assignSpy = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    assignSpy.mockRestore();
+  });
+
+  it("blocks javascript: payment_url (regression #578)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "javascript:alert(1)" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    // window.location.assign must NOT have been called
+    expect(assignSpy).not.toHaveBeenCalled();
+    // Error message should be displayed
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      // zh.error_invalid_payment_url contains "\u4ED8\u6B3E\u7DB2\u5740\u7121\u6548\u6216\u4E0D\u5B89\u5168"
+      expect(errorEl!.textContent).toContain("\u4ED8\u6B3E\u7DB2\u5740");
+    });
+  });
+
+  it("blocks http: payment_url (regression #578)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "http://evil.example.com/pay" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(assignSpy).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("\u4ED8\u6B3E\u7DB2\u5740");
+    });
+  });
+
+  it("allows valid https: payment_url (regression #578)", async () => {
+    const safeUrl = "https://shop.example.com/checkout/order-pay/100";
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: safeUrl });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    // window.location.assign SHOULD have been called with the safe URL
+    await waitFor(() => {
+      expect(assignSpy).toHaveBeenCalledWith(safeUrl);
+    });
+    // No error message should be displayed
+    const errorEl = container.querySelector(".text-danger");
+    expect(errorEl).toBeFalsy();
+  });
+});
