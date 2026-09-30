@@ -3,7 +3,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { normalizeRawPost, useWordPress } from "@/hooks/useWordPress";
+import { normalizeRawPost, resolveEmbedded, useWordPress } from "@/hooks/useWordPress";
 
 function createWrapper() {
   const qc = new QueryClient({
@@ -13,6 +13,66 @@ function createWrapper() {
     return createElement(QueryClientProvider, { client: qc }, children);
   };
 }
+
+describe("resolveEmbedded", () => {
+  it("returns undefined for null input", () => {
+    expect(resolveEmbedded(null)).toBeUndefined();
+  });
+
+  it("returns undefined for non-object input", () => {
+    expect(resolveEmbedded("string")).toBeUndefined();
+    expect(resolveEmbedded(42)).toBeUndefined();
+    expect(resolveEmbedded(undefined)).toBeUndefined();
+  });
+
+  it("returns all-undefined fields for empty object", () => {
+    const result = resolveEmbedded({});
+    expect(result?.author).toBeUndefined();
+    expect(result?.["wp:featuredmedia"]).toBeUndefined();
+    expect(result?.["wp:term"]).toBeUndefined();
+  });
+
+  it("filters non-object entries from author array", () => {
+    const result = resolveEmbedded({
+      author: [null, "string", 42, { name: "Valid Author" }, { name: 123 }],
+    });
+    expect(result?.author).toHaveLength(2);
+    expect(result?.author?.[0]?.name).toBe("Valid Author");
+    expect(result?.author?.[1]?.name).toBe("");
+  });
+
+  it("filters wp:featuredmedia entries without source_url", () => {
+    const result = resolveEmbedded({
+      "wp:featuredmedia": [
+        { source_url: "https://img.jpg" },
+        { id: 1 },
+        null,
+        { source_url: "https://other.png" },
+      ],
+    });
+    expect(result?.["wp:featuredmedia"]).toHaveLength(2);
+    expect(result?.["wp:featuredmedia"]?.[0]?.source_url).toBe("https://img.jpg");
+    expect(result?.["wp:featuredmedia"]?.[1]?.source_url).toBe("https://other.png");
+  });
+
+  it("filters wp:term nested arrays", () => {
+    const result = resolveEmbedded({
+      "wp:term": [
+        [{ name: "Tag1" }, null, { name: "Tag2" }],
+        "not-an-array",
+        [{ id: 1 }],
+      ],
+    });
+    expect(result?.["wp:term"]).toHaveLength(2);
+    expect(result?.["wp:term"]?.[0]).toHaveLength(2);
+    expect(result?.["wp:term"]?.[0]?.[0]?.name).toBe("Tag1");
+  });
+
+  it("returns undefined for author when not an array", () => {
+    const result = resolveEmbedded({ author: "not-array" });
+    expect(result?.author).toBeUndefined();
+  });
+});
 
 describe("normalizeRawPost", () => {
   it("normalizes a raw post with all fields", () => {
@@ -84,6 +144,33 @@ describe("normalizeRawPost", () => {
     const raw = { id: 1, title: "Test", _embedded: embedded };
     const result = normalizeRawPost(raw);
     expect(result._embedded).toEqual(embedded);
+  });
+
+  it("defaults all fields for empty object (regression #588)", () => {
+    const result = normalizeRawPost({});
+    expect(result.id).toBe(0);
+    // title always goes through resolveRendered() which returns "" for undefined
+    expect(result.title).toBe("");
+    expect(result.date).toBeUndefined();
+    expect(result.content).toBeUndefined();
+    expect(result.name).toBeUndefined();
+    expect(result.source_url).toBeUndefined();
+    expect(result.media_type).toBeUndefined();
+  });
+
+  it("coerces wrong field types to defaults (regression #588)", () => {
+    const result = normalizeRawPost({
+      id: "abc",
+      date: 123,
+      name: 456,
+      source_url: true,
+      media_type: [],
+    });
+    expect(result.id).toBe(0);
+    expect(result.date).toBeUndefined();
+    expect(result.name).toBeUndefined();
+    expect(result.source_url).toBeUndefined();
+    expect(result.media_type).toBeUndefined();
   });
 });
 
@@ -164,7 +251,6 @@ describe("useWordPress hook", () => {
   });
 
   it("falls back to normalizeRawPost when Zod parse fails", async () => {
-    // Use a string id so wpPostSchema.safeParse fails (id must be number)
     const posts = [
       { id: "not-a-number", title: { rendered: "Fallback" }, date: "2026-01-01" },
     ];
@@ -291,7 +377,6 @@ describe("useWordPress hook", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    // Toggle proxy — queryKey must include useProxy so this triggers refetch
     act(() => {
       useSettingsStore.setState({ useProxy: true });
     });
@@ -300,8 +385,6 @@ describe("useWordPress hook", () => {
   });
 
   it("infers totalPages from array length when headers are stripped (regression #178)", async () => {
-    // Simulate CORS proxy stripping X-WP-TotalPages / X-WP-Total headers.
-    // Return exactly perPage (20) items so the heuristic infers a next page.
     const posts = Array.from({ length: 20 }, (_, i) => ({
       id: i + 1,
       title: { rendered: `Post ${i + 1}` },
@@ -316,14 +399,11 @@ describe("useWordPress hook", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // 20 items returned = perPage => totalPages = page + 1 = 3
     expect(result.current.data?.totalPages).toBe(3);
     expect(result.current.data?.totalPosts).toBe(20);
   });
 
   it("infers last page when fewer items than perPage and headers are stripped (regression #178)", async () => {
-    // Simulate CORS proxy stripping headers.
-    // Return fewer than perPage (20) items so the heuristic infers this is the last page.
     const posts = Array.from({ length: 5 }, (_, i) => ({
       id: i + 1,
       title: { rendered: `Post ${i + 1}` },
@@ -338,7 +418,6 @@ describe("useWordPress hook", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // 5 items returned < perPage (20) => totalPages = page = 2
     expect(result.current.data?.totalPages).toBe(2);
     expect(result.current.data?.totalPosts).toBe(5);
   });
@@ -359,9 +438,6 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // fetchWithProxy is called with init containing signal from TanStack Query.
-    // buildSignal merges it with the timeout, so the actual fetch receives
-    // a composite AbortSignal instance.
     const callArgs = mockFetch.mock.calls[0];
     expect(callArgs[1]).toHaveProperty("signal");
     expect(callArgs[1].signal).toBeInstanceOf(AbortSignal);
@@ -399,8 +475,6 @@ describe("useWordPress hook", () => {
     expect(calledUrl).toContain("order=desc");
   });
 
-  // --- _fields + _embed conflict regression test (#498) ---
-
   it("list query URL must not use _fields to preserve _embed resolution (regression #498)", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify([]), { status: 200 }),
@@ -416,8 +490,6 @@ describe("useWordPress hook", () => {
     expect(calledUrl).not.toContain("_fields=");
     expect(calledUrl).toContain("_embed");
   });
-
-  // --- enabled parameter regression tests (#437) ---
 
   it("disables query when enabled is false (regression #437)", () => {
     const { result } = renderHook(() => useWordPress(1, "", "date", "desc", [], false), {
@@ -440,8 +512,6 @@ describe("useWordPress hook", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
-  // --- tags parameter regression tests (#156) ---
-
   it("appends tags parameter to URL when tags are provided (regression #156)", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify([]), { status: 200 }),
@@ -454,7 +524,6 @@ describe("useWordPress hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
-    // URL API encodes commas; parse to verify decoded value
     const parsed = new URL(calledUrl);
     expect(parsed.searchParams.get("tags")).toBe("5,12,23");
   });
