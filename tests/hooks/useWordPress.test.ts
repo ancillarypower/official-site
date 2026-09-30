@@ -149,7 +149,8 @@ describe("normalizeRawPost", () => {
   it("defaults all fields for empty object (regression #588)", () => {
     const result = normalizeRawPost({});
     expect(result.id).toBe(0);
-    expect(result.title).toBeUndefined();
+    // title always goes through resolveRendered() which returns "" for undefined
+    expect(result.title).toBe("");
     expect(result.date).toBeUndefined();
     expect(result.content).toBeUndefined();
     expect(result.name).toBeUndefined();
