@@ -104,14 +104,60 @@ describe("PostCard", () => {
   it("button uses aria-labelledby instead of aria-label so inner text remains accessible (regression #544)", () => {
     render(withProviders(<PostCard post={basePost} onClick={vi.fn()} />));
     const button = screen.getByRole("button");
-    // aria-label must NOT be present (it overrides inner text)
     expect(button).not.toHaveAttribute("aria-label");
-    // aria-labelledby must point to the h3 title element
     const labelledById = button.getAttribute("aria-labelledby");
     expect(labelledById).toBeTruthy();
     const h3 = document.getElementById(labelledById!);
     expect(h3).toBeInTheDocument();
     expect(h3!.tagName).toBe("H3");
     expect(h3!.textContent).toBe("Test Post Title");
+  });
+
+  it("renders width/height from media_details (regression #580)", () => {
+    const sizedPost: WpPost = {
+      id: 10,
+      title: "Sized Image Post",
+      _embedded: {
+        "wp:featuredmedia": [{
+          source_url: "https://example.com/hero.jpg",
+          alt_text: "Hero",
+          media_details: { width: 1200, height: 800 },
+        }],
+      },
+    };
+    const { container } = render(withProviders(<PostCard post={sizedPost} onClick={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("width", "1200");
+    expect(img).toHaveAttribute("height", "800");
+  });
+
+  it("renders srcset from media_details.sizes (regression #580)", () => {
+    const responsivePost: WpPost = {
+      id: 11,
+      title: "Responsive Image Post",
+      _embedded: {
+        "wp:featuredmedia": [{
+          source_url: "https://example.com/full.jpg",
+          alt_text: "Responsive",
+          media_details: {
+            width: 1600,
+            height: 900,
+            sizes: {
+              medium: { source_url: "https://example.com/med.jpg", width: 300, height: 169 },
+              large: { source_url: "https://example.com/lrg.jpg", width: 1024, height: 576 },
+            },
+          },
+        }],
+      },
+    };
+    const { container } = render(withProviders(<PostCard post={responsivePost} onClick={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("srcset");
+    const srcset = img!.getAttribute("srcset")!;
+    expect(srcset).toContain("med.jpg 300w");
+    expect(srcset).toContain("lrg.jpg 1024w");
+    expect(img).toHaveAttribute("sizes");
   });
 });
