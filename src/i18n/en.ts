@@ -285,6 +285,7 @@ export const en: Record<TranslationKey, string> = {
   error_price_changed: "Prices have changed since items were added to cart: {details}. Please refresh and try again.",
   error_items_out_of_stock: "The following items are out of stock: {names}. Please remove them from your cart and try again.",
   error_order_response_invalid: "Invalid order response. Please contact support to verify your order status.",
+  error_invalid_payment_url: "Invalid or unsafe payment URL. Please contact support to verify your order status.",
 
   // Fetch error
   error_fetch_network: "Unable to connect to WordPress",
