@@ -28,7 +28,7 @@ export function PostCard({ post, onClick }: PostCardProps) {
         className="w-full cursor-pointer text-left"
         aria-labelledby={titleId}
       >
-        {imgData ? <img src={imgData.url} alt={imgData.alt} className="aspect-video w-full bg-surface-sunken object-cover" loading="lazy" decoding="async" /> : <div className="aspect-video w-full bg-surface-sunken" />}
+        {imgData ? <img src={imgData.url} alt={imgData.alt} width={imgData.width} height={imgData.height} srcSet={imgData.srcSet} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="aspect-video w-full bg-surface-sunken object-cover" loading="lazy" decoding="async" /> : <div className="aspect-video w-full bg-surface-sunken" />}
         <div className="px-4 py-4">
           <h3 id={titleId} className="mb-1.5 line-clamp-2 text-[0.925rem] font-semibold leading-snug">{decodeHtml(title)}</h3>
           <div className="flex flex-wrap gap-3 text-[0.725rem] text-tertiary">
