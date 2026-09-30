@@ -39,9 +39,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Audit dependencies for known vulnerabilities
+      - name: Audit dependencies (informational)
         continue-on-error: true
-        run: pnpm audit --audit-level=high
+        run: pnpm audit
+
+      - name: Check for critical vulnerabilities
+        id: audit-critical
+        continue-on-error: true
+        run: pnpm audit --audit-level=critical
 
       - name: Lint
         run: pnpm lint
@@ -81,3 +86,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Block on critical vulnerabilities
+        if: steps.audit-critical.outcome == 'failure'
+        run: |
+          echo "::error::Critical vulnerabilities detected \u2014 see 'Check for critical vulnerabilities' step above"
+          echo "::notice::Audit gate is in annotation-only mode. To enforce hard failure, uncomment 'exit 1' below once pre-existing advisories are resolved."
+          # TODO: uncomment the next line once pre-existing critical advisories are resolved
+          # exit 1
