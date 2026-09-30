@@ -142,15 +142,9 @@ describe("CartPanel checkout success flow", () => {
     fillAllBillingFields(container);
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
     await waitFor(() => {
-      // The error message should contain the translated text for
-      // error_price_changed, NOT the generic error_unhandled translation.
-      // zh.error_price_changed includes "\u8CFC\u7269\u8ECA\u4E2D\u90E8\u5206\u5546\u54C1\u50F9\u683C\u5DF2\u8B8A\u52D5"
-      // zh.error_unhandled is "\u767C\u751F\u975E\u9810\u671F\u7684\u932F\u8AA4"
       const errorEl = container.querySelector(".text-danger");
       expect(errorEl).toBeTruthy();
-      // Must NOT show the generic unhandled error
       expect(errorEl!.textContent).not.toContain("\u767C\u751F\u975E\u9810\u671F\u7684\u932F\u8AA4");
-      // Must show the translated price_changed message (contains the interpolated details)
       expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
     });
   });
@@ -170,28 +164,18 @@ describe("CartPanel checkout dedup (regression #465)", () => {
   it("checkout sends shipping when shipToBilling is unchecked (regression #465)", async () => {
     const { container } = render(withProviders(<CartPanel />));
     fillAllBillingFields(container);
-
-    // Uncheck the "ship to billing" checkbox (inputs[8] is the checkbox)
     const checkboxes = container.querySelectorAll<HTMLInputElement>("input[type='checkbox']");
     fireEvent.click(checkboxes[0]!);
-
-    // After unchecking, shipping fields appear. Re-query all inputs.
     const allInputs = container.querySelectorAll<HTMLInputElement>("input");
-    // Shipping fields start after billing (8 fields) + checkbox (1) = index 9
-    // shipping: first_name, last_name, address_1, city, postcode, country
     fireEvent.change(allInputs[9]!, { target: { value: "Jane" } });
     fireEvent.change(allInputs[10]!, { target: { value: "Smith" } });
     fireEvent.change(allInputs[11]!, { target: { value: "456 Oak Ave" } });
     fireEvent.change(allInputs[12]!, { target: { value: "Kaohsiung" } });
     fireEvent.change(allInputs[13]!, { target: { value: "800" } });
-    // allInputs[14] = shipping country, defaults to "TW"
-
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
-
     const callArgs = mockCheckout.mock.calls[0]![0];
     expect(callArgs).toHaveProperty("shipping");
     expect(callArgs.shipping).toEqual(
@@ -209,14 +193,10 @@ describe("CartPanel checkout dedup (regression #465)", () => {
   it("checkout omits shipping when shipToBilling is checked (regression #465)", async () => {
     const { container } = render(withProviders(<CartPanel />));
     fillAllBillingFields(container);
-
-    // shipToBilling defaults to true, so just submit
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-
     await waitFor(() => {
       expect(mockCheckout).toHaveBeenCalledTimes(1);
     });
-
     const callArgs = mockCheckout.mock.calls[0]![0];
     expect(callArgs).not.toHaveProperty("shipping");
     expect(callArgs).toHaveProperty("items");
@@ -225,8 +205,6 @@ describe("CartPanel checkout dedup (regression #465)", () => {
 
   it("checkout error handling is consistent regardless of shipping toggle (regression #465)", async () => {
     const testError = new AppError("error_price_changed", "Price changed", { details: "Widget: 10 \u2192 15" });
-
-    // Test 1: shipToBilling = true (default)
     mockCheckout.mockRejectedValueOnce(testError);
     const { container: c1, unmount: u1 } = render(withProviders(<CartPanel />));
     fillAllBillingFields(c1);
@@ -238,25 +216,18 @@ describe("CartPanel checkout dedup (regression #465)", () => {
     });
     const errorText1 = c1.querySelector(".text-danger")!.textContent;
     u1();
-
-    // Test 2: shipToBilling = false
     mockCheckout.mockClear();
     mockCheckout.mockRejectedValueOnce(testError);
     const { container: c2 } = render(withProviders(<CartPanel />));
     fillAllBillingFields(c2);
-
-    // Uncheck shipToBilling
     const checkboxes = c2.querySelectorAll<HTMLInputElement>("input[type='checkbox']");
     fireEvent.click(checkboxes[0]!);
-
-    // Fill shipping fields
     const allInputs = c2.querySelectorAll<HTMLInputElement>("input");
     fireEvent.change(allInputs[9]!, { target: { value: "Jane" } });
     fireEvent.change(allInputs[10]!, { target: { value: "Smith" } });
     fireEvent.change(allInputs[11]!, { target: { value: "456 Oak Ave" } });
     fireEvent.change(allInputs[12]!, { target: { value: "Kaohsiung" } });
     fireEvent.change(allInputs[13]!, { target: { value: "800" } });
-
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
     await waitFor(() => {
       const errorEl = c2.querySelector(".text-danger");
@@ -264,8 +235,6 @@ describe("CartPanel checkout dedup (regression #465)", () => {
       expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
     });
     const errorText2 = c2.querySelector(".text-danger")!.textContent;
-
-    // Both paths should produce the exact same error message
     expect(errorText1).toBe(errorText2);
   });
 });
@@ -283,10 +252,8 @@ describe("CartPanel form element (regression #545)", () => {
     const { container } = render(withProviders(<CartPanel />));
     const form = container.querySelector("form");
     expect(form).toBeTruthy();
-    // Billing inputs should be inside the form
     const formInputs = form!.querySelectorAll("input");
     expect(formInputs.length).toBeGreaterThanOrEqual(8);
-    // Checkout button should be type="submit"
     const submitBtn = form!.querySelector("button[type='submit']");
     expect(submitBtn).toBeTruthy();
     expect(submitBtn!.textContent).toContain("\u7D50\u5E33");
@@ -307,15 +274,74 @@ describe("CartPanel ISO 3166-1 country validation (regression #553)", () => {
   it("rejects invalid ISO 3166-1 country code at billing validation (regression #553)", async () => {
     const { container } = render(withProviders(<CartPanel />));
     fillAllBillingFields(container);
-    // Override country with an invalid 2-char code
     const inputs = container.querySelectorAll<HTMLInputElement>("input");
     fireEvent.change(inputs[7]!, { target: { value: "ZZ" } });
     fireEvent.click(screen.getByText("\u7D50\u5E33"));
-    // mockCheckout should NOT have been called \u2014 validation rejects "ZZ"
     expect(mockCheckout).not.toHaveBeenCalled();
-    // Validation error message should be displayed
     await waitFor(() => {
       expect(screen.getByText(/\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D/)).toBeInTheDocument();
     });
+  });
+});
+
+describe("CartPanel payment_url protocol validation (regression #578)", () => {
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+    mockCheckout.mockClear();
+  });
+
+  it("blocks javascript: payment_url (regression #578)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "javascript:alert(1)" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    // Error message should be displayed for unsafe protocol
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      // zh.error_invalid_payment_url: "\u4ED8\u6B3E\u7DB2\u5740\u7121\u6548\u6216\u4E0D\u5B89\u5168"
+      expect(errorEl!.textContent).toContain("\u4ED8\u6B3E\u7DB2\u5740");
+    });
+  });
+
+  it("blocks http: payment_url (regression #578)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "http://evil.example.com/pay" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("\u4ED8\u6B3E\u7DB2\u5740");
+    });
+  });
+
+  it("allows valid https: payment_url (regression #578)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "https://shop.example.com/checkout/order-pay/100" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(mockCheckout).toHaveBeenCalledTimes(1);
+    });
+    // For valid https URL, no error message should be displayed.
+    // window.location.assign is a no-op in jsdom, so the component stays
+    // rendered but does not enter error or success state.
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeFalsy();
+    });
+    // Should NOT show success state either (redirect would navigate away)
+    expect(screen.queryByText(/\u2713/)).not.toBeInTheDocument();
   });
 });

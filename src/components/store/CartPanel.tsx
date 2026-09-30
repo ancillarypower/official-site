@@ -90,7 +90,19 @@ export function CartPanel() {
         billing: result.data,
         ...(resolvedShipping && { shipping: resolvedShipping }),
       });
-      if (order.payment_url) { window.location.assign(order.payment_url); return; }
+      if (order.payment_url) {
+        try {
+          const payUrl = new URL(order.payment_url);
+          if (payUrl.protocol !== "https:") {
+            throw new Error("Unsafe protocol");
+          }
+          window.location.assign(order.payment_url);
+        } catch {
+          setOrderError(t("error_invalid_payment_url" as const));
+          setOrderStatus("error");
+        }
+        return;
+      }
       setOrderStatus("success");
       // Clear persisted cart after marking success so that the success
       // UI branch stays visible (ternary guards on orderStatus). Without

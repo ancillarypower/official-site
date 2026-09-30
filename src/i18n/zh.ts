@@ -309,6 +309,7 @@ export const zh = {
   error_price_changed: "購物車中部分商品價格已變動：{details}。請重新整理後再試",
   error_items_out_of_stock: "以下商品已售罄或無法購買：{names}。請從購物車中移除後重試",
   error_order_response_invalid: "訂單回應格式異常，請聯繫客服確認訂單狀態",
+  error_invalid_payment_url: "付款網址無效或不安全，請聯繫客服確認訂單狀態",
 
   // Fetch error
   error_fetch_network: "無法連線至 WordPress",
