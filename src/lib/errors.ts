@@ -24,3 +24,20 @@ export class AppError extends Error {
     this.name = "AppError";
   }
 }
+
+/**
+ * AppError raised after WooCommerce has already created the order
+ * (POST /orders returned 2xx) but a follow-up step failed, e.g. the
+ * response body could not be parsed or validated.
+ *
+ * Callers must check `instanceof OrderCreatedError` rather than
+ * matching `code`: the order-created fact is carried by the type, so
+ * reusing an error code for a failure before the POST can never clear
+ * the cart by accident (#582).
+ */
+export class OrderCreatedError extends AppError {
+  constructor(code: string, fallback: string, params?: Record<string, string>) {
+    super(code, fallback, params);
+    this.name = "OrderCreatedError";
+  }
+}

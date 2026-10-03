@@ -6,7 +6,7 @@ import { I18nProvider } from "@/context/I18nContext";
 import { CartPanel } from "@/components/store/CartPanel";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { AppError } from "@/lib/errors";
+import { AppError, OrderCreatedError } from "@/lib/errors";
 
 const { mockCheckout } = vi.hoisted(() => ({
   mockCheckout: vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" }),
@@ -343,5 +343,100 @@ describe("CartPanel payment_url protocol validation (regression #578)", () => {
     });
     // Should NOT show success state either (redirect would navigate away)
     expect(screen.queryByText(/\u2713/)).not.toBeInTheDocument();
+  });
+});
+
+describe("CartPanel clears cart once the order exists on the server (regression #582)", () => {
+  beforeEach(() => {
+    useCartStore.setState({
+      items: [{ id: 1, name: "Widget", price: 10, icon: null, img: null, qty: 2 }],
+    });
+    useSettingsStore.setState({ activePanel: "cart", wooKey: "", wooSecret: "", wpUrl: "https://shop.example.com", wooUseSameUrl: true });
+    setWooConnected();
+    mockCheckout.mockClear();
+  });
+
+  it("clears cart and keeps the error visible when the order was created but the response is invalid (regression #582)", async () => {
+    // useCheckout signals "POST /orders returned 2xx" with OrderCreatedError.
+    mockCheckout.mockRejectedValueOnce(
+      new OrderCreatedError("error_order_response_invalid", "Invalid order response from WooCommerce"),
+    );
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(useCartStore.getState().items).toHaveLength(0);
+    });
+    // zh.error_order_response_invalid: "\u8A02\u55AE\u56DE\u61C9\u683C\u5F0F\u7570\u5E38\uFF0C\u8ACB\u806F\u7E6B\u5BA2\u670D\u78BA\u8A8D\u8A02\u55AE\u72C0\u614B"
+    const alertEl = container.querySelector("[role='alert']");
+    expect(alertEl).toBeTruthy();
+    expect(alertEl!.textContent).toContain("\u8A02\u55AE\u56DE\u61C9\u683C\u5F0F\u7570\u5E38");
+    // Checkout form is gone, so the user cannot resubmit the same order
+    expect(container.querySelector("form")).toBeNull();
+  });
+
+  it("keeps cart for a plain AppError even if it reuses error_order_response_invalid (regression #582)", async () => {
+    // Guards against the code string being reused for a failure that
+    // happens before the order exists: only OrderCreatedError clears.
+    mockCheckout.mockRejectedValueOnce(
+      new AppError("error_order_response_invalid", "Invalid order response from WooCommerce"),
+    );
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("\u8A02\u55AE\u56DE\u61C9\u683C\u5F0F\u7570\u5E38");
+    });
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(container.querySelector("form")).toBeTruthy();
+  });
+
+  it("clears cart and keeps the error visible when payment_url is unsafe (regression #582)", async () => {
+    mockCheckout.mockResolvedValueOnce({ id: 100, payment_url: "http://evil.example.com/pay" });
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(useCartStore.getState().items).toHaveLength(0);
+    });
+    const alertEl = container.querySelector("[role='alert']");
+    expect(alertEl).toBeTruthy();
+    expect(alertEl!.textContent).toContain("\u4ED8\u6B3E\u7DB2\u5740");
+    expect(container.querySelector("form")).toBeNull();
+  });
+
+  it("keeps cart when checkout fails before the order is created (regression #582)", async () => {
+    mockCheckout.mockRejectedValueOnce(
+      new AppError("error_price_changed", "Price changed", { details: "Widget: 10 \u2192 15" }),
+    );
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("Widget: 10 \u2192 15");
+    });
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(container.querySelector("form")).toBeTruthy();
+  });
+
+  it("does not show a stale checkout error after the user clears the cart manually (regression #582)", async () => {
+    mockCheckout.mockRejectedValueOnce(
+      new AppError("error_price_changed", "Price changed", { details: "Widget: 10 \u2192 15" }),
+    );
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      expect(container.querySelector(".text-danger")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "\u6E05\u7A7A\u8CFC\u7269\u8ECA" }));
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(container.querySelector("[role='alert']")).toBeNull();
+    confirmSpy.mockRestore();
   });
 });

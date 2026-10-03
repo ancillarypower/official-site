@@ -7,7 +7,7 @@ import {
   encodeBase64Utf8,
   parseJsonResponse,
 } from "@/lib/api";
-import { AppError } from "@/lib/errors";
+import { AppError, OrderCreatedError } from "@/lib/errors";
 import { FETCH_TIMEOUT } from "@/lib/constants";
 import {
   wooProductArraySchema,
@@ -418,11 +418,23 @@ export function useCheckout() {
         throw new AppError("error_checkout_failed", `Checkout failed: ${detail}`, { detail });
       }
 
-      const raw = await parseJsonResponse(response);
+      // From here on the order exists on WooCommerce (POST returned 2xx).
+      // Every failure must be an OrderCreatedError so the UI clears the
+      // cart instead of letting the user submit a duplicate order (#582).
+      let raw: unknown;
+      try {
+        raw = await parseJsonResponse(response);
+      } catch (err) {
+        console.error("[Woo] Order response could not be parsed:", err);
+        throw new OrderCreatedError(
+          "error_order_response_invalid",
+          "Order created but the WooCommerce response could not be parsed",
+        );
+      }
       const parsed = wooOrderSchema.safeParse(raw);
       if (!parsed.success) {
         console.error("[Woo] Order response validation failed:", parsed.error);
-        throw new AppError(
+        throw new OrderCreatedError(
           "error_order_response_invalid",
           "Invalid order response from WooCommerce",
         );

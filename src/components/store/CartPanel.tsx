@@ -4,7 +4,7 @@ import { useI18n } from "@/context/I18nContext";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
-import { AppError } from "@/lib/errors";
+import { AppError, OrderCreatedError } from "@/lib/errors";
 import { formatPrice } from "@/lib/formatPrice";
 import { isValidCountryCode } from "@/lib/countries";
 
@@ -54,7 +54,15 @@ export function CartPanel() {
   const shippingInputCn = (field: string) => fieldErrors[`shipping_${field}`] ? inputErrCls : inputCls;
   const fieldError = (field: string) => fieldErrors[field] ? <span className="text-[0.65rem] text-danger">{t(fieldErrors[field] as Parameters<typeof t>[0])}</span> : null;
   const shippingFieldError = (field: string) => fieldErrors[`shipping_${field}`] ? <span className="text-[0.65rem] text-danger">{t(fieldErrors[`shipping_${field}`] as Parameters<typeof t>[0])}</span> : null;
-  function handleClearAll() { if (window.confirm(t("cart_clear_confirm"))) clearCart(); }
+  function handleClearAll() {
+    if (window.confirm(t("cart_clear_confirm"))) {
+      clearCart();
+      // Reset checkout error state so a stale error from a failed
+      // checkout is not rendered on the empty cart (#582).
+      setOrderError("");
+      setOrderStatus("idle");
+    }
+  }
   async function handleCheckout() {
     setOrderError("");
     setFieldErrors({});
@@ -98,6 +106,9 @@ export function CartPanel() {
           }
           window.location.assign(order.payment_url);
         } catch {
+          // The order already exists on WooCommerce at this point. Clear
+          // the cart so a retry cannot create a duplicate order (#582).
+          clearCart();
           setOrderError(t("error_invalid_payment_url" as const));
           setOrderStatus("error");
         }
@@ -110,6 +121,11 @@ export function CartPanel() {
       // a page reload re-enables the checkout button (#542).
       clearCart();
     } catch (err) {
+      // OrderCreatedError means POST /orders already returned 2xx, so the
+      // order exists on WooCommerce. Clear the cart so the user cannot
+      // submit a duplicate order. Checked by type, never by error code,
+      // so reusing a code before the POST cannot empty the cart (#582).
+      if (err instanceof OrderCreatedError) clearCart();
       if (err instanceof AppError) {
         setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
       } else {
@@ -125,7 +141,11 @@ export function CartPanel() {
   return (
     <>
       <div className="flex items-center justify-between border-b border-border-subtle px-5 py-5"><h2 className="text-sm font-bold">{t("cart_title")}</h2><div className="flex items-center gap-2">{items.length > 0 && <button onClick={handleClearAll} className="rounded-md px-2 py-1 text-xs text-secondary transition-colors hover:bg-surface-sunken hover:text-danger" aria-label={t("cart_clear_all")}>🗑️ {t("cart_clear_all")}</button>}<button onClick={closePanel} className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-sunken text-base text-secondary transition-colors hover:bg-border-default" aria-label={t("a11y_close")} title={t("a11y_close")}>✕</button></div></div>
-      <div className="flex flex-1 flex-col gap-4 p-5">{items.length === 0 && orderStatus !== "success" ? <div className="py-8 text-center text-sm text-tertiary">{t("cart_empty")}</div> : <>
+      <div className="flex flex-1 flex-col gap-4 p-5">{items.length === 0 && orderStatus !== "success" ? <>
+        {/* Keep the order error visible after the cart was cleared because the order already exists on the server (#582). */}
+        {orderStatus === "error" && orderError && <div role="alert" className="rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger">{orderError}</div>}
+        <div className="py-8 text-center text-sm text-tertiary">{t("cart_empty")}</div>
+      </> : <>
         {items.map((item) => <div key={item.id} className="flex items-center gap-3 border-b border-border-subtle pb-3"><div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-surface-sunken text-lg">{item.img ? <img src={item.img} alt="" className="h-full w-full rounded-md object-cover" /> : item.icon ?? "📦"}</div><div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{item.name}</div><div className="text-[0.725rem] text-tertiary">{formatPrice(item.price, lang)}</div></div><div className="flex items-center gap-1.5"><button onClick={() => updateQty(item.id, -1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_decrease_qty")} title={t("a11y_decrease_qty")}>−</button><span className="min-w-5 text-center text-sm font-semibold tabular-nums">{item.qty}</span><button onClick={() => updateQty(item.id, 1)} className="flex h-6 w-6 items-center justify-center rounded border border-border-default bg-surface-base text-sm font-semibold transition-colors hover:border-accent hover:text-accent" aria-label={t("a11y_increase_qty")} title={t("a11y_increase_qty")}>+</button></div></div>)}
         <div className="mt-2 flex items-center justify-between border-t border-border-default pt-4 text-sm font-bold"><span>{t("cart_total")}</span><span>{formatPrice(totalPrice(), lang)}</span></div>
         <form onSubmit={handleFormSubmit} noValidate className="contents">
