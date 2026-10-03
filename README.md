@@ -81,8 +81,38 @@ See `.env.example`. Variables prefixed with `VITE_` are embedded in the client-s
 | Variable | Purpose |
 |----------|--------|
 | `VITE_WP_URL` | WordPress site URL (no trailing slash) |
+| `VITE_CSP_CONNECT_EXTRA` | Optional. Extra `https://` origins allowed by the CSP `connect-src` directive, space-separated |
 
 > **⚠️ WooCommerce credentials** (`consumer_key` / `consumer_secret`) must **not** be set via `VITE_` environment variables — they would be exposed in the client-side JavaScript bundle. Enter them through the in-app **Settings panel** at runtime instead.
+
+### CSP connect-src allowlist
+
+The Content Security Policy in `index.html` limits which hosts the app may contact with `fetch()` (Issue #583). The list is generated at dev/build time by `buildConnectSrc()` in `src/lib/csp.ts` from `src/lib/constants.ts` and your env, then injected into the `__CSP_CONNECT_SRC__` placeholder. Do not edit the placeholder by hand.
+
+Default allowlist:
+
+| Source | Used for |
+|--------|----------|
+| `'self'` | Same-origin requests, dev server HMR |
+| `https://www.ancillarypower.com` | WordPress / WooCommerce REST API (the origin of `VITE_WP_URL`; this is the default) |
+| `https://corsproxy.io` | CORS proxy (proxy mode) |
+| `https://api.allorigins.win` | CORS proxy fallback (proxy mode) |
+| `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/` | Draco decoder WASM for the 3D viewer (`DRACO_CDN`) |
+| `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/` | web-ifc WASM for IFC models (`IFC_WASM_CDN`) |
+
+If you change `VITE_WP_URL`, its origin replaces `https://www.ancillarypower.com` automatically. If you bump the three.js or web-ifc CDN version in `constants.ts`, the allowlist follows; `tests/lib/csp.test.ts` fails until this table is updated too.
+
+> **⚠️ Direct mode:** if you enter a WordPress or WooCommerce URL in the Settings panel whose origin is not on the allowlist, the browser blocks the request and you only see a generic network error. Either add the origin to `VITE_CSP_CONNECT_EXTRA` and rebuild, or switch to proxy mode (requests then go to the proxy hosts above).
+
+`VITE_CSP_CONNECT_EXTRA` format:
+
+```bash
+VITE_CSP_CONNECT_EXTRA="https://staging.ancillarypower.com https://shop.example.com"
+```
+
+- Space-separated, `https://` origins only
+- No path, query, or `*` wildcard
+- An invalid entry fails `pnpm dev` / `pnpm build` instead of silently widening the policy
 
 ## License
 

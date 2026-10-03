@@ -81,8 +81,38 @@ src/
 | 變數 | 用途 |
 |------|------|
 | `VITE_WP_URL` | WordPress 網站網址（不含結尾斜線） |
+| `VITE_CSP_CONNECT_EXTRA` | 選用。額外允許 CSP `connect-src` 連線的 `https://` origin，以空白分隔 |
 
 > **⚠️ WooCommerce 憑證**（`consumer_key` / `consumer_secret`）**不可**透過 `VITE_` 環境變數設定，否則將暴露於客戶端 JavaScript 打包產物中。請改由應用程式內的**設定面板**在執行時輸入。
+
+### CSP connect-src 白名單（Allowlist）
+
+`index.html` 的內容安全政策（Content Security Policy，CSP）限制應用程式能用 `fetch()` 連到哪些主機（Issue #583）。白名單由 `src/lib/csp.ts` 的 `buildConnectSrc()` 在 dev／build 時，依 `src/lib/constants.ts` 與環境變數產生，再注入 `__CSP_CONNECT_SRC__` 佔位符（Placeholder）。請勿手動修改佔位符。
+
+預設白名單：
+
+| 來源 | 用途 |
+|------|------|
+| `'self'` | 同源請求、開發伺服器熱更新（HMR） |
+| `https://www.ancillarypower.com` | WordPress／WooCommerce REST API（即 `VITE_WP_URL` 的 origin，此為預設值） |
+| `https://corsproxy.io` | 跨域代理（CORS Proxy，代理模式） |
+| `https://api.allorigins.win` | 備援跨域代理（代理模式） |
+| `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/` | 3D 檢視器的 Draco 解碼器 WASM（`DRACO_CDN`） |
+| `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/` | IFC 模型的 web-ifc WASM（`IFC_WASM_CDN`） |
+
+修改 `VITE_WP_URL` 時，它的 origin 會自動取代 `https://www.ancillarypower.com`。在 `constants.ts` 升級 three.js 或 web-ifc 的 CDN 版本時，白名單會自動跟著變；但 `tests/lib/csp.test.ts` 會失敗，直到這張表也更新為止。
+
+> **⚠️ 直連模式（Direct Mode）：** 如果在設定面板填入的 WordPress 或 WooCommerce 網址不在白名單內，瀏覽器會擋下請求，畫面上只會看到一般的網路錯誤。解法是把該 origin 加進 `VITE_CSP_CONNECT_EXTRA` 後重新 build，或改用代理模式（請求會改送到上表的代理主機）。
+
+`VITE_CSP_CONNECT_EXTRA` 格式：
+
+```bash
+VITE_CSP_CONNECT_EXTRA="https://staging.ancillarypower.com https://shop.example.com"
+```
+
+- 以空白分隔，只接受 `https://` origin
+- 不可包含路徑、查詢字串或 `*` 萬用字元
+- 有不合法的值時，`pnpm dev`／`pnpm build` 會直接失敗，不會默默放寬政策
 
 ## 授權
 
