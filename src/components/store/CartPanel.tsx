@@ -13,6 +13,11 @@ const inputErrCls = "rounded-md border border-danger bg-surface-base px-2.5 py-2
 const labelCls = "flex flex-col gap-1";
 const labelTextCls = "text-xs font-medium text-secondary";
 
+// ISO 3166-1 alpha-2 country code, normalized to uppercase before
+// validation so the parsed value sent to WooCommerce is always uppercase
+// (isValidCountryCode only uppercases internally for comparison) (#584).
+const countryCodeSchema = z.string().trim().toUpperCase().min(1, "checkout_field_required").length(2, "checkout_invalid_country").refine(isValidCountryCode, "checkout_invalid_country");
+
 const billingSchema = z.object({
   first_name: z.string().trim().min(1, "checkout_field_required"),
   last_name: z.string().trim().min(1, "checkout_field_required"),
@@ -21,7 +26,7 @@ const billingSchema = z.object({
   address_1: z.string().trim().min(1, "checkout_field_required"),
   city: z.string().trim().min(1, "checkout_field_required"),
   postcode: z.string().trim().min(1, "checkout_field_required"),
-  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country").refine(isValidCountryCode, "checkout_invalid_country"),
+  country: countryCodeSchema,
 });
 
 const shippingSchema = z.object({
@@ -30,7 +35,7 @@ const shippingSchema = z.object({
   address_1: z.string().trim().min(1, "checkout_field_required"),
   city: z.string().trim().min(1, "checkout_field_required"),
   postcode: z.string().trim().min(1, "checkout_field_required"),
-  country: z.string().trim().min(1, "checkout_field_required").length(2, "checkout_invalid_country").refine(isValidCountryCode, "checkout_invalid_country"),
+  country: countryCodeSchema,
 });
 
 export function CartPanel() {
