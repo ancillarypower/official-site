@@ -6,7 +6,7 @@ import { I18nProvider } from "@/context/I18nContext";
 import { CartPanel } from "@/components/store/CartPanel";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { AppError } from "@/lib/errors";
+import { AppError, OrderCreatedError } from "@/lib/errors";
 
 const { mockCheckout } = vi.hoisted(() => ({
   mockCheckout: vi.fn().mockResolvedValue({ id: 100, order_key: "wc_order_test" }),
@@ -356,11 +356,10 @@ describe("CartPanel clears cart once the order exists on the server (regression 
     mockCheckout.mockClear();
   });
 
-  it("clears cart and keeps the error visible when the order response fails validation (regression #582)", async () => {
-    // useCheckout only throws error_order_response_invalid after POST /orders
-    // returned 2xx, so the order already exists on WooCommerce.
+  it("clears cart and keeps the error visible when the order was created but the response is invalid (regression #582)", async () => {
+    // useCheckout signals "POST /orders returned 2xx" with OrderCreatedError.
     mockCheckout.mockRejectedValueOnce(
-      new AppError("error_order_response_invalid", "Invalid order response from WooCommerce"),
+      new OrderCreatedError("error_order_response_invalid", "Invalid order response from WooCommerce"),
     );
     const { container } = render(withProviders(<CartPanel />));
     fillAllBillingFields(container);
@@ -374,6 +373,24 @@ describe("CartPanel clears cart once the order exists on the server (regression 
     expect(alertEl!.textContent).toContain("\u8A02\u55AE\u56DE\u61C9\u683C\u5F0F\u7570\u5E38");
     // Checkout form is gone, so the user cannot resubmit the same order
     expect(container.querySelector("form")).toBeNull();
+  });
+
+  it("keeps cart for a plain AppError even if it reuses error_order_response_invalid (regression #582)", async () => {
+    // Guards against the code string being reused for a failure that
+    // happens before the order exists: only OrderCreatedError clears.
+    mockCheckout.mockRejectedValueOnce(
+      new AppError("error_order_response_invalid", "Invalid order response from WooCommerce"),
+    );
+    const { container } = render(withProviders(<CartPanel />));
+    fillAllBillingFields(container);
+    fireEvent.click(screen.getByText("\u7D50\u5E33"));
+    await waitFor(() => {
+      const errorEl = container.querySelector(".text-danger");
+      expect(errorEl).toBeTruthy();
+      expect(errorEl!.textContent).toContain("\u8A02\u55AE\u56DE\u61C9\u683C\u5F0F\u7570\u5E38");
+    });
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(container.querySelector("form")).toBeTruthy();
   });
 
   it("clears cart and keeps the error visible when payment_url is unsafe (regression #582)", async () => {
