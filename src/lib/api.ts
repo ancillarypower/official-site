@@ -90,6 +90,16 @@ export function wooApiUrl(baseUrl: string, endpoint: string, params: Record<stri
   return url.toString();
 }
 
+/**
+ * UTF-8 safe Base64 encoding. btoa() only accepts Latin-1 and throws
+ * InvalidCharacterError on CJK / emoji input; encoding to UTF-8 bytes first
+ * avoids that and is byte-identical to btoa() for ASCII input (Issue #575).
+ */
+export function encodeBase64Utf8(input: string): string {
+  const bytes = new TextEncoder().encode(input);
+  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""));
+}
+
 export function wooAuthHeaders(key: string, secret: string): HeadersInit {
-  return { Authorization: `Basic ${btoa(`${key}:${secret}`)}` };
+  return { Authorization: `Basic ${encodeBase64Utf8(`${key}:${secret}`)}` };
 }
