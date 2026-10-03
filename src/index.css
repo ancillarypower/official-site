@@ -31,6 +31,9 @@
   --color-viewer-error: oklch(65% 0.08 25);
   --color-success-subtle: oklch(94% 0.04 155);
   --color-success-strong: oklch(35% 0.12 155);
+  --color-hero-bg: oklch(16% 0.02 260);
+  --color-hero-title: oklch(96% 0.01 250);
+  --color-hero-subtitle: oklch(78% 0.02 250);
 
   --font-serif: "Newsreader", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }

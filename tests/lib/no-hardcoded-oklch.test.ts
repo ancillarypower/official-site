@@ -17,6 +17,9 @@ const REQUIRED_TOKENS = [
   "--color-viewer-error",
   "--color-success-subtle",
   "--color-success-strong",
+  "--color-hero-bg",
+  "--color-hero-title",
+  "--color-hero-subtitle",
 ];
 
 /** Recursively collect all .ts/.tsx files under a directory */
