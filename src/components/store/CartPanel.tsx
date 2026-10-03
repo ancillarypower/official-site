@@ -4,7 +4,7 @@ import { useI18n } from "@/context/I18nContext";
 import { useCartStore } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
-import { AppError } from "@/lib/errors";
+import { AppError, OrderCreatedError } from "@/lib/errors";
 import { formatPrice } from "@/lib/formatPrice";
 import { isValidCountryCode } from "@/lib/countries";
 
@@ -121,11 +121,12 @@ export function CartPanel() {
       // a page reload re-enables the checkout button (#542).
       clearCart();
     } catch (err) {
+      // OrderCreatedError means POST /orders already returned 2xx, so the
+      // order exists on WooCommerce. Clear the cart so the user cannot
+      // submit a duplicate order. Checked by type, never by error code,
+      // so reusing a code before the POST cannot empty the cart (#582).
+      if (err instanceof OrderCreatedError) clearCart();
       if (err instanceof AppError) {
-        // useCheckout only throws error_order_response_invalid after
-        // POST /orders returned 2xx, i.e. the order was created. Clear
-        // the cart so the user cannot submit a duplicate order (#582).
-        if (err.code === "error_order_response_invalid") clearCart();
         setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
       } else {
         setOrderError(err instanceof Error ? err.message : t("error_unhandled"));
