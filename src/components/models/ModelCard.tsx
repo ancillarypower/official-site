@@ -102,7 +102,7 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
             </button>
           </>
         ) : (
-          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-[oklch(14%_0.008_250)]">
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-viewer-bg">
             <span className="rounded bg-surface-raised/60 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-tertiary">
               {ext.toUpperCase()}
             </span>
@@ -150,7 +150,7 @@ export function ModelCard({ name, size, ext, modelId, selected = false, onToggle
           </span>
         )}
         <span className="text-[0.7rem] text-tertiary">{(size / 1_048_576).toFixed(2)} MB</span>
-        <button onClick={onRemove} disabled={isDeleting} className={`flex h-7 w-7 items-center justify-center rounded bg-surface-sunken text-xs text-tertiary transition-colors hover:bg-[oklch(90%_0.04_25)] hover:text-[oklch(45%_0.12_25)] ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`} aria-label={t("models_remove_label", { name })} title={t("models_remove_label", { name })}>{isDeleting ? "\u23F3" : "\u2715"}</button>
+        <button onClick={onRemove} disabled={isDeleting} className={`flex h-7 w-7 items-center justify-center rounded bg-surface-sunken text-xs text-tertiary transition-colors hover:bg-danger-subtle hover:text-danger-text ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`} aria-label={t("models_remove_label", { name })} title={t("models_remove_label", { name })}>{isDeleting ? "\u23F3" : "\u2715"}</button>
       </div>
     </div>
   );
