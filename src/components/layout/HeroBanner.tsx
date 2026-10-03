@@ -133,13 +133,13 @@ export function HeroBanner() {
   }, []);
 
   return (
-    <div className="relative h-[180px] w-full overflow-hidden bg-[oklch(16%_0.02_260)] md:h-[180px] max-sm:h-[140px]">
+    <div className="relative h-[180px] w-full overflow-hidden bg-hero-bg md:h-[180px] max-sm:h-[140px]">
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-[clamp(1.4rem,3vw,2rem)] font-bold tracking-tight text-[oklch(96%_0.01_250)] drop-shadow-lg">
+        <h1 className="text-[clamp(1.4rem,3vw,2rem)] font-bold tracking-tight text-hero-title drop-shadow-lg">
           {t("banner_title")}
         </h1>
-        <p className="mt-1.5 text-sm text-[oklch(78%_0.02_250)] drop-shadow">
+        <p className="mt-1.5 text-sm text-hero-subtitle drop-shadow">
           {t("banner_sub")}
         </p>
       </div>

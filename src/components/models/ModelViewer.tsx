@@ -335,11 +335,11 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
   return (
     <div
       ref={wrapperRef}
-      className={`relative w-full bg-[oklch(14%_0.008_250)] ${isFullscreen ? "h-screen" : "aspect-video"}`}
+      className={`relative w-full bg-viewer-bg ${isFullscreen ? "h-screen" : "aspect-video"}`}
     >
       <div ref={containerRef} className="h-full w-full" />
       {status === "loading" && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-[oklch(14%_0.008_250)] text-sm text-[oklch(70%_0.02_250)]">
+        <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-viewer-bg text-sm text-viewer-text">
           <span className="h-2 w-2 animate-bounce rounded-full bg-accent" />
           <span className="h-2 w-2 animate-bounce rounded-full bg-accent [animation-delay:200ms]" />
           <span className="h-2 w-2 animate-bounce rounded-full bg-accent [animation-delay:400ms]" />
@@ -347,7 +347,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         </div>
       )}
       {status === "error" && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-[oklch(14%_0.008_250)] p-4 text-center text-sm text-[oklch(65%_0.08_25)]">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-viewer-bg p-4 text-center text-sm text-viewer-error">
           <span>{"\u26A0\uFE0F"}</span>
           <span>
             {t("models_error")}: {errorMsg}

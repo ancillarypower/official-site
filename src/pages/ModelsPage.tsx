@@ -435,7 +435,7 @@ export default function ModelsPage() {
               <button
                 onClick={handleDeleteSelected}
                 disabled={isBulkDeleting}
-                className={`rounded-md bg-[oklch(55%_0.15_25)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[oklch(45%_0.15_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`rounded-md bg-danger-action px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-danger-action-hover ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {t("models_delete_selected", { n: selectedIds.size })}
               </button>
@@ -443,7 +443,7 @@ export default function ModelsPage() {
             <button
               onClick={handleDeleteAll}
               disabled={isBulkDeleting}
-              className={`ml-auto rounded-md border border-[oklch(70%_0.1_25)] px-3 py-1.5 text-xs font-medium text-[oklch(55%_0.15_25)] transition-colors hover:bg-[oklch(90%_0.04_25)] ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`ml-auto rounded-md border border-danger-border px-3 py-1.5 text-xs font-medium text-danger-action transition-colors hover:bg-danger-subtle ${isBulkDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               \uD83D\uDDD1\uFE0F {t("models_delete_all")}
             </button>
