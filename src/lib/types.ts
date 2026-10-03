@@ -27,6 +27,21 @@ export const wpPostSchema = z.object({
           z.object({
             source_url: z.string(),
             alt_text: z.string().optional(),
+            media_details: z
+              .object({
+                width: z.number().optional(),
+                height: z.number().optional(),
+                sizes: z
+                  .record(
+                    z.object({
+                      source_url: z.string(),
+                      width: z.number(),
+                      height: z.number(),
+                    }),
+                  )
+                  .optional(),
+              })
+              .optional(),
           }),
         )
         .optional(),
@@ -77,10 +92,30 @@ export function getPostTitle(post: WpPost): string {
 }
 
 /**
+ * Build a `srcset` string from WordPress `media_details.sizes`.
+ *
+ * Returns `undefined` when no usable size entries exist, so callers can
+ * safely spread the result onto `<img>` without rendering an empty attribute.
+ */
+function buildSrcSet(
+  sizes:
+    | Record<string, { source_url: string; width: number; height: number }>
+    | undefined,
+): string | undefined {
+  if (!sizes) return undefined;
+  const entries = Object.values(sizes)
+    .filter((s) => s.source_url && s.width > 0)
+    .sort((a, b) => a.width - b.width);
+  if (entries.length === 0) return undefined;
+  return entries.map((s) => `${s.source_url} ${s.width}w`).join(", ");
+}
+
+/**
  * Extract the best available image URL and descriptive alt text from a WpPost.
  *
- * Returns `{ url, alt }` so callers can set a meaningful `alt` attribute
- * on `<img>` elements (WCAG 1.1.1 compliance, Issue #118).
+ * Returns `{ url, alt, width?, height?, srcSet? }` so callers can set
+ * meaningful `alt`, `width`/`height` (CLS), and `srcSet` (responsive)
+ * attributes on `<img>` elements (WCAG 1.1.1, Issue #118, Issue #580).
  *
  * Alt text priority:
  * 1. `alt_text` from `wp:featuredmedia` (WordPress media library field)
@@ -88,7 +123,7 @@ export function getPostTitle(post: WpPost): string {
  */
 export function getPostImage(
   post: WpPost,
-): { url: string; alt: string } | null {
+): { url: string; alt: string; width?: number; height?: number; srcSet?: string } | null {
   if (post.source_url && post.media_type === "image") {
     return { url: post.source_url, alt: getPostTitle(post) };
   }
@@ -97,6 +132,9 @@ export function getPostImage(
   return {
     url: media.source_url,
     alt: media.alt_text || getPostTitle(post),
+    width: media.media_details?.width,
+    height: media.media_details?.height,
+    srcSet: buildSrcSet(media.media_details?.sizes),
   };
 }
 

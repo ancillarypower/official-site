@@ -10,7 +10,27 @@ export function resolveEmbedded(raw: unknown): WpPost["_embedded"] {
   if (typeof raw !== "object" || raw === null) return undefined;
   const obj = raw as Record<string, unknown>;
   const author = Array.isArray(obj.author) ? obj.author.filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null).map((a) => ({ name: typeof a.name === "string" ? a.name : "" })) : undefined;
-  const media = Array.isArray(obj["wp:featuredmedia"]) ? obj["wp:featuredmedia"].filter((m): m is { source_url: string } => typeof m === "object" && m !== null && typeof (m as Record<string, unknown>).source_url === "string") : undefined;
+  const media = Array.isArray(obj["wp:featuredmedia"]) ? obj["wp:featuredmedia"].filter((m): m is Record<string, unknown> => typeof m === "object" && m !== null && typeof (m as Record<string, unknown>).source_url === "string").map((m) => {
+    const md = typeof m.media_details === "object" && m.media_details !== null ? m.media_details as Record<string, unknown> : undefined;
+    return {
+      source_url: m.source_url as string,
+      alt_text: typeof m.alt_text === "string" ? m.alt_text : undefined,
+      media_details: md ? {
+        width: typeof md.width === "number" ? md.width : undefined,
+        height: typeof md.height === "number" ? md.height : undefined,
+        sizes: typeof md.sizes === "object" && md.sizes !== null
+          ? Object.fromEntries(
+              Object.entries(md.sizes as Record<string, unknown>)
+                .filter(([, v]) => typeof v === "object" && v !== null
+                  && typeof (v as Record<string, unknown>).source_url === "string"
+                  && typeof (v as Record<string, unknown>).width === "number"
+                  && typeof (v as Record<string, unknown>).height === "number")
+                .map(([k, v]) => [k, v as { source_url: string; width: number; height: number }]),
+            )
+          : undefined,
+      } : undefined,
+    };
+  }) : undefined;
   const term = Array.isArray(obj["wp:term"]) ? obj["wp:term"].filter((group): group is unknown[] => Array.isArray(group)).map((group) => group.filter((t): t is { name: string } => typeof t === "object" && t !== null && typeof (t as Record<string, unknown>).name === "string")) : undefined;
   return { author, "wp:featuredmedia": media, "wp:term": term };
 }
