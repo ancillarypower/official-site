@@ -156,7 +156,7 @@ export default function StorePage() {
       <div className="mb-4 flex items-baseline gap-3 border-b border-border-subtle pb-4">
         <h2 className="text-lg font-bold">{t("store_title")}</h2>
         <span className="text-xs text-tertiary">{t("store_products", { n: totalProducts })}</span>
-        {wooData && <span className="rounded bg-[oklch(94%_0.04_155)] px-2 py-0.5 text-[0.65rem] font-semibold text-[oklch(35%_0.12_155)]">\uD83D\uDD17 WooCommerce</span>}
+        {wooData && <span className="rounded bg-success-subtle px-2 py-0.5 text-[0.65rem] font-semibold text-success-strong">\uD83D\uDD17 WooCommerce</span>}
         {isFetching && isPlaceholderData && (
           <span className="text-xs text-tertiary animate-pulse">{t("loading")}</span>
         )}
