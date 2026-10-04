@@ -16,13 +16,16 @@ export const MAX_MODEL_SIZE = 100 * 1024 * 1024;
 /** Maximum number of files per single upload batch */
 export const MAX_BATCH_FILES = 20;
 
-/** three.js Draco decoder CDN path */
-export const DRACO_CDN =
-  "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/";
+/**
+ * Self-hosted decoder directories, relative to Vite's `base` (Issue #586).
+ * The `self-host-decoders` plugin in vite.config.ts copies the files from
+ * node_modules, so they are served same-origin and their integrity is pinned
+ * by pnpm-lock.yaml. See src/lib/decoderAssets.ts for the file list.
+ */
+export const DRACO_DECODER_DIR = "decoders/draco/gltf/";
 
-/** web-ifc WASM CDN path */
-export const IFC_WASM_CDN =
-  "https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/";
+/** web-ifc WASM directory, relative to Vite's `base` (Issue #586). */
+export const IFC_WASM_DIR = "decoders/web-ifc/";
 
 /** Supported 3D model extensions */
 export const MODEL_EXTENSIONS = ["glb", "gltf", "obj", "stl", "ifc"] as const;

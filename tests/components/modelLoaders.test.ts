@@ -6,11 +6,6 @@ import {
   type LoaderResources,
 } from "@/components/models/modelLoaders";
 
-vi.mock("@/lib/constants", () => ({
-  DRACO_CDN: "https://cdn.example.com/draco/",
-  IFC_WASM_CDN: "https://cdn.example.com/ifc/",
-}));
-
 // --- Worker mock ---
 const mockWorkerTerminate = vi.fn();
 let lastWorkerInstance: {
@@ -362,6 +357,44 @@ describe("modelLoaders", () => {
       await loadModel(new ArrayBuffer(8), "stl", ctx, res);
 
       expect(res.modelParseWorker).not.toBeNull();
+    });
+  });
+
+  // Uses the real constants on purpose: decoders must be fetched from our own
+  // origin under Vite's BASE_URL, never from a third-party CDN.
+  describe("self-hosted decoders (regression #586)", () => {
+    const origin = window.location.origin;
+    const base = import.meta.env.BASE_URL;
+
+    it("DRACOLoader decoder path is same-origin under BASE_URL", async () => {
+      const { loadGltfModel } = await import(
+        "@/components/models/modelLoaders"
+      );
+      mockGLTFParse.mockImplementation(
+        (_p: unknown, _b: string, onSuccess: (r: { scene: unknown }) => void) => {
+          onSuccess({ scene: {} });
+        },
+      );
+
+      await loadGltfModel(new ArrayBuffer(8), "glb", createMockContext(), createLoaderResources());
+
+      expect(mockSetDecoderPath).toHaveBeenCalledTimes(1);
+      const path = String(mockSetDecoderPath.mock.calls[0]![0]);
+      expect(new URL(path).origin).toBe(origin);
+      expect(path).toBe(`${origin}${base}decoders/draco/gltf/`);
+    });
+
+    it("IFC worker receives a same-origin absolute WASM path", async () => {
+      const { loadIfcModel } = await import(
+        "@/components/models/modelLoaders"
+      );
+
+      await loadIfcModel(new ArrayBuffer(8), createMockContext(), createLoaderResources());
+
+      expect(lastWorkerInstance!.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ wasmPath: `${origin}${base}decoders/web-ifc/` }),
+        expect.any(Array),
+      );
     });
   });
 });

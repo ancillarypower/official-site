@@ -93,14 +93,12 @@ src/
 
 | 來源 | 用途 |
 |------|------|
-| `'self'` | 同源請求、開發伺服器熱更新（HMR） |
+| `'self'` | 同源請求、開發伺服器熱更新（HMR），以及自行託管的 Draco／web-ifc 解碼器（見下方） |
 | `https://www.ancillarypower.com` | WordPress／WooCommerce REST API（即 `VITE_WP_URL` 的 origin，此為預設值） |
 | `https://corsproxy.io` | 跨域代理（CORS Proxy，代理模式） |
 | `https://api.allorigins.win` | 備援跨域代理（代理模式） |
-| `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/` | 3D 檢視器的 Draco 解碼器 WASM（`DRACO_CDN`） |
-| `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/` | IFC 模型的 web-ifc WASM（`IFC_WASM_CDN`） |
 
-修改 `VITE_WP_URL` 時，它的 origin 會自動取代 `https://www.ancillarypower.com`。在 `constants.ts` 升級 three.js 或 web-ifc 的 CDN 版本時，白名單會自動跟著變；但 `tests/lib/csp.test.ts` 會失敗，直到這張表也更新為止。
+修改 `VITE_WP_URL` 時，它的 origin 會自動取代 `https://www.ancillarypower.com`。在 `constants.ts` 新增預設 origin 時，`tests/lib/csp.test.ts` 會失敗，直到這張表也更新為止。
 
 > **⚠️ 直連模式（Direct Mode）：** 如果在設定面板填入的 WordPress 或 WooCommerce 網址不在白名單內，瀏覽器會擋下請求，畫面上只會看到一般的網路錯誤。解法是把該 origin 加進 `VITE_CSP_CONNECT_EXTRA` 後重新 build，或改用代理模式（請求會改送到上表的代理主機）。
 
@@ -113,6 +111,19 @@ VITE_CSP_CONNECT_EXTRA="https://staging.ancillarypower.com https://shop.example.
 - 以空白分隔，只接受 `https://` origin
 - 不可包含路徑、查詢字串或 `*` 萬用字元
 - 有不合法的值時，`pnpm dev`／`pnpm build` 會直接失敗，不會默默放寬政策
+
+### 自行託管的 3D 解碼器（Self-hosted Decoders）
+
+Draco 解碼器（壓縮的 GLB／GLTF）與 web-ifc WASM 執行環境（IFC）都由本站自己提供，不再從公開內容傳遞網路（Content Delivery Network，CDN）載入（Issue #586）。這樣 CDN 或 npm 鏡像就算被入侵，也沒辦法在執行時植入程式碼。`vite.config.ts` 的 `self-host-decoders` plugin 會從 `node_modules` 複製這些檔案，檔案清單在 `src/lib/decoderAssets.ts`。
+
+| 輸出路徑（在 Vite `base` 底下） | 來源 |
+|------------------------------|------|
+| `decoders/draco/gltf/` | `three/examples/jsm/libs/draco/gltf/`（`draco_decoder.wasm`、`draco_wasm_wrapper.js`、`draco_decoder.js`） |
+| `decoders/web-ifc/` | `web-ifc/`（`web-ifc.wasm`，另外有 `web-ifc-mt.wasm` 時一併複製） |
+
+- 版本跟著已安裝的 `three`／`web-ifc` 走，完整性由 `pnpm-lock.yaml` 鎖定。要升級就升套件版本，不用手動複製任何檔案
+- `pnpm dev` 用中介軟體（Middleware）提供檔案，`pnpm build` 會輸出到 `dist/`。缺少必要檔案時 build 會直接失敗
+- 只有打開 Draco 壓縮的模型或 `.ifc` 檔時才會下載，首頁載入不受影響
 
 ## 授權
 

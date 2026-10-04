@@ -9,7 +9,7 @@ import {
   DEFAULT_WP_URL,
   type CspEnv,
 } from "@/lib/csp";
-import { CORS_PROXIES, DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
+import { CORS_PROXIES } from "@/lib/constants";
 
 const root = resolve(__dirname, "../..");
 const read = (file: string) => readFileSync(resolve(root, file), "utf-8");
@@ -42,8 +42,11 @@ describe("CSP connect-src allowlist (regression #583)", () => {
     for (const proxy of CORS_PROXIES) {
       expect(sources).toContain(new URL(proxy).origin);
     }
-    expect(sources).toContain(DRACO_CDN);
-    expect(sources).toContain(IFC_WASM_CDN);
+  });
+
+  it("no longer allows the jsDelivr CDN; decoders are same-origin (regression #586)", () => {
+    const sources = renderedConnectSrc();
+    expect(sources.filter((s) => s.includes("jsdelivr"))).toEqual([]);
   });
 
   it("DEFAULT_WP_URL matches the settingsStore fallback", () => {

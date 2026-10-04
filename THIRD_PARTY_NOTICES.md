@@ -20,21 +20,25 @@ This project incorporates material from the open source projects and external se
 | [dompurify](https://github.com/cure53/DOMPurify) | ^3.2.4 | MPL-2.0 OR Apache-2.0 | © 2015–2026 Mario Heiderich, Cure53 | https://github.com/cure53/DOMPurify |
 | [web-ifc](https://github.com/ThatOpen/engine_web-ifc) | ^0.0.77 | MPL-2.0 | © That Open Company | https://thatopen.github.io/engine_web-ifc/docs/ |
 
-## External Services & CDN Resources
+## Redistributed Decoder Binaries
 
-### three.js Draco Decoder (via jsDelivr CDN)
+Since Issue #586 these files are copied **unmodified** from `node_modules` into the build output and served from this site instead of a public CDN (see `src/lib/decoderAssets.ts`).
 
-- **URL:** `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/`
-- **License:** MIT (part of the [three.js](https://github.com/mrdoob/three.js) project)
+### Draco Decoder (shipped with three.js)
+
+- **Copied from:** `three/examples/jsm/libs/draco/gltf/` (`draco_decoder.wasm`, `draco_wasm_wrapper.js`, `draco_decoder.js`)
+- **Served at:** `decoders/draco/gltf/`
+- **License:** Apache-2.0 ([google/draco](https://github.com/google/draco), © Google LLC), redistributed inside the MIT-licensed [three.js](https://github.com/mrdoob/three.js) package
 - **Purpose:** Draco-compressed 3D model decoding (GLTF/GLB)
-- **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages; [Terms of Use](https://www.jsdelivr.com/terms/terms-of-use))
 
-### web-ifc WASM Runtime (via jsDelivr CDN)
+### web-ifc WASM Runtime
 
-- **URL:** `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/`
-- **License:** MPL-2.0 (part of the [web-ifc](https://github.com/ThatOpen/engine_web-ifc) project)
+- **Copied from:** `web-ifc/` (`web-ifc.wasm`, plus `web-ifc-mt.wasm` when present)
+- **Served at:** `decoders/web-ifc/`
+- **License:** MPL-2.0 ([ThatOpen/engine_web-ifc](https://github.com/ThatOpen/engine_web-ifc)); files are unmodified, source is available at the linked repository
 - **Purpose:** IFC (Industry Foundation Classes) file parsing via WebAssembly
-- **CDN provider:** [jsDelivr](https://www.jsdelivr.com/) (free, open source CDN for npm packages; [Terms of Use](https://www.jsdelivr.com/terms/terms-of-use))
+
+## External Services
 
 ### corsproxy.io
 

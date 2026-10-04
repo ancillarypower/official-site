@@ -50,4 +50,4 @@ All checks run in CI on every PR.
 ## Three.js Notes
 
 - three.js is pinned to `^0.160` for stability
-- Draco decoder is loaded from CDN; no local WASM files needed
+- The Draco and web-ifc decoders are self-hosted (Issue #586): the `self-host-decoders` plugin in `vite.config.ts` copies them from `node_modules` at dev/build time. Never commit decoder binaries or point loaders at a public CDN; bump the package version to update them

@@ -1,16 +1,18 @@
 /**
  * IFC Web Worker — offloads web-ifc WASM processing from the main thread.
  *
- * Receives an ArrayBuffer of the IFC file plus the WASM CDN path,
- * processes all meshes, and returns typed arrays as Transferable
- * Objects for zero-copy transfer back to the main thread.
+ * Receives an ArrayBuffer of the IFC file plus the absolute URL of the
+ * self-hosted web-ifc WASM directory (Issue #586), processes all meshes,
+ * and returns typed arrays as Transferable Objects for zero-copy transfer
+ * back to the main thread.
  */
 
 import type { IfcAPI as IfcAPIType } from "web-ifc";
 
 export interface IfcWorkerInput {
   buffer: ArrayBuffer;
-  wasmCdn: string;
+  /** Absolute same-origin URL of the web-ifc WASM directory (#586) */
+  wasmPath: string;
 }
 
 export interface IfcMeshData {
@@ -53,11 +55,11 @@ self.onmessage = async (e: MessageEvent<IfcWorkerInput>) => {
   let modelID = -1;
 
   try {
-    const { buffer, wasmCdn } = e.data;
+    const { buffer, wasmPath } = e.data;
 
     const WebIFC = await import("web-ifc");
     ifcApi = new WebIFC.IfcAPI();
-    ifcApi.SetWasmPath(wasmCdn, true);
+    ifcApi.SetWasmPath(wasmPath, true);
 
     // Race Init() against a timeout to prevent indefinite hang (#265)
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
