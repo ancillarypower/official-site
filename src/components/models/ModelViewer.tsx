@@ -199,15 +199,22 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         renderer.domElement.addEventListener("webglcontextlost", ctxLostHandler);
         renderer.domElement.addEventListener("webglcontextrestored", ctxRestoredHandler);
 
+        // Environment map is optional: on failure, log and fall back to
+        // directional lights only. Always dispose the generator (#585).
+        let pmrem: InstanceType<typeof THREE.PMREMGenerator> | null = null;
         try {
-          const pmrem = new THREE.PMREMGenerator(renderer);
+          pmrem = new THREE.PMREMGenerator(renderer);
           scene.environment = pmrem.fromScene(
             new RoomEnvironment(),
             0.04,
           ).texture;
-          pmrem.dispose();
-        } catch {
-          /* fallback to directional lights only */
+        } catch (err) {
+          console.warn(
+            "[ModelViewer] PMREMGenerator failed, using directional lights only:",
+            err,
+          );
+        } finally {
+          pmrem?.dispose();
         }
 
         controls = new OC(camera, renderer.domElement);
