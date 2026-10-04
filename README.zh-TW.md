@@ -114,7 +114,7 @@ VITE_CSP_CONNECT_EXTRA="https://staging.ancillarypower.com https://shop.example.
 
 ### 自行託管的 3D 解碼器（Self-hosted Decoders）
 
-Draco 解碼器（壓縮的 GLB／GLTF）與 web-ifc WASM 執行環境（IFC）都由本站自己提供，不再從公開內容傳遞網路（Content Delivery Network，CDN）載入（Issue #586）。這樣 CDN 或 npm 鏡像就算被入侵，也没辦法在執行時植入程式碼。`vite.config.ts` 的 `self-host-decoders` plugin 會從 `node_modules` 複製這些檔案，檔案清單在 `src/lib/decoderAssets.ts`。
+Draco 解碼器（壓縮的 GLB／GLTF）與 web-ifc WASM 執行環境（IFC）都由本站自己提供，不再從公開內容傳遞網路（Content Delivery Network，CDN）載入（Issue #586）。這樣 CDN 或 npm 鏡像就算被入侵，也沒辦法在執行時植入程式碼。`vite.config.ts` 的 `self-host-decoders` plugin 會從 `node_modules` 複製這些檔案，檔案清單在 `src/lib/decoderAssets.ts`。
 
 | 輸出路徑（在 Vite `base` 底下） | 來源 |
 |------------------------------|------|
