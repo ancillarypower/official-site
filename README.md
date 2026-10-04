@@ -93,14 +93,12 @@ Default allowlist:
 
 | Source | Used for |
 |--------|----------|
-| `'self'` | Same-origin requests, dev server HMR |
+| `'self'` | Same-origin requests, dev server HMR, and the self-hosted Draco / web-ifc decoders (see below) |
 | `https://www.ancillarypower.com` | WordPress / WooCommerce REST API (the origin of `VITE_WP_URL`; this is the default) |
 | `https://corsproxy.io` | CORS proxy (proxy mode) |
 | `https://api.allorigins.win` | CORS proxy fallback (proxy mode) |
-| `https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/libs/draco/gltf/` | Draco decoder WASM for the 3D viewer (`DRACO_CDN`) |
-| `https://cdn.jsdelivr.net/npm/web-ifc@0.0.77/` | web-ifc WASM for IFC models (`IFC_WASM_CDN`) |
 
-If you change `VITE_WP_URL`, its origin replaces `https://www.ancillarypower.com` automatically. If you bump the three.js or web-ifc CDN version in `constants.ts`, the allowlist follows; `tests/lib/csp.test.ts` fails until this table is updated too.
+If you change `VITE_WP_URL`, its origin replaces `https://www.ancillarypower.com` automatically. If you add a default origin in `constants.ts`, `tests/lib/csp.test.ts` fails until this table is updated too.
 
 > **⚠️ Direct mode:** if you enter a WordPress or WooCommerce URL in the Settings panel whose origin is not on the allowlist, the browser blocks the request and you only see a generic network error. Either add the origin to `VITE_CSP_CONNECT_EXTRA` and rebuild, or switch to proxy mode (requests then go to the proxy hosts above).
 
@@ -113,6 +111,19 @@ VITE_CSP_CONNECT_EXTRA="https://staging.ancillarypower.com https://shop.example.
 - Space-separated, `https://` origins only
 - No path, query, or `*` wildcard
 - An invalid entry fails `pnpm dev` / `pnpm build` instead of silently widening the policy
+
+### Self-hosted 3D decoders
+
+The Draco decoder (compressed GLB/GLTF) and the web-ifc WASM runtime (IFC) are served from this site, not from a public CDN (Issue #586), so a compromised CDN or npm mirror cannot inject code at runtime. The `self-host-decoders` plugin in `vite.config.ts` copies them from `node_modules`; the file list lives in `src/lib/decoderAssets.ts`.
+
+| Output path (under Vite `base`) | Copied from |
+|---------------------------------|-------------|
+| `decoders/draco/gltf/` | `three/examples/jsm/libs/draco/gltf/` (`draco_decoder.wasm`, `draco_wasm_wrapper.js`, `draco_decoder.js`) |
+| `decoders/web-ifc/` | `web-ifc/` (`web-ifc.wasm`, plus `web-ifc-mt.wasm` when present) |
+
+- Versions follow the installed `three` / `web-ifc` packages and their integrity is pinned by `pnpm-lock.yaml`. To update, bump the package; there is nothing to copy by hand.
+- `pnpm dev` serves the files through a middleware; `pnpm build` emits them into `dist/`. A missing required file fails the build.
+- They are only downloaded when a Draco-compressed model or an `.ifc` file is opened, so the first page load is unchanged.
 
 ## License
 
