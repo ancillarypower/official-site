@@ -1,5 +1,5 @@
 import { ensureHttps } from "./api";
-import { CORS_PROXIES, DRACO_CDN, IFC_WASM_CDN } from "./constants";
+import { CORS_PROXIES } from "./constants";
 
 /**
  * Build-time Content Security Policy helpers (Issue #583).
@@ -67,13 +67,11 @@ export function parseExtraOrigins(raw: string | undefined): string[] {
 export function buildConnectSrc(env: CspEnv = {}): string {
   const wpUrl = ensureHttps(env.VITE_WP_URL ?? "") || DEFAULT_WP_URL;
   const sources = [
+    // 'self' also covers the Draco / web-ifc decoders, which are self-hosted
+    // since Issue #586 (see src/lib/decoderAssets.ts).
     "'self'",
     toHttpsOrigin(wpUrl, "VITE_WP_URL"),
     ...CORS_PROXIES.map((proxy) => toHttpsOrigin(proxy, "CORS_PROXIES entry")),
-    // DRACOLoader and web-ifc fetch their WASM with fetch(), which is
-    // governed by connect-src. Keep the full versioned path, not the host.
-    DRACO_CDN,
-    IFC_WASM_CDN,
     ...parseExtraOrigins(env.VITE_CSP_CONNECT_EXTRA),
   ];
   return [...new Set(sources)].join(" ");

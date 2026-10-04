@@ -8,10 +8,19 @@
 import type { Object3D, BufferGeometry } from "three";
 import type { IfcWorkerMessage, IfcMeshData } from "@/workers/ifcWorker";
 import type { ModelParseMessage } from "@/workers/modelParseWorker";
-import { DRACO_CDN, IFC_WASM_CDN } from "@/lib/constants";
+import { DRACO_DECODER_DIR, IFC_WASM_DIR } from "@/lib/constants";
 
 /** Resolved type of the dynamically imported three.js module. */
 type ThreeNamespace = typeof import("three");
+
+/**
+ * Absolute same-origin URL of a self-hosted decoder directory (#586).
+ * BASE_URL covers the GitHub Pages sub-path (/official-site/); the IFC
+ * Worker needs an absolute URL because it resolves paths from its own URL.
+ */
+function decoderUrl(dir: string): string {
+  return new URL(`${import.meta.env.BASE_URL}${dir}`, window.location.origin).href;
+}
 
 /** Callback interface for loaders to integrate with the scene. */
 export interface LoaderContext {
@@ -115,7 +124,7 @@ export function loadGltfModel(
 
     const loader = new GLTFLoader();
     const draco = new DRACOLoader();
-    draco.setDecoderPath(DRACO_CDN);
+    draco.setDecoderPath(decoderUrl(DRACO_DECODER_DIR));
     loader.setDRACOLoader(draco);
     res.dracoLoader = draco;
 
@@ -174,7 +183,7 @@ export async function loadIfcModel(
   res.ifcWorker = worker;
 
   worker.postMessage(
-    { buffer: buf, wasmCdn: IFC_WASM_CDN },
+    { buffer: buf, wasmPath: decoderUrl(IFC_WASM_DIR) },
     [buf],
   );
 
