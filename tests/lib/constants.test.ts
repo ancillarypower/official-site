@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   CORS_PROXIES,
-  DRACO_CDN,
+  DRACO_DECODER_DIR,
+  IFC_WASM_DIR,
   MODEL_EXTENSIONS,
   CONTENT_TYPES,
   PER_PAGE_OPTIONS,
@@ -16,9 +17,11 @@ describe("constants", () => {
     }
   });
 
-  it("DRACO_CDN is a valid URL", () => {
-    expect(DRACO_CDN).toMatch(/^https:\/\//);
-    expect(DRACO_CDN).toContain("draco");
+  it("decoder directories are self-hosted, not CDN URLs (regression #586)", () => {
+    expect(DRACO_DECODER_DIR).toContain("draco");
+    expect(DRACO_DECODER_DIR).not.toMatch(/^https?:\/\//);
+    expect(IFC_WASM_DIR).toContain("web-ifc");
+    expect(IFC_WASM_DIR).not.toMatch(/^https?:\/\//);
   });
 
   it("MODEL_EXTENSIONS includes common 3D formats", () => {
