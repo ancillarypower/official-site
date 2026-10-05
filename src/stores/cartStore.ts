@@ -26,6 +26,16 @@ interface CartState {
 export const CART_VERSION = 1;
 
 /**
+ * Maximum quantity allowed for a single cart line.
+ *
+ * Shared by the store actions and `persistedCartItemSchema` so the
+ * in-memory cart can never hold a value the persist schema rejects.
+ * A qty above this limit used to make `merge` discard the whole cart
+ * on reload.  See GitHub issue #593.
+ */
+export const MAX_CART_QTY = 99;
+
+/**
  * Zod schema for runtime validation of a single persisted cart item.
  *
  * Every field mirrors the constraints enforced by the UI and the
@@ -38,7 +48,7 @@ export const persistedCartItemSchema = z.object({
   price: z.number().min(0),
   icon: z.string().nullable(),
   img: z.string().nullable(),
-  qty: z.number().int().min(1).max(99),
+  qty: z.number().int().min(1).max(MAX_CART_QTY),
 });
 
 /**
@@ -76,12 +86,14 @@ export const useCartStore = create<CartState>()(
 
       addItem: (item, qty = 1) =>
         set((state) => {
-          const safeQty = Math.max(1, Math.floor(qty));
+          const safeQty = Math.min(MAX_CART_QTY, Math.max(1, Math.floor(qty)));
           const existing = state.items.find((i) => i.id === item.id);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id ? { ...i, qty: i.qty + safeQty } : i,
+                i.id === item.id
+                  ? { ...i, qty: Math.min(MAX_CART_QTY, i.qty + safeQty) }
+                  : i,
               ),
             };
           }
@@ -96,7 +108,11 @@ export const useCartStore = create<CartState>()(
       updateQty: (id, delta) =>
         set((state) => {
           const items = state.items
-            .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
+            .map((i) =>
+              i.id === id
+                ? { ...i, qty: Math.min(MAX_CART_QTY, i.qty + delta) }
+                : i,
+            )
             .filter((i) => i.qty > 0);
           return { items };
         }),

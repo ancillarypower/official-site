@@ -196,3 +196,38 @@ describe("cartStore persist merge", () => {
     expect(merged.items[1]?.price).toBe(49.0);
   });
 });
+
+describe("cartStore qty cap (regression #593)", () => {
+  beforeEach(() => { useCartStore.setState({ items: [] }); });
+
+  it("addItem caps accumulated qty at 99 (50 + 60)", () => {
+    useCartStore.getState().addItem(sampleItem, 50);
+    useCartStore.getState().addItem(sampleItem, 60);
+    expect(useCartStore.getState().items[0]?.qty).toBe(99);
+  });
+
+  it("addItem caps a single oversized add at 99", () => {
+    useCartStore.getState().addItem(sampleItem, 150);
+    expect(useCartStore.getState().items[0]?.qty).toBe(99);
+  });
+
+  it("updateQty does not increase qty past 99", () => {
+    useCartStore.getState().addItem(sampleItem, 99);
+    useCartStore.getState().updateQty(1, 1);
+    expect(useCartStore.getState().items[0]?.qty).toBe(99);
+  });
+
+  it("updateQty still decrements from the cap", () => {
+    useCartStore.getState().addItem(sampleItem, 99);
+    useCartStore.getState().updateQty(1, -1);
+    expect(useCartStore.getState().items[0]?.qty).toBe(98);
+  });
+
+  it("cart state still passes the persist schema after hitting the cap", () => {
+    useCartStore.getState().addItem(sampleItem, 50);
+    useCartStore.getState().addItem(sampleItem, 60);
+    useCartStore.getState().updateQty(1, 1);
+    const parsed = persistedCartSchema.safeParse({ items: useCartStore.getState().items });
+    expect(parsed.success).toBe(true);
+  });
+});
