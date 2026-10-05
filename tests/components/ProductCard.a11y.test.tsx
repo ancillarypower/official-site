@@ -21,6 +21,7 @@ vi.mock("@/context/I18nContext", () => ({
 }));
 
 vi.mock("@/stores/cartStore", () => ({
+  MAX_CART_QTY: 99,
   useCartStore: () => ({
     addItem: vi.fn(),
     getQty: () => 0,
