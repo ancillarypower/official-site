@@ -122,6 +122,7 @@ export const zh = {
   cart_checkout_processing: "建立訂單中...",
   cart_clear_all: "清空購物車",
   cart_clear_confirm: "確定要清空購物車嗎？此操作無法復原。",
+  cart_qty_capped: "「{name}」每項最多 {max} 件，購物車數量已調整為 {max}",
   add_to_cart: "加入購物車",
   added: "\u2713 已加入",
   in_cart: "在購物車",

@@ -125,6 +125,7 @@ export const en: Record<TranslationKey, string> = {
   cart_checkout_processing: "Creating order...",
   cart_clear_all: "Clear All",
   cart_clear_confirm: "Clear your entire cart? This cannot be undone.",
+  cart_qty_capped: "\"{name}\" is limited to {max} per cart. Quantity set to {max}.",
   add_to_cart: "Add to Cart",
   added: "\u2713 Added",
   in_cart: "in cart",

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { useI18n } from "@/context/I18nContext";
-import { useCartStore } from "@/stores/cartStore";
+import { useCartStore, MAX_CART_QTY } from "@/stores/cartStore";
 import { formatPrice } from "@/lib/formatPrice";
 import type { DisplayProduct } from "@/lib/types";
 
@@ -21,7 +22,16 @@ export function ProductCard({ product }: ProductCardProps) {
   }, []);
 
   function handleAdd() {
+    // The store clamps qty to MAX_CART_QTY; tell the user when that
+    // happens instead of silently dropping the excess (#593).
+    const capMessage = t("cart_qty_capped", { name: product.name, max: MAX_CART_QTY });
+    if (cartQty >= MAX_CART_QTY) {
+      toast.warning(capMessage);
+      setQty(1);
+      return;
+    }
     addItem({ id: product.id, name: product.name, price: product.price, icon: product.icon, img: product.img }, qty);
+    if (cartQty + qty > MAX_CART_QTY) toast.warning(capMessage);
     setQty(1); setJustAdded(true); timerRef.current = setTimeout(() => setJustAdded(false), 1000);
   }
 
@@ -44,8 +54,8 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex items-center gap-2">
             <div className="flex items-center overflow-hidden rounded-md border border-border-default">
               <button onClick={() => setQty(Math.max(1, qty - 1))} className="flex h-[30px] w-7 items-center justify-center bg-surface-sunken text-sm font-semibold text-secondary transition-colors hover:bg-accent-subtle hover:text-accent" aria-label={t("a11y_decrease_qty")}>\u2212</button>
-              <input type="number" value={qty} onChange={(e) => setQty(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))} className="h-[30px] w-9 border-x border-border-default bg-surface-raised text-center text-xs font-semibold tabular-nums outline-none" min={1} max={99} aria-label={t("a11y_quantity")} />
-              <button onClick={() => setQty(Math.min(99, qty + 1))} className="flex h-[30px] w-7 items-center justify-center bg-surface-sunken text-sm font-semibold text-secondary transition-colors hover:bg-accent-subtle hover:text-accent" aria-label={t("a11y_increase_qty")}>+</button>
+              <input type="number" value={qty} onChange={(e) => setQty(Math.max(1, Math.min(MAX_CART_QTY, parseInt(e.target.value, 10) || 1)))} className="h-[30px] w-9 border-x border-border-default bg-surface-raised text-center text-xs font-semibold tabular-nums outline-none" min={1} max={MAX_CART_QTY} aria-label={t("a11y_quantity")} />
+              <button onClick={() => setQty(Math.min(MAX_CART_QTY, qty + 1))} className="flex h-[30px] w-7 items-center justify-center bg-surface-sunken text-sm font-semibold text-secondary transition-colors hover:bg-accent-subtle hover:text-accent" aria-label={t("a11y_increase_qty")}>+</button>
             </div>
             <button onClick={handleAdd} disabled={outOfStock} className={`flex-1 rounded-md px-3.5 py-[7px] text-xs font-semibold text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${justAdded ? "bg-success" : "bg-accent hover:bg-accent-hover"}`}>{justAdded ? t("added") : t("add_to_cart")}</button>
           </div>
