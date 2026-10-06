@@ -109,6 +109,11 @@ export function CartPanel() {
           if (payUrl.protocol !== "https:") {
             throw new Error("Unsafe protocol");
           }
+          // The order already exists on WooCommerce. Clear the cart before
+          // leaving the page: persist writes to localStorage synchronously,
+          // so going back to the site cannot restore the cart and submit a
+          // duplicate order (#597).
+          clearCart();
           window.location.assign(order.payment_url);
         } catch {
           // The order already exists on WooCommerce at this point. Clear
