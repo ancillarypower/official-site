@@ -1,12 +1,12 @@
 import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
-import { decodeHtml } from "@/lib/utils";
 
 interface PostCardProps { post: WpPost; onClick: () => void; }
 
 export function PostCard({ post, onClick }: PostCardProps) {
   const { lang } = useI18n();
+  // getPostTitle() already decodes entities; decoding again is not idempotent (#594).
   const title = getPostTitle(post);
   const imgData = getPostImage(post);
   const author = post._embedded?.author?.[0]?.name;
@@ -30,7 +30,7 @@ export function PostCard({ post, onClick }: PostCardProps) {
       >
         {imgData ? <img src={imgData.url} alt={imgData.alt} width={imgData.width} height={imgData.height} srcSet={imgData.srcSet} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="aspect-video w-full bg-surface-sunken object-cover" loading="lazy" decoding="async" /> : <div className="aspect-video w-full bg-surface-sunken" />}
         <div className="px-4 py-4">
-          <h3 id={titleId} className="mb-1.5 line-clamp-2 text-[0.925rem] font-semibold leading-snug">{decodeHtml(title)}</h3>
+          <h3 id={titleId} className="mb-1.5 line-clamp-2 text-[0.925rem] font-semibold leading-snug">{title}</h3>
           <div className="flex flex-wrap gap-3 text-[0.725rem] text-tertiary">
             {author && <span>{author}</span>}
             {date && <span>{date}</span>}

@@ -3,7 +3,6 @@ import DOMPurify from "dompurify";
 import { getPostTitle, getPostImage } from "@/lib/types";
 import type { WpPost } from "@/lib/types";
 import { useI18n } from "@/context/I18nContext";
-import { decodeHtml } from "@/lib/utils";
 import { ShareButtons } from "@/components/content/ShareButtons";
 
 const PURIFY_CONFIG = {
@@ -16,7 +15,8 @@ interface ArticleViewProps { post: WpPost; onBack: () => void; }
 export function ArticleView({ post, onBack }: ArticleViewProps) {
   const { lang, t } = useI18n();
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const title = decodeHtml(getPostTitle(post));
+  // getPostTitle() already decodes entities; decoding again is not idempotent (#594).
+  const title = getPostTitle(post);
   const content = post.content || post.description || post.caption || post.excerpt || "";
   const originalLink = (() => {
     if (!post.link) return null;
