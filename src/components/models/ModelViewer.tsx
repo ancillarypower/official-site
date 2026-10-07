@@ -1,8 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import type { WebGLRenderer, Object3D, Scene, Material } from "three";
-import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { getModelData } from "@/hooks/useModelDB";
 import {
   loadModel,
@@ -10,44 +8,19 @@ import {
   cleanupLoaderResources,
   type LoaderContext,
 } from "./modelLoaders";
+import {
+  attachContextRecovery,
+  attachViewportSync,
+  createFitToView,
+  createViewerHandles,
+  createViewerScene,
+  teardownViewer,
+} from "./viewerScene";
 
 interface ModelViewerProps {
   name: string;
   ext: string;
   modelId: number;
-}
-
-/**
- * Traverse a Three.js scene and dispose all GPU resources:
- * geometries, materials, and textures attached to Mesh nodes,
- * plus the scene environment texture.
- */
-function disposeSceneResources(s: Scene | null): void {
-  if (!s) return;
-  s.traverse((obj: Object3D) => {
-    if ("isMesh" in obj && (obj as { isMesh: boolean }).isMesh) {
-      const mesh = obj as unknown as {
-        geometry?: { dispose: () => void };
-        material?: Material | Material[];
-      };
-      mesh.geometry?.dispose();
-      const mats: Material[] = Array.isArray(mesh.material)
-        ? mesh.material
-        : mesh.material
-          ? [mesh.material]
-          : [];
-      for (const mat of mats) {
-        if (!mat) continue;
-        for (const val of Object.values(mat)) {
-          if (val && typeof val === "object" && "isTexture" in val) {
-            (val as { dispose: () => void }).dispose();
-          }
-        }
-        mat.dispose();
-      }
-    }
-  });
-  (s.environment as { dispose?: () => void } | null)?.dispose?.();
 }
 
 /** Feature-detect Fullscreen API once at module load (#451) */
@@ -113,20 +86,22 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
     resetViewpointRef.current?.();
   }, []);
 
+  // Viewer lifecycle. Setup and teardown details live in viewerScene.ts
+  // (#595); this effect only sequences them.
   useEffect(() => {
     if (!isVisible) return;
     const el = containerRef.current;
     if (!el) return;
     let disposed = false;
-    let animId: number;
-    let renderer: WebGLRenderer | null = null;
-    let ro: ResizeObserver | null = null;
-    let ctxLostHandler: ((e: Event) => void) | null = null;
-    let ctxRestoredHandler: (() => void) | null = null;
-    let scene: Scene | null = null;
-    let controls: OrbitControls | null = null;
-    let fontScaleHandler: (() => void) | null = null;
+    const viewer = createViewerHandles();
     const loaderRes = createLoaderResources();
+
+    // Single teardown path shared by unmount and context restore (#595)
+    function teardown() {
+      teardownViewer(viewer);
+      cleanupLoaderResources(loaderRes);
+      resetViewpointRef.current = null;
+    }
 
     async function init() {
       if (!el || disposed) return;
@@ -141,7 +116,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         }
 
         const THREE = await import("three");
-        const { OrbitControls: OC } = await import(
+        const { OrbitControls } = await import(
           "three/examples/jsm/controls/OrbitControls.js"
         );
         const { RoomEnvironment } = await import(
@@ -149,160 +124,48 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
         );
         if (disposed) return;
 
-        const w = el.clientWidth || 400;
-        const h = el.clientHeight || 250;
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
-        const camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 1000);
-        camera.position.set(2, 1.5, 2);
+        const { scene, camera, renderer, controls } = createViewerScene(
+          { THREE, OrbitControls, RoomEnvironment },
+          el,
+          viewer,
+        );
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(w, h);
-        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1;
-        el.appendChild(renderer.domElement);
+        viewer.detachers.push(
+          attachContextRecovery(renderer.domElement, {
+            onLost: () => {
+              cancelAnimationFrame(viewer.animId);
+              setStatus("error");
+              setErrorMsg(tRef.current("models_gpu_lost"));
+            },
+            onRestored: () => {
+              if (disposed) return;
+              teardown();
+              setStatus("loading");
+              init();
+            },
+          }),
+          attachViewportSync(el, camera, renderer, () => disposed),
+        );
 
-        ctxLostHandler = (e: Event) => {
-          e.preventDefault();
-          cancelAnimationFrame(animId);
-          setStatus("error");
-          setErrorMsg(tRef.current("models_gpu_lost"));
+        const animate = () => {
+          // Stop if unmounted or if this renderer was torn down (context restore)
+          if (disposed || viewer.renderer !== renderer) return;
+          viewer.animId = requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
         };
-
-        ctxRestoredHandler = () => {
-          if (disposed) return;
-          ro?.disconnect();
-          ro = null;
-          if (fontScaleHandler) {
-            window.removeEventListener("fontscalechange", fontScaleHandler);
-            fontScaleHandler = null;
-          }
-          disposeSceneResources(scene);
-          controls?.dispose();
-          controls = null;
-          cleanupLoaderResources(loaderRes);
-          scene = null;
-          if (renderer) {
-            if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
-            if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
-            renderer.dispose();
-            renderer.domElement.parentNode?.removeChild(renderer.domElement);
-            renderer = null;
-          }
-          ctxLostHandler = null;
-          ctxRestoredHandler = null;
-          setStatus("loading");
-          init();
-        };
-
-        renderer.domElement.addEventListener("webglcontextlost", ctxLostHandler);
-        renderer.domElement.addEventListener("webglcontextrestored", ctxRestoredHandler);
-
-        // Environment map is optional: on failure, log and fall back to
-        // directional lights only. Always dispose the generator (#585).
-        let pmrem: InstanceType<typeof THREE.PMREMGenerator> | null = null;
-        try {
-          pmrem = new THREE.PMREMGenerator(renderer);
-          scene.environment = pmrem.fromScene(
-            new RoomEnvironment(),
-            0.04,
-          ).texture;
-        } catch (err) {
-          console.warn(
-            "[ModelViewer] PMREMGenerator failed, using directional lights only:",
-            err,
-          );
-        } finally {
-          pmrem?.dispose();
-        }
-
-        controls = new OC(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.08;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 1.5;
-        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          controls.autoRotate = false;
-        }
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const dl = new THREE.DirectionalLight(0xffffff, 2.4);
-        dl.position.set(5, 8, 5);
-        scene.add(dl);
-        const dl2 = new THREE.DirectionalLight(0xffffff, 0.9);
-        dl2.position.set(-3, 2, -5);
-        scene.add(dl2);
-        scene.add(new THREE.GridHelper(10, 20, 0x333355, 0x222244));
-
-        function animate() {
-          if (disposed) return;
-          animId = requestAnimationFrame(animate);
-          controls?.update();
-          renderer?.render(scene!, camera);
-        }
         animate();
 
-        ro = new ResizeObserver((entries) => {
-          for (const entry of entries) {
-            const { width, height } = entry.contentRect;
-            if (width > 0 && height > 0) {
-              camera.aspect = width / height;
-              camera.updateProjectionMatrix();
-              renderer?.setSize(width, height);
-            }
-          }
-        });
-        ro.observe(el);
-
-        // Re-sync WebGL viewport when CSS zoom changes (#110).
-        // CSS `zoom` does not trigger ResizeObserver, so we listen for a
-        // custom event dispatched by settingsStore.setFontScale().
-        fontScaleHandler = () => {
-          if (!el || disposed) return;
-          const fw = el.clientWidth || 400;
-          const fh = el.clientHeight || 250;
-          camera.aspect = fw / fh;
-          camera.updateProjectionMatrix();
-          renderer?.setSize(fw, fh);
-        };
-        window.addEventListener("fontscalechange", fontScaleHandler);
-
-        function fitToView(object: Object3D) {
-          scene!.add(object);
-          const box = new THREE.Box3().setFromObject(object);
-          if (box.isEmpty()) throw new Error("No visible geometry");
-          const center = box.getCenter(new THREE.Vector3());
-          const size = box.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const d = maxDim * 2;
-          const posX = center.x + d * 0.6;
-          const posY = center.y + d * 0.4;
-          const posZ = center.z + d * 0.6;
-          const nearVal = maxDim * 0.001;
-          const farVal = maxDim * 100;
-          camera.position.set(posX, posY, posZ);
-          camera.near = nearVal;
-          camera.far = farVal;
-          camera.updateProjectionMatrix();
-          controls!.target.copy(center);
-          controls!.update();
-
-          // Save initial viewpoint for reset button (#336)
-          resetViewpointRef.current = () => {
-            camera.position.set(posX, posY, posZ);
-            camera.near = nearVal;
-            camera.far = farVal;
-            camera.updateProjectionMatrix();
-            controls!.target.copy(center);
-            controls!.update();
-          };
-
-          setStatus("ready");
-        }
-
         const loaderCtx: LoaderContext = {
-          fitToView,
+          fitToView: createFitToView(
+            THREE,
+            { scene, camera, controls },
+            (resetViewpoint) => {
+              // Save initial viewpoint for reset button (#336)
+              resetViewpointRef.current = resetViewpoint;
+              setStatus("ready");
+            },
+          ),
           isDisposed: () => disposed,
           setStatus,
           setErrorMsg,
@@ -321,21 +184,7 @@ export function ModelViewer({ name: _name, ext, modelId }: ModelViewerProps) {
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(animId);
-      ro?.disconnect();
-      if (fontScaleHandler) {
-        window.removeEventListener("fontscalechange", fontScaleHandler);
-      }
-      disposeSceneResources(scene);
-      cleanupLoaderResources(loaderRes);
-      controls?.dispose();
-      resetViewpointRef.current = null;
-      if (renderer) {
-        if (ctxLostHandler) renderer.domElement.removeEventListener("webglcontextlost", ctxLostHandler);
-        if (ctxRestoredHandler) renderer.domElement.removeEventListener("webglcontextrestored", ctxRestoredHandler);
-        renderer.dispose();
-        renderer.domElement.parentNode?.removeChild(renderer.domElement);
-      }
+      teardown();
     };
   }, [ext, modelId, isVisible]);
 
