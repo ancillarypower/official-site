@@ -84,8 +84,13 @@ export function resolveRendered(val: unknown): string {
  *
  * Decodes HTML entities (e.g. `&amp;` → `&`) so that downstream consumers
  * (search filtering, sort comparison, alt text) operate on human-readable
- * text instead of encoded strings. `decodeHtml` is idempotent, so callers
- * that decode again (e.g. PostCard) are safe from double-decode issues.
+ * text instead of encoded strings.
+ *
+ * The return value is already decoded: callers must NOT pass it through
+ * `decodeHtml` again. `decodeHtml` is not idempotent (it strips one entity
+ * layer per call), so a second pass turns a title that literally shows
+ * `&lt;` into `<`, and can throw `RangeError` on out-of-range numeric
+ * entities (Issue #594).
  */
 export function getPostTitle(post: WpPost): string {
   return decodeHtml(post.title || post.name || `#${post.id}`);
