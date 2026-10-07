@@ -19,9 +19,22 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # `workflow_run.branches` matches the triggering run's branch name, so a
+    # fork PR from the fork's own `main` also matches. Only deploy after a
+    # successful push to main in this repository (#607). `deploy` is skipped
+    # with this job via `needs: build`.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     steps:
+      # Deploy the exact commit CI verified, not whatever main HEAD is by
+      # the time this job starts (#600). Falls back to github.sha for
+      # workflow_dispatch. Safe only together with the guard above.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:

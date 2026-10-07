@@ -13,7 +13,16 @@ permissions:
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Only trust coverage artifacts from a successful push to main in this
+    # repository. Without this, a fork PR from the fork's own `main` matches
+    # `workflow_run.branches`, and its attacker-controlled coverage-data
+    # artifact would be force-pushed to the badges branch (#607).
+    # `push-badge` is skipped with this job via `needs: test-coverage`.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     outputs:
       coverage_pct: ${{ steps.threshold.outputs.coverage_pct }}
     steps:
