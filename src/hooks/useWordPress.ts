@@ -2,6 +2,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchWithProxy, wpApiUrl, wpBuildUrl, parseJsonResponse } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { wpPostArraySchema, wpPostSchema, type WpPost, resolveRendered } from "@/lib/types";
+import { toWpOrderby } from "@/lib/wpSort";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 interface WpQueryResult { posts: WpPost[]; totalPages: number; totalPosts: number; }
@@ -41,10 +42,12 @@ export function normalizeRawPost(p: Record<string, unknown>): WpPost {
 
 export function useWordPress(page = 1, search = "", orderby = "date", order = "desc", tags: number[] = [], enabled = true) {
   const wpUrl = useSettingsStore((s) => s.wpUrl), contentType = useSettingsStore((s) => s.contentType), perPage = useSettingsStore((s) => s.perPage), useProxy = useSettingsStore((s) => s.useProxy);
+  // Term endpoints (categories/tags) reject orderby=date|title with 400 (#598).
+  const wpOrderby = toWpOrderby(contentType, orderby);
   return useQuery<WpQueryResult>({
-    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, orderby, order, tags],
+    queryKey: ["wp-content", wpUrl, contentType, perPage, page, search, useProxy, wpOrderby, order, tags],
     queryFn: async ({ signal }) => {
-      const url = wpBuildUrl(wpApiUrl(wpUrl), contentType, { per_page: String(perPage), page: String(page), _embed: "", orderby, order, ...(search ? { search } : {}), ...(tags.length > 0 ? { tags: tags.join(",") } : {}) });
+      const url = wpBuildUrl(wpApiUrl(wpUrl), contentType, { per_page: String(perPage), page: String(page), _embed: "", orderby: wpOrderby, order, ...(search ? { search } : {}), ...(tags.length > 0 ? { tags: tags.join(",") } : {}) });
       const response = await fetchWithProxy(url, useProxy, { signal });
       if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
       const hasPageHeader = response.headers.has("X-WP-TotalPages") || response.headers.has("x-wp-totalpages");

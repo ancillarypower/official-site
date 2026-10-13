@@ -7,6 +7,7 @@ import { useI18n } from "@/context/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { getPostTitle } from "@/lib/types";
+import { getSortConfig, resolveSortParams } from "@/lib/wpSort";
 import { PostGrid } from "@/components/content/PostGrid";
 import { ArticleView } from "@/components/content/ArticleView";
 import { Pagination } from "@/components/ui/Pagination";
@@ -15,24 +16,6 @@ import { TagFilter } from "@/components/ui/TagFilter";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FetchErrorState } from "@/components/ui/FetchErrorState";
-
-const SORT_OPTIONS = [
-  { value: "date_desc", labelKey: "sort_date_desc" },
-  { value: "date_asc", labelKey: "sort_date_asc" },
-  { value: "title_asc", labelKey: "sort_title_asc" },
-  { value: "title_desc", labelKey: "sort_title_desc" },
-];
-
-/** Default sort parameters matching WordPress REST API defaults. */
-const DEFAULT_SORT = { orderby: "date", order: "desc" } as const;
-
-/** Map UI sort values to WordPress REST API orderby/order parameters. */
-const SORT_MAP: Record<string, { orderby: string; order: string }> = {
-  date_desc: { orderby: "date", order: "desc" },
-  date_asc: { orderby: "date", order: "asc" },
-  title_asc: { orderby: "title", order: "asc" },
-  title_desc: { orderby: "title", order: "desc" },
-};
 
 function parsePageParam(value: string | null): number {
   const raw = Number(value);
@@ -52,10 +35,16 @@ export default function ContentPage() {
       ? Number(articleParam)
       : null;
 
+  // Sort options depend on the content type: term endpoints (categories/tags)
+  // reject orderby=date|title, so they get name/count options instead (#598).
+  const sortConfig = getSortConfig(contentType);
+
   // Sync filter and sort to URL search params so they survive navigation
   // and browser refresh (#127). Default values are omitted from URL.
+  // A `?sort=` value that does not belong to this content type falls back
+  // to the type's default (#598).
   const filter = searchParams.get("q") ?? "";
-  const sort = searchParams.get("sort") ?? "date_desc";
+  const { value: sort, params: sortParams } = resolveSortParams(contentType, searchParams.get("sort"));
 
   // Tag filter: comma-separated tag IDs in URL (Issue #156)
   const tagsParam = searchParams.get("tags") ?? "";
@@ -73,15 +62,16 @@ export default function ContentPage() {
     }, { replace: true });
   }, [setSearchParams]);
 
+  const defaultSortValue = sortConfig.defaultValue;
   const setSort = useCallback((value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (value && value !== "date_desc") next.set("sort", value);
+      if (value && value !== defaultSortValue) next.set("sort", value);
       else next.delete("sort");
       next.delete("page");
       return next;
     }, { replace: true });
-  }, [setSearchParams]);
+  }, [setSearchParams, defaultSortValue]);
 
   const toggleTag = useCallback((id: number) => {
     setSearchParams(prev => {
@@ -172,9 +162,8 @@ export default function ContentPage() {
 
   // Delegate sorting to WordPress REST API (Issue #276).
   // Client-side sorting only affected the current page; server-side sorting
-  // ensures cross-page consistency.
-  // Literal DEFAULT_SORT fallback avoids noUncheckedIndexedAccess union with undefined.
-  const sortParams = SORT_MAP[sort] ?? DEFAULT_SORT;
+  // ensures cross-page consistency. sortParams comes from resolveSortParams()
+  // above and always belongs to the current content type (#598).
 
   // Fetch WordPress tags for tag filter (Issue #156).
   // Only fires when contentType === "posts" (useWpTags is internally gated).
@@ -274,7 +263,7 @@ export default function ContentPage() {
         onFilterChange={setFilter}
         sortValue={sort}
         onSortChange={setSort}
-        sortOptions={SORT_OPTIONS}
+        sortOptions={sortConfig.options}
       />
       {contentType === "posts" && tagsData && tagsData.length > 0 && (
         <TagFilter
