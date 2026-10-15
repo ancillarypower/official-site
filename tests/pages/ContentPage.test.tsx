@@ -239,7 +239,8 @@ describe("ContentPage", () => {
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", [], true);
+    // Categories default to name/asc: WP term endpoints reject orderby=date (#598).
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "name", "asc", [], true);
   });
 
   it("resets page when perPage changes", () => {
@@ -306,7 +307,8 @@ describe("ContentPage", () => {
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(sortSelect).toHaveValue("date_desc");
+    // Resets to the categories default, not the posts default (#598).
+    expect(sortSelect).toHaveValue("name_asc");
   });
 
   it("does not reset filter/sort when perPage changes (regression #123)", () => {
@@ -415,7 +417,8 @@ describe("ContentPage", () => {
     act(() => {
       useSettingsStore.setState({ contentType: "categories" });
     });
-    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "date", "desc", [], true);
+    // Categories default to name/asc: WP term endpoints reject orderby=date (#598).
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "name", "asc", [], true);
   });
 
   it("preserves sort params in URL across article navigation (regression #276)", () => {
@@ -425,6 +428,32 @@ describe("ContentPage", () => {
     expect(screen.queryByText("1/2")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText(/\u2190/));
     expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "title", "desc", [], true);
+  });
+
+  // --- Term content types use valid WP orderby values (regression #598) ---
+
+  it("offers name/count sort options for categories, not date/title (regression #598)", () => {
+    useSettingsStore.setState({ contentType: "categories" });
+    renderPage();
+    const sortSelect = screen.getByRole("combobox", { name: "Sort by" }) as HTMLSelectElement;
+    const values = Array.from(sortSelect.options).map((o) => o.value);
+    expect(values).toEqual(["name_asc", "name_desc", "count_desc", "count_asc"]);
+    expect(sortSelect).toHaveValue("name_asc");
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "name", "asc", [], true);
+  });
+
+  it("sends orderby=count when sorting tags by post count (regression #598)", () => {
+    useSettingsStore.setState({ contentType: "tags" });
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort by" }), { target: { value: "count_desc" } });
+    expect(mockUseWordPress).toHaveBeenLastCalledWith(1, "", "count", "desc", [], true);
+  });
+
+  it("falls back to the term default when the URL carries a post-only sort (regression #598)", () => {
+    useSettingsStore.setState({ contentType: "categories" });
+    renderPage("/?sort=date_asc");
+    expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("name_asc");
+    expect(mockUseWordPress).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), "date", expect.anything(), expect.anything(), expect.anything());
   });
 
   // --- _fields bandwidth optimization regression tests (#277) ---
