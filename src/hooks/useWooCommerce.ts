@@ -70,6 +70,12 @@ interface WooQueryResult {
  *
  * Uses `placeholderData: keepPreviousData` for smooth transitions while
  * the debounced search value settles.
+ *
+ * Proxy mode is not supported: WooCommerce REST API v3 requires
+ * authentication on every endpoint (including GET /products), and
+ * fetchWithProxy() can neither forward headers nor send credentials in the
+ * URL. A proxy-mode request could only ever return 401, so the query is
+ * disabled and StorePage falls back to sample products (Issue #599).
  */
 export function useWooProducts(
   page: number = 1,
@@ -108,12 +114,11 @@ export function useWooProducts(
 
       const url = wooApiUrl(baseUrl, "products", pageParams);
 
-      const response = useProxy
-        ? await fetchWithProxy(url, true, { signal })
-        : await fetchWithProxy(url, false, {
-            headers: wooAuthHeaders(wooKey, wooSecret),
-            signal,
-          });
+      // Direct mode only: the query is disabled in proxy mode (Issue #599).
+      const response = await fetchWithProxy(url, false, {
+        headers: wooAuthHeaders(wooKey, wooSecret),
+        signal,
+      });
 
       if (!response.ok) throw new AppError("error_api_http", `HTTP ${response.status}`, { status: String(response.status) });
 
@@ -161,10 +166,12 @@ export function useWooProducts(
         totalProducts: totalProducts || parsed.data.length,
       };
     },
-    enabled: useProxy
-      ? !!baseUrl
-      : !!baseUrl && !!wooKey && !!wooSecret,
-    placeholderData: keepPreviousData,
+    // WC REST v3 requires authentication on every endpoint, so proxy mode
+    // (which cannot carry credentials) is never enabled (Issue #599).
+    enabled: !useProxy && !!baseUrl && !!wooKey && !!wooSecret,
+    // Do not carry direct-mode products over into proxy mode, where the
+    // query is disabled and the store shows sample products (Issue #599).
+    placeholderData: useProxy ? undefined : keepPreviousData,
   });
 }
 
