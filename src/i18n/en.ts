@@ -89,6 +89,7 @@ export const en: Record<TranslationKey, string> = {
 
   store_title: "Store",
   store_products: "{n} products",
+  store_proxy_unavailable: "Products can't be loaded in proxy mode, so sample products are shown. Turn off the CORS proxy and enter your WooCommerce credentials to see real products.",
 
   fetch_title: "Settings",
   font_size_section: "Font Size",

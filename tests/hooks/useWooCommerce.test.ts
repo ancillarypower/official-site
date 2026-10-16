@@ -67,24 +67,21 @@ describe("useWooProducts", () => {
     expect(result.current.data).toBeUndefined();
   });
 
-  it("is enabled in proxy mode without credentials (regression #219)", async () => {
+  it("is disabled in proxy mode without credentials (regression #599, supersedes #219)", () => {
+    // #219 assumed GET wc/v3/products is public. It is not: WC REST v3
+    // requires authentication on every endpoint, so an unauthenticated
+    // proxy request can only ever return 401 (#599).
     useSettingsStore.setState({ useProxy: true, wooKey: "", wooSecret: "" });
-    const products = [
-      { id: 1, name: "Public Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
-    ];
-    const mockResponse = new Response(JSON.stringify(products), {
-      status: 200,
-      headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
-    });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useWooProducts(1), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.products).toHaveLength(1);
-    expect(result.current.data?.products[0]?.name).toBe("Public Widget");
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("fetches products with Basic Auth header in direct mode", async () => {
@@ -115,27 +112,17 @@ describe("useWooProducts", () => {
     expect((calledInit?.headers as Record<string, string>)?.Authorization).toMatch(/^Basic /);
   });
 
-  it("does not include credentials in proxy mode URL", async () => {
+  it("never sends a request in proxy mode, so credentials cannot reach the proxy (regression #599)", () => {
     useSettingsStore.setState({ useProxy: true });
-    const products = [
-      { id: 1, name: "Widget", price: "10.00", regular_price: "10.00", sale_price: "", short_description: "", stock_status: "instock", images: [] },
-    ];
-    const mockResponse = new Response(JSON.stringify(products), {
-      status: 200,
-      headers: { "X-WP-TotalPages": "1", "X-WP-Total": "1" },
-    });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     const { result } = renderHook(() => useWooProducts(1), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
-    const decodedUrl = decodeURIComponent(calledUrl);
-    expect(decodedUrl).not.toContain("consumer_key");
-    expect(decodedUrl).not.toContain("consumer_secret");
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("defaults totalPages to 1 when header is missing", async () => {
@@ -282,7 +269,10 @@ describe("useWooProducts", () => {
     expect(secondCallUrl).toContain("other.example.com");
   });
 
-  it("refetches when useProxy changes (Issue #93)", async () => {
+  it("fetches when useProxy is switched off (Issue #93, updated for #599)", async () => {
+    // Proxy mode no longer fetches (#599); switching it off must still
+    // trigger a fresh direct-mode request because useProxy is in queryKey.
+    useSettingsStore.setState({ useProxy: true });
     const makeResponse = () =>
       new Response(
         JSON.stringify([
@@ -297,14 +287,14 @@ describe("useWooProducts", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
 
     act(() => {
-      useSettingsStore.setState({ useProxy: true });
+      useSettingsStore.setState({ useProxy: false });
     });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("infers totalPages from array length when headers are stripped (regression #178)", async () => {

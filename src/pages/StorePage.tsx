@@ -46,6 +46,9 @@ export default function StorePage() {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
   const wooKey = useSettingsStore((s) => s.wooKey);
   const wooSecret = useSettingsStore((s) => s.wooSecret);
+  // Proxy mode cannot load WooCommerce products (Issue #599); the hook is
+  // disabled and the page falls back to sample products with a notice.
+  const useProxy = useSettingsStore((s) => s.useProxy);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePageParam(searchParams.get("page"));
 
@@ -161,6 +164,11 @@ export default function StorePage() {
           <span className="text-xs text-tertiary animate-pulse">{t("loading")}</span>
         )}
       </div>
+      {useProxy && (
+        <p role="note" className="mb-4 rounded-md border border-border-subtle bg-surface-sunken px-3 py-2 text-xs text-secondary">
+          {t("store_proxy_unavailable")}
+        </p>
+      )}
       {isLoading ? (
         <LoadingSpinner />
       ) : isError ? (

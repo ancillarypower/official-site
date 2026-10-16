@@ -86,6 +86,7 @@ export const zh = {
 
   store_title: "商店",
   store_products: "{n} 項商品",
+  store_proxy_unavailable: "代理模式下無法載入商品，以下為範例商品。請關閉 CORS 代理並填入 WooCommerce 憑證以顯示實際商品",
 
   fetch_title: "設定",
   font_size_section: "字體大小",
