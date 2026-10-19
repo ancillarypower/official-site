@@ -172,6 +172,8 @@ export const en: Record<TranslationKey, string> = {
   checkout_invalid_country: "Country code must be 2 letters (e.g. TW)",
   checkout_shipping: "Shipping Information",
   checkout_ship_to_billing: "Ship to billing address",
+  checkout_retry_after_unknown: "I didn't get a confirmation email, resubmit",
+  checkout_retry_confirm: "Resubmitting may create a duplicate order. Are you sure you didn't receive an order confirmation email?",
   order_success_title: "\u2713 Order Created!",
   order_success_desc: "Order #{id} created. Redirecting...",
   order_success_link: "Click to pay",
@@ -292,6 +294,7 @@ export const en: Record<TranslationKey, string> = {
   error_items_out_of_stock: "The following items are out of stock: {names}. Please remove them from your cart and try again.",
   error_order_response_invalid: "Invalid order response. Please contact support to verify your order status.",
   error_invalid_payment_url: "Invalid or unsafe payment URL. Please contact support to verify your order status.",
+  error_checkout_outcome_unknown: "Your order may have been placed, but the store didn't respond. Check your email for an order confirmation before resubmitting. Reference: {ref}",
 
   // Fetch error
   error_fetch_network: "Unable to connect to WordPress",
