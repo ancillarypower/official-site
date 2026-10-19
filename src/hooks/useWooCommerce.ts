@@ -7,8 +7,9 @@ import {
   encodeBase64Utf8,
   parseJsonResponse,
 } from "@/lib/api";
-import { AppError, OrderCreatedError } from "@/lib/errors";
-import { FETCH_TIMEOUT } from "@/lib/constants";
+import { AppError, OrderCreatedError, OrderOutcomeUnknownError } from "@/lib/errors";
+import { FETCH_TIMEOUT, ORDER_POST_TIMEOUT } from "@/lib/constants";
+import { createClientOrderRef } from "@/lib/orderRef";
 import {
   wooProductArraySchema,
   wooOrderSchema,
@@ -318,6 +319,13 @@ interface CheckoutParams {
   payment_method?: string;
   /** Display name for the payment method. Defaults to "貨到付款". */
   payment_method_title?: string;
+  /**
+   * Client order reference stored as the `_client_order_ref` order meta.
+   * Pass the same value when resubmitting after an unknown outcome so a
+   * duplicate order can be matched to the earlier attempt (#601).
+   * A new reference is generated when omitted.
+   */
+  clientOrderRef?: string;
 }
 
 export function useCheckout() {
@@ -328,7 +336,7 @@ export function useCheckout() {
   const baseUrl = useSettingsStore((s) => s.getWooBaseUrl());
 
   return useMutation<WooOrder, Error, CheckoutParams>({
-    mutationFn: async ({ items, billing, shipping, payment_method, payment_method_title }) => {
+    mutationFn: async ({ items, billing, shipping, payment_method, payment_method_title, clientOrderRef }) => {
       if (!baseUrl || !wooKey || !wooSecret) {
         throw new AppError(
           "error_woo_not_configured",
@@ -390,6 +398,10 @@ export function useCheckout() {
         country: billing.country,
       };
 
+      // Client order reference, so a duplicate created by a resubmit after
+      // an unknown outcome can be matched to the earlier attempt (#601).
+      const orderRef = clientOrderRef ?? createClientOrderRef();
+
       const body = {
         payment_method: payment_method ?? "cod",
         payment_method_title: payment_method_title ?? "貨到付款",
@@ -398,18 +410,34 @@ export function useCheckout() {
         shipping: resolvedShipping,
         line_items: items.map((item) => ({ product_id: item.id, quantity: item.qty })),
         status: "pending",
+        meta_data: [{ key: "_client_order_ref", value: orderRef }],
       };
 
       const url = wooApiUrl(baseUrl, "orders");
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          ...wooAuthHeaders(wooKey, wooSecret),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(FETCH_TIMEOUT),
-      });
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            ...wooAuthHeaders(wooKey, wooSecret),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          // Dedicated, longer timeout: creating an order is not idempotent
+          // and WooCommerce may be slow to respond (#601).
+          signal: AbortSignal.timeout(ORDER_POST_TIMEOUT),
+        });
+      } catch (err) {
+        // No response (timeout or network failure): the request may already
+        // have created the order. Report an unknown outcome so the UI keeps
+        // the cart but blocks an immediate duplicate submit (#601).
+        console.error("[Woo] Order POST got no response:", err);
+        throw new OrderOutcomeUnknownError(
+          "error_checkout_outcome_unknown",
+          "No response from WooCommerce; the order may or may not have been created",
+          { ref: orderRef },
+        );
+      }
 
       if (!response.ok) {
         let detail = `HTTP ${response.status}`;

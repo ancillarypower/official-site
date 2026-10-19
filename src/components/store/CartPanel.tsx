@@ -4,7 +4,8 @@ import { useI18n } from "@/context/I18nContext";
 import { useCartStore, MAX_CART_QTY } from "@/stores/cartStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCheckout } from "@/hooks/useWooCommerce";
-import { AppError, OrderCreatedError } from "@/lib/errors";
+import { AppError, OrderCreatedError, OrderOutcomeUnknownError } from "@/lib/errors";
+import { createClientOrderRef } from "@/lib/orderRef";
 import { formatPrice } from "@/lib/formatPrice";
 import { isValidCountryCode } from "@/lib/countries";
 
@@ -50,8 +51,11 @@ export function CartPanel() {
   const [billing, setBilling] = useState({ first_name: "", last_name: "", email: "", phone: "", address_1: "", city: "", postcode: "", country: "TW" });
   const [shipToBilling, setShipToBilling] = useState(true);
   const [shipping, setShipping] = useState({ first_name: "", last_name: "", address_1: "", city: "", postcode: "", country: "TW" });
-  const [orderStatus, setOrderStatus] = useState<"idle" | "success" | "error">("idle");
+  const [orderStatus, setOrderStatus] = useState<"idle" | "success" | "error" | "unknown">("idle");
   const [orderError, setOrderError] = useState("");
+  // Client order reference, reused across resubmits after an unknown
+  // outcome so a duplicate order can be matched to the earlier attempt (#601).
+  const [orderRef, setOrderRef] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const updateField = (field: string, value: string) => { setBilling((prev) => ({ ...prev, [field]: value })); if (orderError) setOrderError(""); setFieldErrors((prev) => { if (!prev[field]) return prev; const next = { ...prev }; delete next[field]; return next; }); };
   const updateShippingField = (field: string, value: string) => { setShipping((prev) => ({ ...prev, [field]: value })); if (orderError) setOrderError(""); setFieldErrors((prev) => { const key = `shipping_${field}`; if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; }); };
@@ -66,9 +70,19 @@ export function CartPanel() {
       // checkout is not rendered on the empty cart (#582).
       setOrderError("");
       setOrderStatus("idle");
+      setOrderRef(null);
+    }
+  }
+  function handleRetryAfterUnknown() {
+    // Resubmitting may create a duplicate order, so ask first (#601).
+    if (window.confirm(t("checkout_retry_confirm"))) {
+      setOrderStatus("idle");
     }
   }
   async function handleCheckout() {
+    // The previous order may already exist; resubmit only via the
+    // confirmed retry button (#601).
+    if (orderStatus === "unknown") return;
     setOrderError("");
     setFieldErrors({});
     const result = billingSchema.safeParse(billing);
@@ -97,12 +111,17 @@ export function CartPanel() {
       }
       resolvedShipping = shipResult.data;
     }
+    const ref = orderRef ?? createClientOrderRef();
+    if (ref !== orderRef) setOrderRef(ref);
     try {
       const order = await checkout({
         items,
         billing: result.data,
         ...(resolvedShipping && { shipping: resolvedShipping }),
+        clientOrderRef: ref,
       });
+      // The order exists; the next order gets a fresh reference (#601).
+      setOrderRef(null);
       if (order.payment_url) {
         try {
           const payUrl = new URL(order.payment_url);
@@ -131,11 +150,21 @@ export function CartPanel() {
       // a page reload re-enables the checkout button (#542).
       clearCart();
     } catch (err) {
+      // OrderOutcomeUnknownError means POST /orders got no response, so the
+      // order may or may not exist. Keep the cart (it may not exist) but
+      // lock checkout until the user confirms a resubmit (it may) (#601).
+      if (err instanceof OrderOutcomeUnknownError) {
+        setOrderStatus("unknown");
+        return;
+      }
       // OrderCreatedError means POST /orders already returned 2xx, so the
       // order exists on WooCommerce. Clear the cart so the user cannot
       // submit a duplicate order. Checked by type, never by error code,
       // so reusing a code before the POST cannot empty the cart (#582).
-      if (err instanceof OrderCreatedError) clearCart();
+      if (err instanceof OrderCreatedError) {
+        clearCart();
+        setOrderRef(null);
+      }
       if (err instanceof AppError) {
         setOrderError(t(err.code as Parameters<typeof t>[0], err.params));
       } else {
@@ -163,7 +192,9 @@ export function CartPanel() {
         <label className="mt-2 flex items-center gap-2 text-xs text-secondary"><input type="checkbox" checked={shipToBilling} onChange={(e) => setShipToBilling(e.target.checked)} className="accent-accent" />{t("checkout_ship_to_billing")}</label>
         {!shipToBilling && <div className="flex flex-col gap-3 border-t border-border-subtle pt-4"><div className="text-[0.725rem] font-semibold tracking-wide text-tertiary uppercase">{t("checkout_shipping")}</div><div className="grid grid-cols-2 gap-2"><label className={labelCls}><span className={labelTextCls}>{t("checkout_first_name")}</span><input name="shipping-given-name" autoComplete="shipping given-name" value={shipping.first_name} onChange={(e) => updateShippingField("first_name", e.target.value)} placeholder={t("checkout_first_name")} className={shippingInputCn("first_name")} />{shippingFieldError("first_name")}</label><label className={labelCls}><span className={labelTextCls}>{t("checkout_last_name")}</span><input name="shipping-family-name" autoComplete="shipping family-name" value={shipping.last_name} onChange={(e) => updateShippingField("last_name", e.target.value)} placeholder={t("checkout_last_name")} className={shippingInputCn("last_name")} />{shippingFieldError("last_name")}</label></div><label className={labelCls}><span className={labelTextCls}>{t("checkout_address")}</span><input name="shipping-street-address" autoComplete="shipping street-address" value={shipping.address_1} onChange={(e) => updateShippingField("address_1", e.target.value)} placeholder={t("checkout_address")} className={shippingInputCn("address_1")} />{shippingFieldError("address_1")}</label><div className="grid grid-cols-2 gap-2"><label className={labelCls}><span className={labelTextCls}>{t("checkout_city")}</span><input name="shipping-address-level2" autoComplete="shipping address-level2" value={shipping.city} onChange={(e) => updateShippingField("city", e.target.value)} placeholder={t("checkout_city")} className={shippingInputCn("city")} />{shippingFieldError("city")}</label><label className={labelCls}><span className={labelTextCls}>{t("checkout_postcode")}</span><input name="shipping-postal-code" autoComplete="shipping postal-code" value={shipping.postcode} onChange={(e) => updateShippingField("postcode", e.target.value)} placeholder={t("checkout_postcode")} className={shippingInputCn("postcode")} />{shippingFieldError("postcode")}</label></div><label className={labelCls}><span className={labelTextCls}>{t("checkout_country")}</span><input name="shipping-country" autoComplete="shipping country" value={shipping.country} onChange={(e) => updateShippingField("country", e.target.value)} placeholder={t("checkout_country")} className={shippingInputCn("country")} />{shippingFieldError("country")}</label></div>}
         <p className="mt-1 text-[0.7rem] leading-relaxed text-tertiary">{t(wooConnected ? "checkout_note" : "checkout_no_woo")}</p>
-        {orderError && <div className="rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger">{orderError}</div>}<button type="submit" disabled={!wooConnected || isPending || orderStatus === "success"} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? t("cart_checkout_processing") : t("cart_checkout")}</button>{orderStatus === "success" && <button type="button" onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">{t("cart_clear_all")}</button>}
+        {/* The order may already exist: keep the cart, lock checkout, and show the reference so the user can check their email first (#601). */}
+        {orderStatus === "unknown" && <div role="alert" className="flex flex-col gap-2 rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger"><span>{t("error_checkout_outcome_unknown", { ref: orderRef ?? "" })}</span><button type="button" onClick={handleRetryAfterUnknown} className="self-start text-xs text-accent underline">{t("checkout_retry_after_unknown")}</button></div>}
+        {orderError && <div className="rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger">{orderError}</div>}<button type="submit" disabled={!wooConnected || isPending || orderStatus === "success" || orderStatus === "unknown"} className="mt-3 w-full rounded-md bg-success py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? t("cart_checkout_processing") : t("cart_checkout")}</button>{orderStatus === "success" && <button type="button" onClick={() => { clearCart(); setOrderStatus("idle"); }} className="text-xs text-accent underline">{t("cart_clear_all")}</button>}
         </form>
       </>}</div>
     </>

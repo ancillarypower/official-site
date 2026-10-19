@@ -7,6 +7,14 @@ export const CORS_PROXIES = [
 /** Default fetch timeout in milliseconds (15 seconds) */
 export const FETCH_TIMEOUT = 15_000;
 
+/**
+ * Timeout for the non-idempotent POST /orders request (60 seconds).
+ * WooCommerce may run payment plugins, stock updates and emails before it
+ * responds, so the default 15 s cuts off orders that were in fact created.
+ * A timeout still leaves the outcome unknown; see OrderOutcomeUnknownError (#601).
+ */
+export const ORDER_POST_TIMEOUT = 60_000;
+
 /** WordPress REST API maximum per_page value */
 export const WP_MAX_PER_PAGE = 100;
 

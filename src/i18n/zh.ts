@@ -169,6 +169,8 @@ export const zh = {
   checkout_invalid_country: "國家代碼必須為 2 個字母（如 TW）",
   checkout_shipping: "寄送資訊",
   checkout_ship_to_billing: "寄送地址與帳單地址相同",
+  checkout_retry_after_unknown: "我沒有收到確認信，重新送出",
+  checkout_retry_confirm: "重新送出可能會建立重複訂單。確定沒有收到訂單確認信嗎？",
   order_success_title: "\u2713 訂單建立成功！",
   order_success_desc: "訂單 #{id} 已建立，正在跳轉...",
   order_success_link: "點此前往付款",
@@ -316,6 +318,7 @@ export const zh = {
   error_items_out_of_stock: "以下商品已售罄或無法購買：{names}。請從購物車中移除後重試",
   error_order_response_invalid: "訂單回應格式異常，請聯繫客服確認訂單狀態",
   error_invalid_payment_url: "付款網址無效或不安全，請聯繫客服確認訂單狀態",
+  error_checkout_outcome_unknown: "訂單可能已送出，但商店沒有回應。請先確認信箱是否收到訂單確認信，再決定是否重新送出。參考編號：{ref}",
 
   // Fetch error
   error_fetch_network: "無法連線至 WordPress",
