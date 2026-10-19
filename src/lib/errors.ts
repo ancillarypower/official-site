@@ -41,3 +41,19 @@ export class OrderCreatedError extends AppError {
     this.name = "OrderCreatedError";
   }
 }
+
+/**
+ * AppError raised when POST /orders produced no response at all (timeout
+ * or network failure). The request may or may not have reached
+ * WooCommerce, so the order may already exist.
+ *
+ * Callers must not treat this as a plain retryable error: keep the cart
+ * (the order may not exist) but block an immediate resubmit (it may).
+ * Like OrderCreatedError, check it with `instanceof`, never by `code` (#601).
+ */
+export class OrderOutcomeUnknownError extends AppError {
+  constructor(code: string, fallback: string, params?: Record<string, string>) {
+    super(code, fallback, params);
+    this.name = "OrderOutcomeUnknownError";
+  }
+}
