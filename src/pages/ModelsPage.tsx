@@ -6,7 +6,7 @@ import { ModelUpload } from "@/components/models/ModelUpload";
 import { ModelCard } from "@/components/models/ModelCard";
 import { StorageQuotaBar } from "@/components/models/StorageQuotaBar";
 import { MAX_BATCH_FILES } from "@/lib/constants";
-import { saveModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
+import { saveModel, replaceModel, getAllModelMeta, deleteModel, deleteMultipleModels, deleteAllModels, renameModel } from "@/hooks/useModelDB";
 import { computeFileHash } from "@/lib/hash";
 import type { ModelMeta } from "@/lib/types";
 
@@ -184,43 +184,42 @@ export default function ModelsPage() {
 
         // Check for duplicate filename
         const existing = currentModels.find((m) => m.name === file.name);
+        let id: number;
         if (existing) {
           if (!window.confirm(t("models_replace_confirm", { name: file.name }))) continue;
           try {
-            await deleteModel(existing.id);
-            currentModels = currentModels.filter((m) => m.id !== existing.id);
-            setModels((prev) => {
-              const updated = prev.filter((m) => m.id !== existing.id);
-              if (getStoredSortKey() === "custom") persistOrder(updated);
-              return updated;
-            });
-            setSelectedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
-            setExpandedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+            id = await replaceModel(existing.id, file.name, file.size, ext, ab, fileHash);
           } catch (err) {
-            console.error("Failed to delete existing model:", existing.id, err);
-            toast.error(t("models_delete_failed"));
+            console.error("Failed to replace model:", file.name, err);
+            toast.error(t("models_upload_error", { name: file.name }));
+            continue;
+          }
+          currentModels = currentModels.filter((m) => m.id !== existing.id);
+          setSelectedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+          setExpandedIds((prev) => { const next = new Set(prev); next.delete(existing.id); return next; });
+        } else {
+          try {
+            id = await saveModel(file.name, file.size, ext, ab, fileHash);
+          } catch (err) {
+            console.error("Failed to save model:", file.name, err);
+            toast.error(t("models_upload_error", { name: file.name }));
             continue;
           }
         }
 
-        // Save the new model with content hash
-        try {
-          const id = await saveModel(file.name, file.size, ext, ab, fileHash);
-          const newModel: LoadedModelMeta = { id, name: file.name, size: file.size, ext, timestamp: Date.now(), hash: fileHash };
-          currentModels = [...currentModels, newModel];
-          setModels((prev) => {
-            const updated = [...prev, newModel];
-            const currentKey = getStoredSortKey();
-            if (currentKey === "custom") {
-              persistOrder(updated);
-              return updated;
-            }
-            return sortModels(updated, currentKey);
-          });
-        } catch (err) {
-          console.error("Failed to save model:", file.name, err);
-          toast.error(t("models_upload_error", { name: file.name }));
-        }
+        const newModel: LoadedModelMeta = { id, name: file.name, size: file.size, ext, timestamp: Date.now(), hash: fileHash };
+        currentModels = [...currentModels, newModel];
+        setModels((prev) => {
+          const updated = existing
+            ? [...prev.filter((m) => m.id !== existing.id), newModel]
+            : [...prev, newModel];
+          const currentKey = getStoredSortKey();
+          if (currentKey === "custom") {
+            persistOrder(updated);
+            return updated;
+          }
+          return sortModels(updated, currentKey);
+        });
       }
     } finally {
       setIsUploading(false);
