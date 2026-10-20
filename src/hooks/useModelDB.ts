@@ -43,7 +43,7 @@ export async function replaceModel(oldId: number, name: string, size: number, ex
 
   let missing = false;
   try {
-    if (!(await tx.store.get(oldId))) {
+    if ((await tx.store.getKey(oldId)) === undefined) {
       missing = true;
       throw new Error(`Model ${oldId} not found`);
     }
