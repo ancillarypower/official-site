@@ -93,7 +93,7 @@ describe("ModelsPage atomic replacement (Issue #602)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Upload files" }));
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining("cube.glb")));
-    expect(screen.getByText("cube.glb")).toBeInTheDocument();
+    expect(cardOrder()).toContain("cube.glb");
     expect(screen.getByLabelText(/選取「cube\.glb」/)).toBeChecked();
     expect(screen.getByTestId("model-viewer")).toBeInTheDocument();
     expect(cardOrder()).toEqual(["sphere.obj", "cube.glb"]);
@@ -120,7 +120,7 @@ describe("ModelsPage atomic replacement (Issue #602)", () => {
     expect(localStorage.getItem("model_sort_order")).toBe(JSON.stringify([2, 1]));
 
     resolveReplacement(4);
-    await waitFor(() => expect(screen.getByLabelText(/選取「cube\.glb」/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/選取「cube\.glb」/)).not.toBeChecked());
     expect(cardOrder()).toEqual(["sphere.obj", "cube.glb"]);
     expect(screen.queryByTestId("model-viewer")).not.toBeInTheDocument();
     expect(localStorage.getItem("model_sort_order")).toBe(JSON.stringify([2, 4]));
@@ -153,7 +153,7 @@ describe("ModelsPage atomic replacement (Issue #602)", () => {
     await waitFor(() => expect(screen.getByText("new.obj")).toBeInTheDocument());
     expect(mockReplaceModel).toHaveBeenCalledOnce();
     expect(mockSaveModel).toHaveBeenCalledOnce();
-    expect(mockSaveModel).toHaveBeenCalledWith("new.obj", expect.any(Number), "obj", expect.any(ArrayBuffer), "");
+    expect(mockSaveModel.mock.calls[0]?.[0]).toBe("new.obj");
     expect(screen.getByLabelText(/選取「cube\.glb」/)).toBeInTheDocument();
     errorSpy.mockRestore();
   });

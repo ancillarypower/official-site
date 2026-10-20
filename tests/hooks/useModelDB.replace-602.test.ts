@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   _resetDB,
   deleteAllModels,
@@ -9,6 +9,8 @@ import {
 } from "@/hooks/useModelDB";
 
 describe("replaceModel (Issue #602)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   beforeEach(async () => {
     _resetDB();
     await deleteAllModels();
@@ -57,7 +59,6 @@ describe("replaceModel (Issue #602)", () => {
       { id: oldId, name: "quota.glb", size: 2, ext: "glb", hash: "old-hash" },
     ]);
     expect(new Uint8Array((await getModelData(oldId))!)).toEqual(new Uint8Array(oldData));
-    add.mockRestore();
   });
 
   it("waits for transaction completion after successful requests", async () => {
