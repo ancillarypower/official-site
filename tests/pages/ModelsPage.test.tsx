@@ -15,6 +15,7 @@ const { mockToastError, mockToastWarning } = vi.hoisted(() => ({
 vi.mock("sonner", () => ({ toast: { error: mockToastError, warning: mockToastWarning } }));
 
 const mockSaveModel = vi.fn().mockResolvedValue(1);
+const mockReplaceModel = vi.fn().mockResolvedValue(4);
 const mockGetAllModelMeta = vi.fn().mockResolvedValue([]);
 const mockDeleteModel = vi.fn().mockResolvedValue(undefined);
 const mockDeleteMultipleModels = vi.fn().mockResolvedValue(undefined);
@@ -23,6 +24,7 @@ const mockRenameModel = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/hooks/useModelDB", () => ({
   saveModel: (...args: unknown[]) => mockSaveModel(...args),
+  replaceModel: (...args: unknown[]) => mockReplaceModel(...args),
   getAllModelMeta: (...args: unknown[]) => mockGetAllModelMeta(...args),
   deleteModel: (...args: unknown[]) => mockDeleteModel(...args),
   deleteMultipleModels: (...args: unknown[]) => mockDeleteMultipleModels(...args),

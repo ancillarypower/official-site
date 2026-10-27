@@ -34,6 +34,36 @@ export async function saveModel(name: string, size: number, ext: string, data: A
   return id as number;
 }
 
+export async function replaceModel(oldId: number, name: string, size: number, ext: string, data: ArrayBuffer, hash?: string): Promise<number> {
+  const db = await getDB();
+  const record = { name, size, ext, data, timestamp: Date.now(), ...(hash != null && { hash }) };
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const done = tx.done;
+  void done.catch(() => {});
+
+  let missing = false;
+  try {
+    if ((await tx.store.getKey(oldId)) === undefined) {
+      missing = true;
+      throw new Error(`Model ${oldId} not found`);
+    }
+    await tx.store.delete(oldId);
+    const id = await tx.store.add(record);
+    await done;
+    return id as number;
+  } catch (error) {
+    if (!missing) {
+      try {
+        tx.abort();
+      } catch {
+        // The transaction may already be aborted or complete.
+      }
+    }
+    await done.catch(() => {});
+    throw error;
+  }
+}
+
 export async function getAllModels(): Promise<ModelRecord[]> {
   const db = await getDB();
   return db.getAll(STORE_NAME);
