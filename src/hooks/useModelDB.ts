@@ -9,13 +9,27 @@ let dbPromise: Promise<IDBPDatabase> | null = null;
 
 function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
+    // Each opening owns its callbacks: a stale connection must not clear a newer one.
+    const resetIfCurrent = () => {
+      if (dbPromise === opening) dbPromise = null;
+    };
+    const opening: Promise<IDBPDatabase> = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
         }
       },
+      terminated: resetIfCurrent,
+      blocking() {
+        resetIfCurrent();
+        // Close this connection, never whichever connection is currently cached.
+        void opening.then((db) => db.close(), () => {});
+      },
+    }).catch((error: unknown) => {
+      resetIfCurrent();
+      throw error;
     });
+    dbPromise = opening;
   }
   return dbPromise;
 }
