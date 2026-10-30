@@ -8,7 +8,7 @@ import {
   parseJsonResponse,
 } from "@/lib/api";
 import { AppError, OrderCreatedError, OrderOutcomeUnknownError } from "@/lib/errors";
-import { FETCH_TIMEOUT, ORDER_POST_TIMEOUT } from "@/lib/constants";
+import { FETCH_TIMEOUT, ORDER_POST_TIMEOUT, WP_MAX_PER_PAGE } from "@/lib/constants";
 import { createClientOrderRef } from "@/lib/orderRef";
 import {
   wooProductArraySchema,
@@ -180,8 +180,10 @@ export function useWooProducts(
  * Validate that cart item prices still match WooCommerce server prices
  * and that all items are still in stock.
  *
- * Fetches the latest product prices and stock status in a single batch
- * request and compares them against the locally persisted cart data.
+ * Fetches the latest product prices and stock status in sequential batches
+ * of at most WP_MAX_PER_PAGE items, then compares them against the locally
+ * persisted cart data. The batches do not provide a transactional inventory
+ * snapshot.
  * Returns any price mismatches and out-of-stock items so the caller can
  * warn the user before submitting an order (Issue #222, Issue #243).
  *
@@ -208,44 +210,47 @@ export async function validateCartPrices(
     name: string;
   }>;
 }> {
-  const ids = items.map((i) => i.id).join(",");
-  const url = wooApiUrl(baseUrl, "products", {
-    include: ids,
-    per_page: String(items.length),
-    _fields: "id,price,stock_status",
-  });
-
-  const response = await fetch(url, {
-    headers: wooAuthHeaders(wooKey, wooSecret),
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
-  });
-
-  if (!response.ok) {
-    throw new AppError(
-      "error_price_validation_failed",
-      `Price validation failed: HTTP ${response.status}`,
-      { detail: `HTTP ${response.status}` },
-    );
-  }
-
-  const raw = await parseJsonResponse(response);
-
-  const parsed = priceValidationArraySchema.safeParse(raw);
-  if (!parsed.success) {
-    console.warn("[Woo] Price validation Zod parse warning:", parsed.error);
-    throw new AppError(
-      "error_price_validation_failed",
-      "Price validation failed: unexpected response format",
-      { detail: "unexpected response format" },
-    );
-  }
-
   const serverPrices = new Map<number, number>();
   const serverStockStatus = new Map<number, string>();
-  for (const p of parsed.data) {
-    serverPrices.set(p.id, parseFloat(p.price));
-    if (p.stock_status) {
-      serverStockStatus.set(p.id, p.stock_status);
+
+  for (let offset = 0; offset < items.length; offset += WP_MAX_PER_PAGE) {
+    const batch = items.slice(offset, offset + WP_MAX_PER_PAGE);
+    const url = wooApiUrl(baseUrl, "products", {
+      include: batch.map((item) => item.id).join(","),
+      per_page: String(batch.length),
+      _fields: "id,price,stock_status",
+    });
+
+    const response = await fetch(url, {
+      headers: wooAuthHeaders(wooKey, wooSecret),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
+
+    if (!response.ok) {
+      throw new AppError(
+        "error_price_validation_failed",
+        `Price validation failed: HTTP ${response.status}`,
+        { detail: `HTTP ${response.status}` },
+      );
+    }
+
+    const raw = await parseJsonResponse(response);
+
+    const parsed = priceValidationArraySchema.safeParse(raw);
+    if (!parsed.success) {
+      console.warn("[Woo] Price validation Zod parse warning:", parsed.error);
+      throw new AppError(
+        "error_price_validation_failed",
+        "Price validation failed: unexpected response format",
+        { detail: "unexpected response format" },
+      );
+    }
+
+    for (const p of parsed.data) {
+      serverPrices.set(p.id, parseFloat(p.price));
+      if (p.stock_status) {
+        serverStockStatus.set(p.id, p.stock_status);
+      }
     }
   }
 
