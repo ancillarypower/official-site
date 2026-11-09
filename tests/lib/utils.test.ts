@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { decodeHtml } from "@/lib/utils";
 
- describe("decodeHtml", () => {
+describe("decodeHtml", () => {
   it("decodes named HTML entities", () => {
     expect(decodeHtml("headphones &amp; accessories")).toBe("headphones & accessories");
     expect(decodeHtml("5 &lt; 10 &gt; 3")).toBe("5 < 10 > 3");
