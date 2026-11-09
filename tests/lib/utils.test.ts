@@ -68,8 +68,8 @@ import { decodeHtml } from "@/lib/utils";
   });
 
   it("decodes both inclusive numeric boundaries (regression #605)", () => {
-    expect(decodeHtml("&#0;")).toBe("");
-    expect(decodeHtml("&#x0;")).toBe("");
+    expect(decodeHtml("&#0;")).toBe(String.fromCharCode(0));
+    expect(decodeHtml("&#x0;")).toBe(String.fromCharCode(0));
     expect(decodeHtml("&#1114111;")).toBe("\u{10FFFF}");
     expect(decodeHtml("&#x10FFFF;")).toBe("\u{10FFFF}");
   });

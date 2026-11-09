@@ -150,7 +150,7 @@ export const wooProductSchema = z.object({
   name: z.string(),
   price: z.string().default("0"),
   regular_price: z.string().default("0"),
-  sale_price: z.string().default("0"),
+  sale_price: z.string().default(""),
   short_description: z.string().default(""),
   stock_status: z.string().default("instock"),
   images: z
