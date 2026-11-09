@@ -49,4 +49,49 @@ describe("decodeHtml", () => {
     expect(decodeHtml("&ldquo;word&rdquo;")).toBe("\u201Cword\u201D");
     expect(decodeHtml("&nbsp;")).toBe("\u00A0");
   });
+
+  it("preserves out-of-range decimal entities (regression #605)", () => {
+    expect(decodeHtml("&#9999999;")).toBe("&#9999999;");
+    expect(decodeHtml("&#1114112;")).toBe("&#1114112;");
+  });
+
+  it("preserves out-of-range hex entities (regression #605)", () => {
+    expect(decodeHtml("&#x110000;")).toBe("&#x110000;");
+    expect(decodeHtml("&#xFFFFFF;")).toBe("&#xFFFFFF;");
+  });
+
+  it("preserves numeric entities that overflow to infinity (regression #605)", () => {
+    const decimal = `&#${"9".repeat(400)};`;
+    const hex = `&#x${"F".repeat(400)};`;
+    expect(decodeHtml(decimal)).toBe(decimal);
+    expect(decodeHtml(hex)).toBe(hex);
+  });
+
+  it("decodes both inclusive numeric boundaries (regression #605)", () => {
+    expect(decodeHtml("&#0;")).toBe(String.fromCharCode(0));
+    expect(decodeHtml("&#x0;")).toBe(String.fromCharCode(0));
+    expect(decodeHtml("&#1114111;")).toBe("\u{10FFFF}");
+    expect(decodeHtml("&#x10FFFF;")).toBe("\u{10FFFF}");
+  });
+
+  it("decodes valid entities around invalid ones (regression #605)", () => {
+    expect(decodeHtml("A &#9999999; &amp; &#169; &#x110000; &#x1F600;"))
+      .toBe("A &#9999999; & \u00A9 &#x110000; \u{1F600}");
+  });
+
+  it("decodes only one entity layer (regression #605)", () => {
+    expect(decodeHtml("&amp;lt;")).toBe("&lt;");
+    expect(decodeHtml("&amp;#9999999;")).toBe("&#9999999;");
+    expect(decodeHtml("&amp;#x110000;")).toBe("&#x110000;");
+  });
+
+  it("retains existing leading-zero and surrogate behavior (regression #605)", () => {
+    expect(decodeHtml("&#00065; &#x000041;")).toBe("A A");
+    expect(decodeHtml("&#55296; &#xD800;")).toBe("\uD800 \uD800");
+  });
+
+  it("preserves unrecognized numeric syntax (regression #605)", () => {
+    expect(decodeHtml("&#-1; &#1.5; &#xZZ; &#X41; &#65"))
+      .toBe("&#-1; &#1.5; &#xZZ; &#X41; &#65");
+  });
 });

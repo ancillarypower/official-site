@@ -89,8 +89,8 @@ export function resolveRendered(val: unknown): string {
  * The return value is already decoded: callers must NOT pass it through
  * `decodeHtml` again. `decodeHtml` is not idempotent (it strips one entity
  * layer per call), so a second pass turns a title that literally shows
- * `&lt;` into `<`, and can throw `RangeError` on out-of-range numeric
- * entities (Issue #594).
+ * `&lt;` into `<` (Issue #594). Out-of-range numeric entities are preserved
+ * as-is (Issue #605).
  */
 export function getPostTitle(post: WpPost): string {
   return decodeHtml(post.title || post.name || `#${post.id}`);

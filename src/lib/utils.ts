@@ -35,13 +35,21 @@ const NAMED_ENTITIES: Record<string, string> = {
  */
 const ENTITY_RE = /&#(\d+);|&#x([\da-fA-F]+);|&([a-zA-Z][a-zA-Z0-9]*);/g;
 
+/** Preserve invalid numeric entities instead of throwing during rendering. */
+function safeFromCodePoint(codePoint: number, fallback: string): string {
+  return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+    ? String.fromCodePoint(codePoint)
+    : fallback;
+}
+
 /**
  * Decode HTML entities using a pure function (no DOM dependency).
  * Safe for React Concurrent Mode render phase and SSR environments.
  *
- * Supports all decimal/hex numeric entities via String.fromCodePoint
+ * Supports in-range decimal/hex numeric entities via String.fromCodePoint
  * and common named entities via a lookup table.
- * Unknown named entities are preserved as-is.
+ * Out-of-range numeric and unknown named entities are preserved as-is.
+ * Decodes one entity layer per call.
  */
 export function decodeHtml(html: string): string {
   if (!html) return "";
@@ -50,10 +58,10 @@ export function decodeHtml(html: string): string {
   // but doesn't match the named entity regex group
   return html.replace(ENTITY_RE, (match, decimal, hex, named) => {
     if (decimal !== undefined) {
-      return String.fromCodePoint(Number(decimal));
+      return safeFromCodePoint(Number(decimal), match);
     }
     if (hex !== undefined) {
-      return String.fromCodePoint(Number.parseInt(hex, 16));
+      return safeFromCodePoint(Number.parseInt(hex, 16), match);
     }
     // Named entity: look up with surrounding & and ;
     const key = `&${named};`;
