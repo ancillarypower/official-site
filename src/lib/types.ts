@@ -123,7 +123,7 @@ function buildSrcSet(
  * attributes on `<img>` elements (WCAG 1.1.1, Issue #118, Issue #580).
  *
  * Alt text priority:
- * 1. `wp:featuredmedia` (WordPress media library field)
+ * 1. `alt_text` from `wp:featuredmedia` (WordPress media library field)
  * 2. Post title as fallback (always non-empty)
  */
 export function getPostImage(
@@ -150,7 +150,7 @@ export const wooProductSchema = z.object({
   name: z.string(),
   price: z.string().default("0"),
   regular_price: z.string().default("0"),
-  sale_price: z.string().default(""),
+  sale_price: z.string().default("0"),
   short_description: z.string().default(""),
   stock_status: z.string().default("instock"),
   images: z
